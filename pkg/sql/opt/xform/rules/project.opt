@@ -64,3 +64,18 @@
 )
 =>
 (Project $input $projections $passthrough)
+
+# EliminateLookupJoinInsideProject is similar to EliminateIndexJoinInsideProject,
+# but it operates on InnerJoins with an empty filter
+# [EliminateLookupJoinInsideProject, Explore]
+# (Project
+#     (LookupJoin $input:* $on:*
+# (InnerJoin | LeftJoin | SemiJoin | AntiJoin
+#     $left:*
+#     (Select
+#         (Scan $scanPrivate:*) & (IsCanonicalScan $scanPrivate)
+#         $filters:*
+#     )
+#     $on:*
+#     $private:*
+# )

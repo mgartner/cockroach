@@ -271,8 +271,9 @@ func (c *CustomFuncs) PruneCols(target memo.RelExpr, neededCols opt.ColSet) memo
 		// Get the subset of the target expression's output columns that should
 		// not be pruned. Don't prune if the target output column is needed by a
 		// higher-level expression, or if it's not part of the PruneCols set.
-		pruneCols := DerivePruneCols(target).Difference(neededCols)
-		colSet := c.OutputCols(target).Difference(pruneCols)
+		// pruneCols := DerivePruneCols(target).Difference(neededCols)
+		// colSet := c.OutputCols(target).Difference(pruneCols)
+		colSet := c.OutputCols(target).Intersection(neededCols)
 		return c.f.ConstructProject(target, memo.EmptyProjectionsExpr, colSet)
 	}
 }
