@@ -11,6 +11,7 @@
 package xform
 
 import (
+	"fmt"
 	"math/rand"
 
 	"github.com/cockroachdb/cockroach/pkg/sql/opt"
@@ -500,6 +501,8 @@ func (o *Optimizer) optimizeGroupMember(
 		for i, n := 0, member.ChildCount(); i < n; i++ {
 			// Given required parent properties, get the properties required from
 			// the nth child.
+			str := o.FormatMemo(FmtPretty)
+			fmt.Println(str)
 			childRequired := BuildChildPhysicalProps(o.mem, member, i, required)
 
 			// Optimize the child with respect to those properties.

@@ -7075,3 +7075,28 @@ project
            │    └── s:3
            └── const-agg [as=b:4, outer=(4)]
                 └── b:4
+
+# Create a memo with a cycle.
+exec-ddl
+CREATE TABLE cycle (
+  k INT PRIMARY KEY,
+  a INT
+)
+----
+
+memo
+SELECT a + 1 FROM cycle WHERE a = 1
+----
+memo (not optimized, ~5KB, required=[presentation: ?column?:4])
+ ├── G1: (project G2 G3)
+ ├── G2: (select G4 G5) (select G2 G5)
+ ├── G3: (projections G6)
+ ├── G4: (scan t,cols=(2))
+ │    └── []
+ │         ├── best: (scan cycle,cols=(2))
+ │         └── cost: 1034.02
+ ├── G5: (filters G7)
+ ├── G6: (plus G8 G9)
+ ├── G7: (eq G8 G9)
+ ├── G8: (variable a)
+ └── G9: (const 1)

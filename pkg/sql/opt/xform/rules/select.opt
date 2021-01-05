@@ -259,3 +259,20 @@
     []
     (OutputCols $input)
 )
+
+# [MakeSelectCycle, Explore]
+# (Select $input:* $filters:*)
+# =>
+# (Select (Select $input $filters) $filters)
+
+[MakeSelectProjectCycle, Explore]
+(Select $input:* $filters:*)
+=>
+(Select
+    (Project
+        (Select $input $filters)
+        (MakeEmptyProjectionsExpr)
+        (OutputCols $input)
+    )
+    $filters
+)

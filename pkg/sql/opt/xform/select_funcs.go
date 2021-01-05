@@ -1731,3 +1731,7 @@ func (c *CustomFuncs) AddPrimaryKeyColsToScanPrivate(sp *memo.ScanPrivate) *memo
 func (c *CustomFuncs) TableIDFromScanPrivate(sp *memo.ScanPrivate) opt.TableID {
 	return sp.Table
 }
+
+func (c *CustomFuncs) MakeEmptyProjectionsExpr() memo.ProjectionsExpr {
+	return memo.EmptyProjectionsExpr
+}
