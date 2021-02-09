@@ -1387,12 +1387,12 @@ func IndexStoringMutator(rng *rand.Rand, stmts []tree.Statement) ([]tree.Stateme
 				continue
 			}
 			// If we don't have a storing list, make one with 50% chance.
-			if ast.Storing == nil && rng.Intn(2) == 0 {
+			if ast.Options.Storing == nil && rng.Intn(2) == 0 {
 				indexCols := mapFromIndexCols(tableInfo.pkCols)
 				for _, elem := range ast.Columns {
 					indexCols[elem.Column] = struct{}{}
 				}
-				ast.Storing = generateStoringCols(rng, tableInfo.columnNames, indexCols)
+				ast.Options.Storing = generateStoringCols(rng, tableInfo.columnNames, indexCols)
 				changed = true
 			}
 		case *tree.CreateTable:
@@ -1414,12 +1414,12 @@ func IndexStoringMutator(rng *rand.Rand, stmts []tree.Statement) ([]tree.Stateme
 					continue
 				}
 				// If we don't have a storing list, make one with 50% chance.
-				if idx.Storing == nil && rng.Intn(2) == 0 {
+				if idx.Options.Storing == nil && rng.Intn(2) == 0 {
 					indexCols := mapFromIndexCols(tableInfo.pkCols)
 					for _, elem := range idx.Columns {
 						indexCols[elem.Column] = struct{}{}
 					}
-					idx.Storing = generateStoringCols(rng, tableInfo.columnNames, indexCols)
+					idx.Options.Storing = generateStoringCols(rng, tableInfo.columnNames, indexCols)
 					changed = true
 				}
 			}
@@ -1444,9 +1444,9 @@ func PartialIndexMutator(rng *rand.Rand, stmts []tree.Statement) ([]tree.Stateme
 
 			// If the index is not already a partial index, make it a partial
 			// index with a 50% chance.
-			if ast.Predicate == nil && rng.Intn(2) == 0 {
+			if ast.Options.Predicate == nil && rng.Intn(2) == 0 {
 				tn := tree.MakeUnqualifiedTableName(ast.Table.ObjectName)
-				ast.Predicate = randPartialIndexPredicateFromCols(rng, tableInfo.columnsTableDefs, &tn)
+				ast.Options.Predicate = randPartialIndexPredicateFromCols(rng, tableInfo.columnsTableDefs, &tn)
 				changed = true
 			}
 		case *tree.CreateTable:
@@ -1471,9 +1471,9 @@ func PartialIndexMutator(rng *rand.Rand, stmts []tree.Statement) ([]tree.Stateme
 
 				// If the index is not already a partial index, make it a partial
 				// index with a 50% chance.
-				if idx.Predicate == nil && rng.Intn(2) == 0 {
+				if idx.Options.Predicate == nil && rng.Intn(2) == 0 {
 					tn := tree.MakeUnqualifiedTableName(ast.Table.ObjectName)
-					idx.Predicate = randPartialIndexPredicateFromCols(rng, tableInfo.columnsTableDefs, &tn)
+					idx.Options.Predicate = randPartialIndexPredicateFromCols(rng, tableInfo.columnsTableDefs, &tn)
 					changed = true
 				}
 			}

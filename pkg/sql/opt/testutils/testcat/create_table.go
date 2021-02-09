@@ -592,8 +592,8 @@ func (tt *Table) addIndexWithVersion(
 		version:  version,
 	}
 
-	if def.PartitionByIndex != nil {
-		idx.partitionBy = def.PartitionByIndex.PartitionBy
+	if def.Options.PartitionByIndex != nil {
+		idx.partitionBy = def.Options.PartitionByIndex.PartitionBy
 	}
 
 	// Look for name suffixes indicating this is a mutation index.
@@ -707,7 +707,7 @@ func (tt *Table) addIndexWithVersion(
 	}
 
 	// Add storing columns.
-	for _, name := range def.Storing {
+	for _, name := range def.Options.Storing {
 		if def.Inverted {
 			panic("inverted indexes don't support stored columns")
 		}
@@ -750,8 +750,8 @@ func (tt *Table) addIndexWithVersion(
 	}
 
 	// Add partial index predicate.
-	if def.Predicate != nil {
-		idx.predicate = tree.Serialize(def.Predicate)
+	if def.Options.Predicate != nil {
+		idx.predicate = tree.Serialize(def.Options.Predicate)
 	}
 
 	idx.ordinal = len(tt.Indexes)

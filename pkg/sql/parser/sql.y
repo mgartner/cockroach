@@ -434,6 +434,9 @@ func (u *sqlSymUnion) idxElem() tree.IndexElem {
 func (u *sqlSymUnion) idxElems() tree.IndexElemList {
     return u.val.(tree.IndexElemList)
 }
+func (u *sqlSymUnion) idxOptions() tree.IndexOptions {
+    return u.val.(tree.IndexOptions)
+}
 func (u *sqlSymUnion) dropBehavior() tree.DropBehavior {
     return u.val.(tree.DropBehavior)
 }
@@ -1028,6 +1031,7 @@ func (u *sqlSymUnion) objectNamePrefixList() tree.ObjectNamePrefixList {
 %type <tree.OrderBy> sort_clause single_sort_clause opt_sort_clause
 %type <[]*tree.Order> sortby_list
 %type <tree.IndexElemList> index_params create_as_params
+%type <tree.IndexOptions> index_options
 %type <tree.NameList> name_list privilege_list
 %type <[]int32> opt_array_bounds
 %type <tree.From> from_clause
@@ -1084,8 +1088,9 @@ func (u *sqlSymUnion) objectNamePrefixList() tree.ObjectNamePrefixList {
 %type <tree.Statement> begin_transaction
 %type <tree.TransactionModes> transaction_mode_list transaction_mode
 
+%type <*tree.ShardedIndexDef> hash_sharded
 %type <*tree.ShardedIndexDef> opt_hash_sharded
-%type <tree.NameList> opt_storing
+%type <tree.NameList> storing
 %type <*tree.ColumnTableDef> column_def
 %type <tree.TableDef> table_elem
 %type <tree.Expr> where_clause opt_where_clause
@@ -6258,43 +6263,30 @@ generated_as:
 
 
 index_def:
-  INDEX opt_index_name '(' index_params ')' opt_hash_sharded opt_storing opt_interleave opt_partition_by_index opt_with_storage_parameter_list opt_where_clause
+  INDEX opt_index_name '(' index_params ')' index_options
   {
     $$.val = &tree.IndexTableDef{
-      Name:             tree.Name($2),
-      Columns:          $4.idxElems(),
-      Sharded:          $6.shardedIndexDef(),
-      Storing:          $7.nameList(),
-      Interleave:       $8.interleave(),
-      PartitionByIndex: $9.partitionByIndex(),
-      StorageParams:    $10.storageParams(),
-      Predicate:        $11.expr(),
+      Name:    tree.Name($2),
+      Columns: $4.idxElems(),
+      Options: $6.idxOptions(),
     }
   }
-| UNIQUE INDEX opt_index_name '(' index_params ')' opt_hash_sharded opt_storing opt_interleave opt_partition_by_index opt_with_storage_parameter_list opt_where_clause
+| UNIQUE INDEX opt_index_name '(' index_params ')' index_options
   {
     $$.val = &tree.UniqueConstraintTableDef{
       IndexTableDef: tree.IndexTableDef {
-        Name:             tree.Name($3),
-        Columns:          $5.idxElems(),
-        Sharded:          $7.shardedIndexDef(),
-        Storing:          $8.nameList(),
-        Interleave:       $9.interleave(),
-        PartitionByIndex: $10.partitionByIndex(),
-        StorageParams:    $11.storageParams(),
-        Predicate:        $12.expr(),
+        Name:    tree.Name($3),
+        Columns: $5.idxElems(),
+        Options: $7.idxOptions(),
       },
     }
   }
-| INVERTED INDEX opt_name '(' index_params ')' opt_partition_by_index opt_with_storage_parameter_list opt_where_clause
+| INVERTED INDEX opt_name '(' index_params ')' index_options
   {
     $$.val = &tree.IndexTableDef{
-      Name:             tree.Name($3),
-      Columns:          $5.idxElems(),
-      Inverted:         true,
-      PartitionByIndex: $7.partitionByIndex(),
-      StorageParams:    $8.storageParams(),
-      Predicate:        $9.expr(),
+      Name:    tree.Name($3),
+      Columns: $5.idxElems(),
+      Options: $7.idxOptions(),
     }
   }
 
@@ -6328,27 +6320,24 @@ constraint_elem:
       Expr: $3.expr(),
     }
   }
-| UNIQUE opt_without_index '(' index_params ')'
-    opt_storing opt_interleave opt_partition_by_index opt_deferrable opt_where_clause
+// TODO(mgartner): Look at the diff for each and make sure there is a test for
+// any unsupported option of each type.
+| UNIQUE opt_without_index '(' index_params ')' index_options
   {
     $$.val = &tree.UniqueConstraintTableDef{
       WithoutIndex: $2.bool(),
       IndexTableDef: tree.IndexTableDef{
         Columns: $4.idxElems(),
-        Storing: $6.nameList(),
-        Interleave: $7.interleave(),
-        PartitionByIndex: $8.partitionByIndex(),
-        Predicate: $10.expr(),
+        Options: $6.idxOptions(),
       },
     }
   }
-| PRIMARY KEY '(' index_params ')' opt_hash_sharded opt_interleave
+| PRIMARY KEY '(' index_params ')' index_options
   {
     $$.val = &tree.UniqueConstraintTableDef{
       IndexTableDef: tree.IndexTableDef{
         Columns: $4.idxElems(),
-        Sharded: $6.shardedIndexDef(),
-        Interleave: $7.interleave(),
+        Options: $6.idxOptions(),
       },
       PrimaryKey: true,
     }
@@ -6494,22 +6483,24 @@ storing:
 // is a list of <columnID, value> pairs which will allow both adding
 // and dropping columns without rewriting indexes that are storing the
 // adjusted column.
-opt_storing:
+storing:
   storing '(' name_list ')'
   {
     $$.val = $3.nameList()
   }
-| /* EMPTY */
-  {
-    $$.val = tree.NameList(nil)
-  }
 
-opt_hash_sharded:
+hash_sharded:
   USING HASH WITH BUCKET_COUNT '=' a_expr
   {
     $$.val = &tree.ShardedIndexDef{
       ShardBuckets: $6.expr(),
     }
+  }
+
+opt_hash_sharded:
+  hash_sharded
+  {
+    $$.val = $1.shardedIndexDef()
   }
   | /* EMPTY */
   {
@@ -7011,76 +7002,56 @@ enum_val_list:
 // %SeeAlso: CREATE TABLE, SHOW INDEXES, SHOW CREATE,
 // WEBDOCS/create-index.html
 create_index_stmt:
-  CREATE opt_unique INDEX opt_concurrently opt_index_name ON table_name opt_index_access_method '(' index_params ')' opt_hash_sharded opt_storing opt_interleave opt_partition_by_index opt_with_storage_parameter_list opt_where_clause
+  CREATE opt_unique INDEX opt_concurrently opt_index_name ON table_name opt_index_access_method '(' index_params ')' index_options
   {
     table := $7.unresolvedObjectName().ToTableName()
     $$.val = &tree.CreateIndex{
+      Unique:           $2.bool(),
+      Concurrently:     $4.bool(),
       Name:             tree.Name($5),
       Table:            table,
-      Unique:           $2.bool(),
-      Columns:          $10.idxElems(),
-      Sharded:          $12.shardedIndexDef(),
-      Storing:          $13.nameList(),
-      Interleave:       $14.interleave(),
-      PartitionByIndex: $15.partitionByIndex(),
-      StorageParams:    $16.storageParams(),
-      Predicate:        $17.expr(),
       Inverted:         $8.bool(),
-      Concurrently:     $4.bool(),
+      Columns:          $10.idxElems(),
+      Options:          $12.idxOptions(),
     }
   }
-| CREATE opt_unique INDEX opt_concurrently IF NOT EXISTS index_name ON table_name opt_index_access_method '(' index_params ')' opt_hash_sharded opt_storing opt_interleave opt_partition_by_index opt_with_storage_parameter_list opt_where_clause
+| CREATE opt_unique INDEX opt_concurrently IF NOT EXISTS index_name ON table_name opt_index_access_method '(' index_params ')' index_options
   {
     table := $10.unresolvedObjectName().ToTableName()
     $$.val = &tree.CreateIndex{
-      Name:             tree.Name($8),
-      Table:            table,
-      Unique:           $2.bool(),
-      IfNotExists:      true,
-      Columns:          $13.idxElems(),
-      Sharded:          $15.shardedIndexDef(),
-      Storing:          $16.nameList(),
-      Interleave:       $17.interleave(),
-      PartitionByIndex: $18.partitionByIndex(),
-      Inverted:         $11.bool(),
-      StorageParams:    $19.storageParams(),
-      Predicate:        $20.expr(),
-      Concurrently:     $4.bool(),
+      Unique:      $2.bool(),
+      Name:        tree.Name($8),
+      Table:       table,
+      IfNotExists: true,
+      Columns:     $13.idxElems(),
+      Options:     $15.idxOptions(),
     }
   }
-| CREATE opt_unique INVERTED INDEX opt_concurrently opt_index_name ON table_name '(' index_params ')' opt_storing opt_interleave opt_partition_by_index opt_with_storage_parameter_list opt_where_clause
+| CREATE opt_unique INVERTED INDEX opt_concurrently opt_index_name ON table_name '(' index_params ')' index_options
   {
     table := $8.unresolvedObjectName().ToTableName()
     $$.val = &tree.CreateIndex{
-      Name:             tree.Name($6),
-      Table:            table,
-      Unique:           $2.bool(),
-      Inverted:         true,
-      Columns:          $10.idxElems(),
-      Storing:          $12.nameList(),
-      Interleave:       $13.interleave(),
-      PartitionByIndex: $14.partitionByIndex(),
-      StorageParams:    $15.storageParams(),
-      Predicate:        $16.expr(),
-      Concurrently:     $5.bool(),
+      Unique:       $2.bool(),
+      Concurrently: $5.bool(),
+      Name:         tree.Name($6),
+      Table:        table,
+      Inverted:     true,
+      Columns:      $10.idxElems(),
+      Options:      $12.idxOptions(),
     }
   }
-| CREATE opt_unique INVERTED INDEX opt_concurrently IF NOT EXISTS index_name ON table_name '(' index_params ')' opt_storing opt_interleave opt_partition_by_index opt_with_storage_parameter_list opt_where_clause
+| CREATE opt_unique INVERTED INDEX opt_concurrently IF NOT EXISTS index_name ON table_name '(' index_params ')' index_options
   {
     table := $11.unresolvedObjectName().ToTableName()
     $$.val = &tree.CreateIndex{
-      Name:             tree.Name($9),
-      Table:            table,
-      Unique:           $2.bool(),
-      Inverted:         true,
-      IfNotExists:      true,
-      Columns:          $13.idxElems(),
-      Storing:          $15.nameList(),
-      Interleave:       $16.interleave(),
-      PartitionByIndex: $17.partitionByIndex(),
-      StorageParams:    $18.storageParams(),
-      Predicate:        $19.expr(),
-      Concurrently:     $5.bool(),
+      Unique:       $2.bool(),
+      Concurrently: $5.bool(),
+      Name:         tree.Name($9),
+      Table:        table,
+      Inverted:     true,
+      IfNotExists:  true,
+      Columns:      $13.idxElems(),
+      Options:      $15.idxOptions(),
     }
   }
 | CREATE opt_unique INDEX error // SHOW HELP: CREATE INDEX
@@ -7183,6 +7154,57 @@ index_elem_options:
     }
     $$.val = tree.IndexElem{Direction: dir, NullsOrder: nullsOrder}
   }
+
+// index_options:
+//   index_option_elem
+//   {
+//
+//   }
+// | index_options index_option_elem
+//   {
+//     e := $1.idxOptions()
+//     e.
+//
+//   }
+
+// TODO
+index_options:
+  index_options hash_sharded
+  {
+    e := $1.idxOptions()
+    e.Sharded = $2.shardedIndexDef()
+  }
+| index_options storing
+  {
+    e := $1.idxOptions()
+    e.Storing = $2.nameList()
+    $$.val = e
+  }
+//| index_options opt_interleave
+//  {
+//    e := $1.idxOptions()
+//    e.Interleave = $2.interleave()
+//    $$.val = e
+//  }
+//| index_options opt_partition_by_index
+//  {
+//    e := $1.idxOptions()
+//    e.PartitionByIndex = $2.partitionByIndex()
+//    $$.val = e
+//  }
+//| index_options opt_with_storage_parameter_list
+//  {
+//    e := $1.idxOptions()
+//    e.StorageParams = $2.storageParams()
+//    $$.val = e
+//  }
+  index_options where_clause
+  {
+    e := $1.idxOptions()
+    e.Predicate = $2.expr()
+    $$.val = e
+  }
+| /* EMPTY */ { $$.val = tree.IndexOptions{} }
 
 opt_class:
   name { $$ = $1 }

@@ -6683,7 +6683,7 @@ func applyGeoindexConfigStorageParams(
 		evalCtx.Context,
 		&semaCtx,
 		evalCtx,
-		stmt.AST.(*tree.CreateIndex).StorageParams,
+		stmt.AST.(*tree.CreateIndex).Options.StorageParams,
 		&paramparse.IndexStorageParamObserver{IndexDesc: indexDesc},
 	); err != nil {
 		return geoindex.Config{}, err

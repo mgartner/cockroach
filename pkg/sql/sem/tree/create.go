@@ -176,23 +176,89 @@ func (l *IndexElemList) doc(p *PrettyCfg) pretty.Doc {
 	return p.commaSeparated(d...)
 }
 
-// CreateIndex represents a CREATE INDEX statement.
-type CreateIndex struct {
-	Name        Name
-	Table       TableName
-	Unique      bool
-	Inverted    bool
-	IfNotExists bool
-	Columns     IndexElemList
-	Sharded     *ShardedIndexDef
-	// Extra columns to be stored together with the indexed ones as an optimization
-	// for improved reading performance.
+// IndexOptions represents an optional SOMETIHGN... column with a direction in a CREATE INDEX statement.
+// TODO
+type IndexOptions struct {
+	Sharded          *ShardedIndexDef
 	Storing          NameList
 	Interleave       *InterleaveDef
 	PartitionByIndex *PartitionByIndex
 	StorageParams    StorageParams
 	Predicate        Expr
-	Concurrently     bool
+}
+
+// Format implements the NodeFormatter interface.
+func (node *IndexOptions) Format(ctx *FmtCtx) {
+	if node.Sharded != nil {
+		ctx.FormatNode(node.Sharded)
+	}
+	if node.Storing != nil {
+		ctx.WriteString(" STORING (")
+		ctx.FormatNode(&node.Storing)
+		ctx.WriteByte(')')
+	}
+	if node.Interleave != nil {
+		ctx.FormatNode(node.Interleave)
+	}
+	if node.PartitionByIndex != nil {
+		ctx.FormatNode(node.PartitionByIndex)
+	}
+	if node.StorageParams != nil {
+		ctx.WriteString(" WITH (")
+		ctx.FormatNode(&node.StorageParams)
+		ctx.WriteString(")")
+	}
+	if node.Predicate != nil {
+		if ctx.HasFlags(FmtPGCatalog) {
+			ctx.WriteString(" WHERE (")
+			ctx.FormatNode(node.Predicate)
+			ctx.WriteString(")")
+		} else {
+			ctx.WriteString(" WHERE ")
+			ctx.FormatNode(node.Predicate)
+		}
+	}
+}
+
+func (node *IndexOptions) doc(p *PrettyCfg) pretty.Doc {
+	clauses := make([]pretty.Doc, 0, 6)
+	if node.Sharded != nil {
+		clauses = append(clauses, p.Doc(node.Sharded))
+	}
+	if node.Storing != nil {
+		clauses = append(clauses, p.bracketKeyword(
+			"STORING", "(",
+			p.Doc(&node.Storing),
+			")", ""))
+	}
+	if node.Interleave != nil {
+		clauses = append(clauses, p.Doc(node.Interleave))
+	}
+	if node.PartitionByIndex != nil {
+		clauses = append(clauses, p.Doc(node.PartitionByIndex))
+	}
+	if node.StorageParams != nil {
+		clauses = append(
+			clauses,
+			p.bracketKeyword("WITH", "(", p.Doc(&node.StorageParams), ")", ""),
+		)
+	}
+	if node.Predicate != nil {
+		clauses = append(clauses, p.nestUnder(pretty.Keyword("WHERE"), p.Doc(node.Predicate)))
+	}
+	return pretty.Stack(clauses...)
+}
+
+// CreateIndex represents a CREATE INDEX statement.
+type CreateIndex struct {
+	Name         Name
+	Table        TableName
+	Unique       bool
+	Inverted     bool
+	IfNotExists  bool
+	Columns      IndexElemList
+	Concurrently bool
+	Options      IndexOptions
 }
 
 // Format implements the NodeFormatter interface.
@@ -228,35 +294,7 @@ func (node *CreateIndex) Format(ctx *FmtCtx) {
 	ctx.WriteString(" (")
 	ctx.FormatNode(&node.Columns)
 	ctx.WriteByte(')')
-	if node.Sharded != nil {
-		ctx.FormatNode(node.Sharded)
-	}
-	if len(node.Storing) > 0 {
-		ctx.WriteString(" STORING (")
-		ctx.FormatNode(&node.Storing)
-		ctx.WriteByte(')')
-	}
-	if node.Interleave != nil {
-		ctx.FormatNode(node.Interleave)
-	}
-	if node.PartitionByIndex != nil {
-		ctx.FormatNode(node.PartitionByIndex)
-	}
-	if node.StorageParams != nil {
-		ctx.WriteString(" WITH (")
-		ctx.FormatNode(&node.StorageParams)
-		ctx.WriteString(")")
-	}
-	if node.Predicate != nil {
-		if ctx.HasFlags(FmtPGCatalog) {
-			ctx.WriteString(" WHERE (")
-			ctx.FormatNode(node.Predicate)
-			ctx.WriteString(")")
-		} else {
-			ctx.WriteString(" WHERE ")
-			ctx.FormatNode(node.Predicate)
-		}
-	}
+	ctx.FormatNode(&node.Options)
 }
 
 // CreateTypeVariety represents a particular variety of user defined types.
@@ -790,15 +828,10 @@ type ColumnFamilyConstraint struct {
 // IndexTableDef represents an index definition within a CREATE TABLE
 // statement.
 type IndexTableDef struct {
-	Name             Name
-	Columns          IndexElemList
-	Sharded          *ShardedIndexDef
-	Storing          NameList
-	Interleave       *InterleaveDef
-	Inverted         bool
-	PartitionByIndex *PartitionByIndex
-	StorageParams    StorageParams
-	Predicate        Expr
+	Name     Name
+	Columns  IndexElemList
+	Inverted bool
+	Options  IndexOptions
 }
 
 // Format implements the NodeFormatter interface.
@@ -814,29 +847,7 @@ func (node *IndexTableDef) Format(ctx *FmtCtx) {
 	ctx.WriteByte('(')
 	ctx.FormatNode(&node.Columns)
 	ctx.WriteByte(')')
-	if node.Sharded != nil {
-		ctx.FormatNode(node.Sharded)
-	}
-	if node.Storing != nil {
-		ctx.WriteString(" STORING (")
-		ctx.FormatNode(&node.Storing)
-		ctx.WriteByte(')')
-	}
-	if node.Interleave != nil {
-		ctx.FormatNode(node.Interleave)
-	}
-	if node.PartitionByIndex != nil {
-		ctx.FormatNode(node.PartitionByIndex)
-	}
-	if node.StorageParams != nil {
-		ctx.WriteString(" WITH (")
-		ctx.FormatNode(&node.StorageParams)
-		ctx.WriteString(")")
-	}
-	if node.Predicate != nil {
-		ctx.WriteString(" WHERE ")
-		ctx.FormatNode(node.Predicate)
-	}
+	ctx.FormatNode(&node.Options)
 }
 
 // ConstraintTableDef represents a constraint definition within a CREATE TABLE
@@ -886,24 +897,7 @@ func (node *UniqueConstraintTableDef) Format(ctx *FmtCtx) {
 	ctx.WriteByte('(')
 	ctx.FormatNode(&node.Columns)
 	ctx.WriteByte(')')
-	if node.Sharded != nil {
-		ctx.FormatNode(node.Sharded)
-	}
-	if node.Storing != nil {
-		ctx.WriteString(" STORING (")
-		ctx.FormatNode(&node.Storing)
-		ctx.WriteByte(')')
-	}
-	if node.Interleave != nil {
-		ctx.FormatNode(node.Interleave)
-	}
-	if node.PartitionByIndex != nil {
-		ctx.FormatNode(node.PartitionByIndex)
-	}
-	if node.Predicate != nil {
-		ctx.WriteString(" WHERE ")
-		ctx.FormatNode(node.Predicate)
-	}
+	ctx.FormatNode(&node.Options)
 }
 
 // ReferenceAction is the method used to maintain referential integrity through
