@@ -13,6 +13,7 @@ package row
 import (
 	"bytes"
 	"context"
+	"fmt"
 
 	"github.com/cockroachdb/cockroach/pkg/kv"
 	"github.com/cockroachdb/cockroach/pkg/kv/kvserver/concurrency/lock"
@@ -23,6 +24,7 @@ import (
 	"github.com/cockroachdb/cockroach/pkg/util/admission"
 	"github.com/cockroachdb/cockroach/pkg/util/log"
 	"github.com/cockroachdb/cockroach/pkg/util/mon"
+	"github.com/cockroachdb/cockroach/pkg/util/size"
 	"github.com/cockroachdb/errors"
 )
 
@@ -67,7 +69,7 @@ type sendFunc func(
 // txnKVFetcher handles retrieval of key/values.
 type txnKVFetcher struct {
 	// "Constant" fields, provided by the caller.
-	sendFn sendFunc
+	sendFn sendFunc `size:"ignore"`
 	// spans is the list of Spans that will be read by this KV Fetcher. If an
 	// individual Span has only a start key, it will be interpreted as a
 	// single-key fetch and may use a GetRequest under the hood.
@@ -96,15 +98,15 @@ type txnKVFetcher struct {
 
 	origSpan         roachpb.Span
 	remainingBatches [][]byte
-	mon              *mon.BytesMonitor
-	acc              mon.BoundAccount
+	mon              *mon.BytesMonitor `size:"ignore""`
+	acc              mon.BoundAccount  `size:"ignore""`
 
 	// If set, we will use the production value for kvBatchSize.
 	forceProductionKVBatchSize bool
 
 	// For request and response admission control.
-	requestAdmissionHeader roachpb.AdmissionHeader
-	responseAdmissionQ     *admission.WorkQueue
+	requestAdmissionHeader roachpb.AdmissionHeader `size:"ignore"`
+	responseAdmissionQ     *admission.WorkQueue    `size:"ignore"`
 }
 
 var _ kvBatchFetcher = &txnKVFetcher{}
@@ -521,7 +523,7 @@ func (f *txnKVFetcher) fetch(ctx context.Context) error {
 // element before reslicing the outer slice.
 func popBatch(batches [][]byte) (batch []byte, remainingBatches [][]byte) {
 	batch, remainingBatches = batches[0], batches[1:]
-	batches[0] = nil
+	// batches[0] = nil
 	return batch, remainingBatches
 }
 
@@ -538,10 +540,10 @@ func (f *txnKVFetcher) nextBatch(
 	}
 	for len(f.responses) > 0 {
 		reply := f.responses[0].GetInner()
-		f.responses[0] = roachpb.ResponseUnion{}
+		// f.responses[0] = roachpb.ResponseUnion{}
 		f.responses = f.responses[1:]
 		origSpan := f.requestSpans[0]
-		f.requestSpans[0] = roachpb.Span{}
+		// f.requestSpans[0] = roachpb.Span{}
 		f.requestSpans = f.requestSpans[1:]
 		switch t := reply.(type) {
 		case *roachpb.ScanResponse:
@@ -573,12 +575,25 @@ func (f *txnKVFetcher) nextBatch(
 	if err := f.fetch(ctx); err != nil {
 		return false, nil, nil, roachpb.Span{}, err
 	}
+
 	return f.nextBatch(ctx)
 }
 
+const accThreshold = 2
+
 // close releases the resources of this txnKVFetcher.
 func (f *txnKVFetcher) close(ctx context.Context) {
-	f.responses = nil
-	f.remainingBatches = nil
+	// f.responses = nil
+	// f.remainingBatches = nil
+	used := f.acc.Used()
+	fmt.Println(used)
 	f.acc.Close(ctx)
+	if util.CrdbTestBuild {
+		used := f.acc.Used()
+		actual := size.Of(f)
+		diff := used - actual
+		if diff > used*accThreshold {
+			panic("SOMETHING IS WRONG WITH THE MEMORY ACCOUNTING")
+		}
+	}
 }
