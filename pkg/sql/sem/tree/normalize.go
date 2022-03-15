@@ -541,16 +541,6 @@ func (expr *NotExpr) normalize(v *NormalizeVisitor) TypedExpr {
 	return expr
 }
 
-func (expr *ParenExpr) normalize(v *NormalizeVisitor) TypedExpr {
-	return expr.TypedInnerExpr()
-}
-
-func (expr *AnnotateTypeExpr) normalize(v *NormalizeVisitor) TypedExpr {
-	// Type annotations have no runtime effect, so they can be removed after
-	// semantic analysis.
-	return expr.TypedInnerExpr()
-}
-
 func (expr *RangeCond) normalize(v *NormalizeVisitor) TypedExpr {
 	leftFrom, from := expr.TypedLeftFrom(), expr.TypedFrom()
 	leftTo, to := expr.TypedLeftTo(), expr.TypedTo()
@@ -682,6 +672,8 @@ func (v *NormalizeVisitor) VisitPre(expr Expr) (recurse bool, newExpr Expr) {
 	return true, expr
 }
 
+// TODO(mgartner): I think I njust nee dto constant normalization for
+// format_test.go.
 // VisitPost implements the Visitor interface.
 func (v *NormalizeVisitor) VisitPost(expr Expr) Expr {
 	if v.err != nil {

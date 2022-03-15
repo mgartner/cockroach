@@ -549,6 +549,54 @@ func (node *RangeCond) TypedTo() TypedExpr {
 	return node.To.(TypedExpr)
 }
 
+// func (node *RangeCond) Normalize() TypedExpr {
+// 	leftFrom, from := node.TypedLeftFrom(), node.TypedFrom()
+// 	leftTo, to := node.TypedLeftTo(), node.TypedTo()
+//
+// 	if (leftFrom == DNull || from == DNull) && (leftTo == DNull || to == DNull) {
+// 		return DNull
+// 	}
+//
+// 	leftCmp := GE
+// 	rightCmp := LE
+// 	if node.Not {
+// 		leftCmp = LT
+// 		rightCmp = GT
+// 	}
+//
+// 	// "a BETWEEN b AND c" -> "a >= b AND a <= c"
+// 	// "a NOT BETWEEN b AND c" -> "a < b OR a > c"
+// 	transform := func(from, to TypedExpr) TypedExpr {
+// 		var newLeft, newRight TypedExpr
+// 		if from == DNull {
+// 			newLeft = DNull
+// 		} else {
+// 			newLeft = NewTypedComparisonExpr(MakeComparisonOperator(leftCmp), leftFrom, from)
+// 		}
+// 		if to == DNull {
+// 			newRight = DNull
+// 		} else {
+// 			newRight = NewTypedComparisonExpr(MakeComparisonOperator(rightCmp), leftTo, to)
+// 		}
+// 		if node.Not {
+// 			return NewTypedOrExpr(newLeft, newRight)
+// 		}
+// 		return NewTypedAndExpr(newLeft, newRight)
+// 	}
+//
+// 	out := transform(from, to)
+// 	if node.Symmetric {
+// 		if node.Not {
+// 			// "a NOT BETWEEN SYMMETRIC b AND c" -> "(a < b OR a > c) AND (a < c OR a > b)"
+// 			out = NewTypedAndExpr(out, transform(to, from))
+// 		} else {
+// 			// "a BETWEEN SYMMETRIC b AND c" -> "(a >= b AND a <= c) OR (a >= c OR a <= b)"
+// 			out = NewTypedOrExpr(out, transform(to, from))
+// 		}
+// 	}
+// 	return out
+// }
+
 // IsOfTypeExpr represents an IS {,NOT} OF (type_list) expression.
 type IsOfTypeExpr struct {
 	Not   bool

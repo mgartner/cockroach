@@ -18,7 +18,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/cockroachdb/cockroach/pkg/settings/cluster"
 	"github.com/cockroachdb/cockroach/pkg/sql/parser"
 	"github.com/cockroachdb/cockroach/pkg/sql/sem/tree"
 	"github.com/cockroachdb/cockroach/pkg/sql/types"
@@ -66,13 +65,7 @@ func TestTypeCheckNormalize(t *testing.T) {
 				t.Fatal(err)
 			}
 			semaCtx := tree.MakeSemaContext()
-			typeChecked, err := tree.TypeCheck(ctx, expr, &semaCtx, types.Any)
-			if err != nil {
-				t.Fatal(err)
-			}
-			evalCtx := tree.NewTestingEvalContext(cluster.MakeTestingClusterSettings())
-			defer evalCtx.Stop(context.Background())
-			typedExpr, err := evalCtx.NormalizeExpr(typeChecked)
+			typedExpr, err := tree.TypeCheck(ctx, expr, &semaCtx, types.Any)
 			if err != nil {
 				t.Fatal(err)
 			}

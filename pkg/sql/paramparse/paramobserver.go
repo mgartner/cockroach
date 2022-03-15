@@ -55,9 +55,6 @@ func SetStorageParameters(
 		if err != nil {
 			return err
 		}
-		if typedExpr, err = evalCtx.NormalizeExpr(typedExpr); err != nil {
-			return err
-		}
 		datum, err := typedExpr.Eval(evalCtx)
 		if err != nil {
 			return err

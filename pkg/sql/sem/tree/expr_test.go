@@ -12,7 +12,6 @@ package tree_test
 
 import (
 	"context"
-	"reflect"
 	"testing"
 
 	"github.com/cockroachdb/cockroach/pkg/settings/cluster"
@@ -102,7 +101,7 @@ func TestStringConcat(t *testing.T) {
 }
 
 // TestExprString verifies that converting an expression to a string and back
-// doesn't change the (normalized) expression.
+// doesn't change the expression.
 func TestExprString(t *testing.T) {
 	defer leaktest.AfterTest(t)()
 	defer log.Scope(t).Close(t)
@@ -170,24 +169,6 @@ func TestExprString(t *testing.T) {
 		// printing an expression to keep adding parens.
 		if str2 := typedExpr2.String(); str != str2 {
 			t.Errorf("Print/parse/print cycle changes the string: `%s` vs `%s`", str, str2)
-		}
-		// Compare the normalized expressions.
-		ctx := tree.NewTestingEvalContext(cluster.MakeTestingClusterSettings())
-		defer ctx.Mon.Stop(context.Background())
-		normalized, err := ctx.NormalizeExpr(typedExpr)
-		if err != nil {
-			t.Fatalf("%s: %v", exprStr, err)
-		}
-		normalized2, err := ctx.NormalizeExpr(typedExpr2)
-		if err != nil {
-			t.Fatalf("%s: %v", exprStr, err)
-		}
-		if !reflect.DeepEqual(tree.StripMemoizedFuncs(normalized), tree.StripMemoizedFuncs(normalized2)) {
-			t.Errorf("normalized expressions differ\n"+
-				"original:     %s\n"+
-				"intermediate: %s\n"+
-				"before: %#v\n"+
-				"after:  %#v", exprStr, str, normalized, normalized2)
 		}
 	}
 }

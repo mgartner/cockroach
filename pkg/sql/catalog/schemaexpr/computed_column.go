@@ -20,7 +20,6 @@ import (
 	"github.com/cockroachdb/cockroach/pkg/sql/parser"
 	"github.com/cockroachdb/cockroach/pkg/sql/pgwire/pgcode"
 	"github.com/cockroachdb/cockroach/pkg/sql/pgwire/pgerror"
-	"github.com/cockroachdb/cockroach/pkg/sql/sem/transform"
 	"github.com/cockroachdb/cockroach/pkg/sql/sem/tree"
 	"github.com/cockroachdb/cockroach/pkg/sql/types"
 	"github.com/cockroachdb/cockroach/pkg/util/errorutil/unimplemented"
@@ -230,7 +229,6 @@ func MakeComputedExprs(
 	nr := newNameResolver(evalCtx, tableDesc.GetID(), tn, sourceColumns)
 	nr.addIVarContainerToSemaCtx(semaCtx)
 
-	var txCtx transform.ExprTransformContext
 	compExprIdx := 0
 	for _, col := range input {
 		if !col.IsComputed() {
@@ -254,9 +252,6 @@ func MakeComputedExprs(
 
 		typedExpr, err := tree.TypeCheck(ctx, expr, semaCtx, col.GetType())
 		if err != nil {
-			return nil, catalog.TableColSet{}, err
-		}
-		if typedExpr, err = txCtx.NormalizeExpr(evalCtx, typedExpr); err != nil {
 			return nil, catalog.TableColSet{}, err
 		}
 		computedExprs = append(computedExprs, typedExpr)

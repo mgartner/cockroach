@@ -15,7 +15,6 @@ import (
 
 	"github.com/cockroachdb/cockroach/pkg/sql/catalog"
 	"github.com/cockroachdb/cockroach/pkg/sql/parser"
-	"github.com/cockroachdb/cockroach/pkg/sql/sem/transform"
 	"github.com/cockroachdb/cockroach/pkg/sql/sem/tree"
 )
 
@@ -26,11 +25,7 @@ import (
 // For every column that has no default expression, a NULL expression is reported
 // as default.
 func MakeDefaultExprs(
-	ctx context.Context,
-	cols []catalog.Column,
-	txCtx *transform.ExprTransformContext,
-	evalCtx *tree.EvalContext,
-	semaCtx *tree.SemaContext,
+	ctx context.Context, cols []catalog.Column, evalCtx *tree.EvalContext, semaCtx *tree.SemaContext,
 ) ([]tree.TypedExpr, error) {
 	// Check to see if any of the columns have DEFAULT expressions. If there
 	// are no DEFAULT expressions, we don't bother with constructing the
@@ -68,9 +63,6 @@ func MakeDefaultExprs(
 		expr := exprs[defExprIdx]
 		typedExpr, err := tree.TypeCheck(ctx, expr, semaCtx, col.GetType())
 		if err != nil {
-			return nil, err
-		}
-		if typedExpr, err = txCtx.NormalizeExpr(evalCtx, typedExpr); err != nil {
 			return nil, err
 		}
 		defaultExprs = append(defaultExprs, typedExpr)

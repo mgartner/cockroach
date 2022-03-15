@@ -434,11 +434,6 @@ func selectPartitionExprs(
 		expr = tree.NewTypedOrExpr(expr, partExpr)
 	}
 
-	var err error
-	expr, err = evalCtx.NormalizeExpr(expr)
-	if err != nil {
-		return nil, err
-	}
 	// In order to typecheck during simplification and normalization, we used
 	// dummy IndexVars. Swap them out for actual column references.
 	finalExpr, err := tree.SimpleVisit(expr, func(e tree.Expr) (recurse bool, newExpr tree.Expr, _ error) {

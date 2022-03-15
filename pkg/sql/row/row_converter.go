@@ -21,7 +21,6 @@ import (
 	"github.com/cockroachdb/cockroach/pkg/sql/catalog/descs"
 	"github.com/cockroachdb/cockroach/pkg/sql/catalog/schemaexpr"
 	"github.com/cockroachdb/cockroach/pkg/sql/sem/builtins"
-	"github.com/cockroachdb/cockroach/pkg/sql/sem/transform"
 	"github.com/cockroachdb/cockroach/pkg/sql/sem/tree"
 	"github.com/cockroachdb/cockroach/pkg/sql/sqlerrors"
 	"github.com/cockroachdb/cockroach/pkg/sql/types"
@@ -319,7 +318,6 @@ func NewDatumRowConverter(
 		targetColIDs.Add(col.GetID())
 	}
 
-	var txCtx transform.ExprTransformContext
 	relevantColumns := func(col catalog.Column) bool {
 		return col.HasDefault() || col.IsComputed()
 	}
@@ -328,7 +326,7 @@ func NewDatumRowConverter(
 	// import workers.
 	semaCtxCopy := *baseSemaCtx
 	cols := schemaexpr.ProcessColumnSet(targetCols, tableDesc, relevantColumns)
-	defaultExprs, err := schemaexpr.MakeDefaultExprs(ctx, cols, &txCtx, c.EvalCtx, &semaCtxCopy)
+	defaultExprs, err := schemaexpr.MakeDefaultExprs(ctx, cols, c.EvalCtx, &semaCtxCopy)
 	if err != nil {
 		return nil, errors.Wrap(err, "process default and computed columns")
 	}

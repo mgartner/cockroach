@@ -4542,6 +4542,7 @@ func (expr *ParenExpr) Eval(ctx *EvalContext) (Datum, error) {
 
 // Eval implements the TypedExpr interface.
 func (expr *RangeCond) Eval(ctx *EvalContext) (Datum, error) {
+	// return expr.Normalize().Eval(ctx)
 	return nil, errors.AssertionFailedf("unhandled type %T", expr)
 }
 

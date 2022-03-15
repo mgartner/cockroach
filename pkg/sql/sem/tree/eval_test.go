@@ -82,11 +82,7 @@ func TestEval(t *testing.T) {
 		walkExpr(t, func(e tree.Expr) (tree.TypedExpr, error) {
 			// expr.TypeCheck to avoid constant folding.
 			semaCtx := tree.MakeSemaContext()
-			typedExpr, err := e.TypeCheck(ctx, &semaCtx, types.Any)
-			if err != nil {
-				return nil, err
-			}
-			return evalCtx.NormalizeExpr(typedExpr)
+			return e.TypeCheck(ctx, &semaCtx, types.Any)
 		})
 	})
 }

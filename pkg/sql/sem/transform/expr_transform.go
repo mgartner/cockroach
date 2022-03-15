@@ -20,25 +20,7 @@ import (
 // should be used in planner instance to avoid re-allocation of these
 // visitors between uses.
 type ExprTransformContext struct {
-	normalizeVisitor   tree.NormalizeVisitor
 	isAggregateVisitor IsAggregateVisitor
-}
-
-// NormalizeExpr is a wrapper around EvalContex.NormalizeExpr which
-// avoids allocation of a normalizeVisitor. See normalize.go for
-// details.
-func (t *ExprTransformContext) NormalizeExpr(
-	ctx *tree.EvalContext, typedExpr tree.TypedExpr,
-) (tree.TypedExpr, error) {
-	if ctx.SkipNormalize {
-		return typedExpr, nil
-	}
-	t.normalizeVisitor = tree.MakeNormalizeVisitor(ctx)
-	expr, _ := tree.WalkExpr(&t.normalizeVisitor, typedExpr)
-	if err := t.normalizeVisitor.Err(); err != nil {
-		return nil, err
-	}
-	return expr.(tree.TypedExpr), nil
 }
 
 // AggregateInExpr determines if an Expr contains an aggregate function.

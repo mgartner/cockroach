@@ -16,7 +16,6 @@ import (
 	"github.com/cockroachdb/cockroach/pkg/sql/catalog"
 	"github.com/cockroachdb/cockroach/pkg/sql/catalog/descpb"
 	"github.com/cockroachdb/cockroach/pkg/sql/parser"
-	"github.com/cockroachdb/cockroach/pkg/sql/sem/transform"
 	"github.com/cockroachdb/cockroach/pkg/sql/sem/tree"
 	"github.com/cockroachdb/cockroach/pkg/sql/types"
 )
@@ -90,7 +89,6 @@ func MakePartialIndexExprs(
 	nr := newNameResolver(evalCtx, tableDesc.GetID(), tn, cols)
 	nr.addIVarContainerToSemaCtx(semaCtx)
 
-	var txCtx transform.ExprTransformContext
 	for _, idx := range indexes {
 		if idx.IsPartial() {
 			expr, err := parser.ParseExpr(idx.GetPredicate())
@@ -113,10 +111,6 @@ func MakePartialIndexExprs(
 
 			typedExpr, err := tree.TypeCheck(ctx, expr, semaCtx, types.Bool)
 			if err != nil {
-				return nil, refColIDs, err
-			}
-
-			if typedExpr, err = txCtx.NormalizeExpr(evalCtx, typedExpr); err != nil {
 				return nil, refColIDs, err
 			}
 

@@ -28,7 +28,6 @@ import (
 	"github.com/cockroachdb/cockroach/pkg/sql/row"
 	"github.com/cockroachdb/cockroach/pkg/sql/rowenc"
 	"github.com/cockroachdb/cockroach/pkg/sql/rowinfra"
-	"github.com/cockroachdb/cockroach/pkg/sql/sem/transform"
 	"github.com/cockroachdb/cockroach/pkg/sql/sem/tree"
 	"github.com/cockroachdb/cockroach/pkg/sql/sqlerrors"
 	"github.com/cockroachdb/cockroach/pkg/sql/types"
@@ -174,9 +173,7 @@ func (cb *ColumnBackfiller) InitForLocalUse(
 	rowMetrics *row.Metrics,
 ) error {
 	cb.initCols(desc)
-	defaultExprs, err := schemaexpr.MakeDefaultExprs(
-		ctx, cb.added, &transform.ExprTransformContext{}, evalCtx, semaCtx,
-	)
+	defaultExprs, err := schemaexpr.MakeDefaultExprs(ctx, cb.added, evalCtx, semaCtx)
 	if err != nil {
 		return err
 	}
@@ -221,9 +218,7 @@ func (cb *ColumnBackfiller) InitForDistributedUse(
 		semaCtx := tree.MakeSemaContext()
 		semaCtx.TypeResolver = &resolver
 		var err error
-		defaultExprs, err = schemaexpr.MakeDefaultExprs(
-			ctx, cb.added, &transform.ExprTransformContext{}, evalCtx, &semaCtx,
-		)
+		defaultExprs, err = schemaexpr.MakeDefaultExprs(ctx, cb.added, evalCtx, &semaCtx)
 		if err != nil {
 			return err
 		}
@@ -537,9 +532,7 @@ func constructExprs(
 	}
 
 	// Determine the exprs for newly added, non-computed columns.
-	defaultExprs, err := schemaexpr.MakeDefaultExprs(
-		ctx, addedCols, &transform.ExprTransformContext{}, evalCtx, semaCtx,
-	)
+	defaultExprs, err := schemaexpr.MakeDefaultExprs(ctx, addedCols, evalCtx, semaCtx)
 	if err != nil {
 		return nil, nil, catalog.TableColSet{}, err
 	}

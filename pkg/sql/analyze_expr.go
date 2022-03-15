@@ -22,7 +22,6 @@ import (
 // - replacing sub-queries by a sql.subquery node;
 // - resolving names (optional);
 // - type checking (with optional type enforcement);
-// - normalization.
 // The parameters sources and IndexedVars, if both are non-nil, indicate
 // name resolution should be performed. The IndexedVars map will be filled
 // as a result.
@@ -56,10 +55,5 @@ func (p *planner) analyzeExpr(
 		typedExpr, err = tree.TypeCheck(ctx, resolved, &p.semaCtx, expectedType)
 	}
 	p.semaCtx.IVarContainer = nil
-	if err != nil {
-		return nil, err
-	}
-
-	// Normalize.
-	return p.txCtx.NormalizeExpr(p.EvalContext(), typedExpr)
+	return typedExpr, err
 }
