@@ -200,6 +200,8 @@ type TableMeta struct {
 	// is done at most once per table reference in a query.
 	checkConstraintsStats map[ColumnID]interface{}
 
+	indexCols []ColSet
+
 	// anns annotates the table metadata with arbitrary data.
 	anns [maxTableAnnIDCount]interface{}
 }
@@ -271,14 +273,28 @@ func (tm *TableMeta) copyFrom(from *TableMeta, copyScalarFn func(Expr) Expr) {
 // IndexColumns returns the set of table columns in the given index.
 // TODO(justin): cache this value in the table metadata.
 func (tm *TableMeta) IndexColumns(indexOrd int) ColSet {
-	index := tm.Table.Index(indexOrd)
-
-	var indexCols ColSet
-	for i, n := 0, index.ColumnCount(); i < n; i++ {
-		ord := index.Column(i).Ordinal()
-		indexCols.Add(tm.MetaID.ColumnID(ord))
+	if tm.indexCols == nil {
+		tm.indexCols = make([]ColSet, tm.Table.IndexCount())
 	}
-	return indexCols
+	if tm.indexCols[indexOrd].Empty() {
+		index := tm.Table.Index(indexOrd)
+
+		var indexCols ColSet
+		for i, n := 0, index.ColumnCount(); i < n; i++ {
+			ord := index.Column(i).Ordinal()
+			indexCols.Add(tm.MetaID.ColumnID(ord))
+		}
+		tm.indexCols[indexOrd] = indexCols
+	}
+	return tm.indexCols[indexOrd]
+	// index := tm.Table.Index(indexOrd)
+	//
+	// var indexCols ColSet
+	// for i, n := 0, index.ColumnCount(); i < n; i++ {
+	// 	ord := index.Column(i).Ordinal()
+	// 	indexCols.Add(tm.MetaID.ColumnID(ord))
+	// }
+	// return indexCols
 }
 
 // IndexColumnsMapInverted returns the set of table columns in the given index.
