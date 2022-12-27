@@ -2247,20 +2247,6 @@ func typeCheckComparisonOp(
 		}
 		return typedLeft, typedRight, fn, false, nil
 
-	case leftIsTuple && rightIsTuple:
-		fn, ok := ops.LookupImpl(types.AnyTuple, types.AnyTuple)
-		if !ok {
-			sig := fmt.Sprintf(compSignatureFmt, types.AnyTuple, op, types.AnyTuple)
-			return nil, nil, nil, false,
-				pgerror.Newf(pgcode.InvalidParameterValue, unsupportedCompErrFmt, sig)
-		}
-		// Using non-folded left and right to avoid having to swap later.
-		typedLeft, typedRight, err := typeCheckTupleComparison(ctx, semaCtx, op, left.(*Tuple), right.(*Tuple))
-		if err != nil {
-			return nil, nil, nil, false, err
-		}
-		return typedLeft, typedRight, fn, false, nil
-
 	case leftIsTuple || rightIsTuple:
 		// Tuple must compare with a tuple type, as handled above.
 		typedLeft, errLeft := foldedLeft.TypeCheck(ctx, semaCtx, types.Any)
@@ -2294,6 +2280,29 @@ func typeCheckComparisonOp(
 	rightReturn := rightExpr.ResolvedType()
 	leftFamily := leftReturn.Family()
 	rightFamily := rightReturn.Family()
+
+	// Tuples cannot be compared if they have a different number of elements.
+	//
+	// NOTE: The overload type checker above has already checked that the
+	// element types at each index in the tuples can be compared.
+	if leftFamily == types.TupleFamily && rightFamily == types.TupleFamily {
+		// Tuples cannot be compared if they have a different number of elements.
+		if len(leftReturn.TupleContents()) != len(rightReturn.TupleContents()) {
+			return nil, nil, nil, false, pgerror.Newf(pgcode.DatatypeMismatch,
+				"cannot compare record types with different number of columns")
+		}
+
+		for i := range l
+
+		// Using non-folded left and right to avoid having to swap later.
+		typedLeft, typedRight, err := typeCheckTupleComparison(ctx, semaCtx, op, left.(*Tuple), right.(*Tuple))
+		if err != nil {
+			return nil, nil, nil, false, err
+		}
+
+		leftSubExprTyped, rightSubExprTyped, _, _, err := typeCheckComparisonOp(ctx, semaCtx, op, leftSubExpr, rightSubExpr)
+
+	}
 
 	// Return early if at least one overload is possible, NULL is an argument,
 	// and none of the overloads accept NULL.
@@ -2744,17 +2753,10 @@ func checkAllExprsAreTuplesOrNulls(ctx context.Context, semaCtx *SemaContext, ex
 func checkAllTuplesHaveLength(exprs []Expr, expectedLen int) error {
 	for _, expr := range exprs {
 		if t, isTuple := expr.(*Tuple); isTuple {
-			if err := checkTupleHasLength(t, expectedLen); err != nil {
-				return err
+			if len(t.Exprs) != expectedLen {
+				return pgerror.Newf(pgcode.DatatypeMismatch, "expected tuple %v to have a length of %d", t, expectedLen)
 			}
 		}
-	}
-	return nil
-}
-
-func checkTupleHasLength(t *Tuple, expectedLen int) error {
-	if len(t.Exprs) != expectedLen {
-		return pgerror.Newf(pgcode.DatatypeMismatch, "expected tuple %v to have a length of %d", t, expectedLen)
 	}
 	return nil
 }

@@ -1,5 +1,5 @@
 statement ok
-CREATE TABLE tb(unused INT); INSERT INTO tb VALUES (1)
+CREATE TABLE tb(unused INT); INSERT INTO tb VALUES (2)
 
 subtest empty_tuple
 
@@ -140,10 +140,10 @@ SELECT
 a     b     c      d
 true  NULL  false  NULL
 
-statement error pq: tuples \(1, 2\), \(1, 'hi'\) are not comparable at index 2: unsupported comparison operator
+statement error pgcode 42804 unsupported comparison: string to int
 SELECT (1, 2) > (1, 'hi') FROM tb
 
-statement error pq: expected tuple \(1, 2, 3\) to have a length of 2
+statement error pgcode 42804 cannot compare record types with different number of columns
 SELECT (1, 2) > (1, 2, 3) FROM tb
 
 statement ok
@@ -1237,5 +1237,24 @@ SELECT * FROM (
 ({15181},{})
 ({1534},"{""(infinity,cat)""}")
 NULL
+
+subtest end
+
+subtest regression_94087
+
+statement error pgcode 42804 cannot compare record types with different number of columns
+SELECT (1, 2) < (ROW())
+
+statement error pgcode 42804 cannot compare record types with different number of columns
+SELECT (1, 2) < CASE WHEN true THEN (1, 2, 3) ELSE (1, 2, 3) END
+
+statement ok
+CREATE TABLE t94087 (a INT, b INT)
+
+statement error pgcode 42804 cannot compare record types with different number of columns
+SELECT * FROM t94087 WHERE (a, b) < (ROW())
+
+statement error pgcode 42804 cannot compare record types with different number of columns
+SELECT * FROM t94087 WHERE (a, b) < (())
 
 subtest end
