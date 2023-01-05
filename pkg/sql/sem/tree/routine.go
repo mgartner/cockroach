@@ -62,31 +62,19 @@ type RoutineExpr struct {
 	// or leakproof function will see a snapshot of the data as of the start of
 	// the statement calling the function.
 	Volatility volatility.V
-
-	// CalledOnNullInput is true if the function should be called when any of
-	// its inputs are NULL. If false, the function will not be evaluated in the
-	// presence of null inputs, and will instead evaluate directly to NULL.
-	CalledOnNullInput bool
 }
 
 // NewTypedRoutineExpr returns a new RoutineExpr that is well-typed.
 func NewTypedRoutineExpr(
-	name string,
-	args TypedExprs,
-	planFn RoutinePlanFn,
-	numStmts int,
-	typ *types.T,
-	v volatility.V,
-	calledOnNullInput bool,
+	name string, args TypedExprs, planFn RoutinePlanFn, numStmts int, typ *types.T, v volatility.V,
 ) *RoutineExpr {
 	return &RoutineExpr{
-		Args:              args,
-		PlanFn:            planFn,
-		NumStmts:          numStmts,
-		Typ:               typ,
-		Volatility:        v,
-		CalledOnNullInput: calledOnNullInput,
-		Name:              name,
+		Args:       args,
+		PlanFn:     planFn,
+		NumStmts:   numStmts,
+		Typ:        typ,
+		Volatility: v,
+		Name:       name,
 	}
 }
 
