@@ -115,33 +115,17 @@ norm expect=InlineWith
 WITH foo AS (SELECT 1), bar AS (SELECT 2) SELECT (SELECT * FROM foo) + (SELECT * FROM bar)
 ----
 values
- ├── columns: "?column?":5
+ ├── columns: "?column?":5!null
  ├── cardinality: [1 - 1]
- ├── immutable
  ├── key: ()
  ├── fd: ()-->(5)
- └── tuple
-      └── plus
-           ├── subquery
-           │    └── values
-           │         ├── columns: "?column?":3!null
-           │         ├── cardinality: [1 - 1]
-           │         ├── key: ()
-           │         ├── fd: ()-->(3)
-           │         └── (1,)
-           └── subquery
-                └── values
-                     ├── columns: "?column?":4!null
-                     ├── cardinality: [1 - 1]
-                     ├── key: ()
-                     ├── fd: ()-->(4)
-                     └── (2,)
+ └── (3,)
 
 norm expect=InlineWith
 WITH foo AS (SELECT 1), bar AS (SELECT 2) SELECT (SELECT * FROM foo) + (SELECT * FROM bar) + (SELECT * FROM bar)
 ----
 with &2 (bar)
- ├── columns: "?column?":6
+ ├── columns: "?column?":6!null
  ├── cardinality: [1 - 1]
  ├── immutable
  ├── key: ()
@@ -152,38 +136,48 @@ with &2 (bar)
  │    ├── key: ()
  │    ├── fd: ()-->(2)
  │    └── (2,)
- └── values
-      ├── columns: "?column?":6
+ └── project
+      ├── columns: "?column?":6!null
       ├── cardinality: [1 - 1]
       ├── immutable
       ├── key: ()
       ├── fd: ()-->(6)
-      └── tuple
-           └── plus
-                ├── plus
-                │    ├── subquery
-                │    │    └── values
-                │    │         ├── columns: "?column?":3!null
-                │    │         ├── cardinality: [1 - 1]
-                │    │         ├── key: ()
-                │    │         ├── fd: ()-->(3)
-                │    │         └── (1,)
-                │    └── subquery
-                │         └── with-scan &2 (bar)
-                │              ├── columns: "?column?":4!null
-                │              ├── mapping:
-                │              │    └──  "?column?":2 => "?column?":4
-                │              ├── cardinality: [1 - 1]
-                │              ├── key: ()
-                │              └── fd: ()-->(4)
-                └── subquery
-                     └── with-scan &2 (bar)
-                          ├── columns: "?column?":5!null
-                          ├── mapping:
-                          │    └──  "?column?":2 => "?column?":5
-                          ├── cardinality: [1 - 1]
-                          ├── key: ()
-                          └── fd: ()-->(5)
+      ├── inner-join (cross)
+      │    ├── columns: "?column?":3!null "?column?":4!null "?column?":5!null
+      │    ├── cardinality: [1 - 1]
+      │    ├── multiplicity: left-rows(exactly-one), right-rows(exactly-one)
+      │    ├── key: ()
+      │    ├── fd: ()-->(3-5)
+      │    ├── inner-join (cross)
+      │    │    ├── columns: "?column?":3!null "?column?":4!null
+      │    │    ├── cardinality: [1 - 1]
+      │    │    ├── multiplicity: left-rows(exactly-one), right-rows(exactly-one)
+      │    │    ├── key: ()
+      │    │    ├── fd: ()-->(3,4)
+      │    │    ├── values
+      │    │    │    ├── columns: "?column?":3!null
+      │    │    │    ├── cardinality: [1 - 1]
+      │    │    │    ├── key: ()
+      │    │    │    ├── fd: ()-->(3)
+      │    │    │    └── (1,)
+      │    │    ├── with-scan &2 (bar)
+      │    │    │    ├── columns: "?column?":4!null
+      │    │    │    ├── mapping:
+      │    │    │    │    └──  "?column?":2 => "?column?":4
+      │    │    │    ├── cardinality: [1 - 1]
+      │    │    │    ├── key: ()
+      │    │    │    └── fd: ()-->(4)
+      │    │    └── filters (true)
+      │    ├── with-scan &2 (bar)
+      │    │    ├── columns: "?column?":5!null
+      │    │    ├── mapping:
+      │    │    │    └──  "?column?":2 => "?column?":5
+      │    │    ├── cardinality: [1 - 1]
+      │    │    ├── key: ()
+      │    │    └── fd: ()-->(5)
+      │    └── filters (true)
+      └── projections
+           └── "?column?":5 + ("?column?":3 + "?column?":4) [as="?column?":6, outer=(3-5), immutable]
 
 norm expect=InlineWith
 WITH foo AS (SELECT 1), bar AS (SELECT 2) SELECT * FROM foo CROSS JOIN bar CROSS JOIN bar AS bar2
@@ -384,19 +378,24 @@ anti-join-apply
  │    ├── columns: k:2!null i:3 f:4 s:5 j:6
  │    ├── key: (2)
  │    └── fd: (2)-->(3-6)
- ├── values
- │    ├── columns: column1:10
+ ├── inner-join-apply
+ │    ├── columns: column1:9!null column1:10
  │    ├── outer: (2)
  │    ├── cardinality: [2 - 2]
- │    ├── (k:2,)
- │    └── tuple
- │         └── subquery
- │              └── values
- │                   ├── columns: column1:9!null
- │                   ├── cardinality: [1 - 1]
- │                   ├── key: ()
- │                   ├── fd: ()-->(9)
- │                   └── (1,)
+ │    ├── fd: ()-->(9)
+ │    ├── values
+ │    │    ├── columns: column1:9!null
+ │    │    ├── cardinality: [1 - 1]
+ │    │    ├── key: ()
+ │    │    ├── fd: ()-->(9)
+ │    │    └── (1,)
+ │    ├── values
+ │    │    ├── columns: column1:10
+ │    │    ├── outer: (2,9)
+ │    │    ├── cardinality: [2 - 2]
+ │    │    ├── (k:2,)
+ │    │    └── (column1:9,)
+ │    └── filters (true)
  └── filters
       └── column1:10 = k:2 [outer=(2,10), constraints=(/2: (/NULL - ]; /10: (/NULL - ]), fd=(2)==(10), (10)==(2)]
 

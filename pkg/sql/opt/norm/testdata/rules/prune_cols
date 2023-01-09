@@ -5170,50 +5170,44 @@ project
  ├── columns: "?column?":18
  ├── fd: ()-->(18)
  ├── inner-join (cross)
- │    ├── columns: u:13!null
  │    ├── scan table41772
  │    ├── union-all
- │    │    ├── columns: u:13!null
- │    │    ├── left columns: column1:9
- │    │    ├── right columns: column1:11
  │    │    ├── cardinality: [0 - 3]
- │    │    ├── select
- │    │    │    ├── columns: column1:9!null
+ │    │    ├── project
  │    │    │    ├── cardinality: [0 - 1]
  │    │    │    ├── key: ()
- │    │    │    ├── fd: ()-->(9)
- │    │    │    ├── values
- │    │    │    │    ├── columns: column1:9
- │    │    │    │    ├── cardinality: [1 - 1]
- │    │    │    │    ├── key: ()
- │    │    │    │    ├── fd: ()-->(9)
- │    │    │    │    └── tuple
- │    │    │    │         └── subquery
- │    │    │    │              └── max1-row
- │    │    │    │                   ├── columns: bool:8!null
- │    │    │    │                   ├── error: "more than one row returned by a subquery used as an expression"
- │    │    │    │                   ├── cardinality: [0 - 1]
- │    │    │    │                   ├── key: ()
- │    │    │    │                   ├── fd: ()-->(8)
- │    │    │    │                   └── project
- │    │    │    │                        ├── columns: bool:8!null
- │    │    │    │                        ├── fd: ()-->(8)
- │    │    │    │                        ├── scan table41772
- │    │    │    │                        └── projections
- │    │    │    │                             └── true [as=bool:8]
- │    │    │    └── filters
- │    │    │         └── column1:9 [outer=(9), constraints=(/9: [/true - /true]; tight), fd=()-->(9)]
- │    │    └── select
- │    │         ├── columns: column1:11!null
+ │    │    │    └── select
+ │    │    │         ├── columns: bool:8!null
+ │    │    │         ├── cardinality: [0 - 1]
+ │    │    │         ├── key: ()
+ │    │    │         ├── fd: ()-->(8)
+ │    │    │         ├── max1-row
+ │    │    │         │    ├── columns: bool:8!null
+ │    │    │         │    ├── error: "more than one row returned by a subquery used as an expression"
+ │    │    │         │    ├── cardinality: [0 - 1]
+ │    │    │         │    ├── key: ()
+ │    │    │         │    ├── fd: ()-->(8)
+ │    │    │         │    └── project
+ │    │    │         │         ├── columns: bool:8!null
+ │    │    │         │         ├── fd: ()-->(8)
+ │    │    │         │         ├── scan table41772
+ │    │    │         │         └── projections
+ │    │    │         │              └── true [as=bool:8]
+ │    │    │         └── filters
+ │    │    │              └── bool:8 [outer=(8), constraints=(/8: [/true - /true]; tight), fd=()-->(8)]
+ │    │    └── project
  │    │         ├── cardinality: [0 - 2]
- │    │         ├── fd: ()-->(11)
- │    │         ├── values
- │    │         │    ├── columns: column1:11
- │    │         │    ├── cardinality: [2 - 2]
- │    │         │    ├── (NULL,)
- │    │         │    └── (false,)
- │    │         └── filters
- │    │              └── column1:11 [outer=(11), constraints=(/11: [/true - /true]; tight), fd=()-->(11)]
+ │    │         └── select
+ │    │              ├── columns: column1:11!null
+ │    │              ├── cardinality: [0 - 2]
+ │    │              ├── fd: ()-->(11)
+ │    │              ├── values
+ │    │              │    ├── columns: column1:11
+ │    │              │    ├── cardinality: [2 - 2]
+ │    │              │    ├── (NULL,)
+ │    │              │    └── (false,)
+ │    │              └── filters
+ │    │                   └── column1:11 [outer=(11), constraints=(/11: [/true - /true]; tight), fd=()-->(11)]
  │    └── filters (true)
  └── projections
       └── NULL [as="?column?":18]

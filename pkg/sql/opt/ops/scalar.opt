@@ -1260,6 +1260,7 @@ define UDFPrivate {
     # previous statements in the function body. In contrast, a stable,
     # immutable, or leakproof function will see a snapshot of the data as of the
     # start of the statement calling the function.
+    # DisableInline bool
     Volatility Volatility
 }
 

@@ -7443,68 +7443,52 @@ SELECT k FROM d WHERE (u = 1 OR v = 1) AND EXISTS (SELECT u, v FROM a)
 project
  ├── columns: k:1!null
  ├── key: (1)
- └── distinct-on
+ └── semi-join (cross)
       ├── columns: d.k:1!null d.u:2 d.v:3
-      ├── grouping columns: d.k:1!null
-      ├── internal-ordering: +1
       ├── key: (1)
       ├── fd: (1)-->(2,3)
-      ├── union-all
+      ├── distinct-on
       │    ├── columns: d.k:1!null d.u:2 d.v:3
-      │    ├── left columns: d.k:12 d.u:13 d.v:14
-      │    ├── right columns: d.k:18 d.u:19 d.v:20
-      │    ├── ordering: +1
-      │    ├── index-join d
-      │    │    ├── columns: d.k:12!null d.u:13!null d.v:14
-      │    │    ├── key: (12)
-      │    │    ├── fd: ()-->(13), (12)-->(14)
-      │    │    ├── ordering: +12 opt(13) [actual: +12]
-      │    │    └── select
-      │    │         ├── columns: d.k:12!null d.u:13!null
-      │    │         ├── key: (12)
-      │    │         ├── fd: ()-->(13)
-      │    │         ├── ordering: +12 opt(13) [actual: +12]
-      │    │         ├── scan d@u
-      │    │         │    ├── columns: d.k:12!null d.u:13!null
-      │    │         │    ├── constraint: /13/12: [/1 - /1]
-      │    │         │    ├── key: (12)
-      │    │         │    ├── fd: ()-->(13)
-      │    │         │    └── ordering: +12 opt(13) [actual: +12]
-      │    │         └── filters
-      │    │              └── exists [subquery]
-      │    │                   └── scan a
-      │    │                        ├── columns: a.u:8 a.v:9
-      │    │                        ├── limit: 1
-      │    │                        ├── key: ()
-      │    │                        └── fd: ()-->(8,9)
-      │    └── index-join d
-      │         ├── columns: d.k:18!null d.u:19 d.v:20!null
-      │         ├── key: (18)
-      │         ├── fd: ()-->(20), (18)-->(19)
-      │         ├── ordering: +18 opt(20) [actual: +18]
-      │         └── select
-      │              ├── columns: d.k:18!null d.v:20!null
-      │              ├── key: (18)
-      │              ├── fd: ()-->(20)
-      │              ├── ordering: +18 opt(20) [actual: +18]
-      │              ├── scan d@v
-      │              │    ├── columns: d.k:18!null d.v:20!null
-      │              │    ├── constraint: /20/18: [/1 - /1]
-      │              │    ├── key: (18)
-      │              │    ├── fd: ()-->(20)
-      │              │    └── ordering: +18 opt(20) [actual: +18]
-      │              └── filters
-      │                   └── exists [subquery]
-      │                        └── scan a
-      │                             ├── columns: a.u:8 a.v:9
-      │                             ├── limit: 1
-      │                             ├── key: ()
-      │                             └── fd: ()-->(8,9)
-      └── aggregations
-           ├── const-agg [as=d.u:2, outer=(2)]
-           │    └── d.u:2
-           └── const-agg [as=d.v:3, outer=(3)]
-                └── d.v:3
+      │    ├── grouping columns: d.k:1!null
+      │    ├── internal-ordering: +1
+      │    ├── key: (1)
+      │    ├── fd: (1)-->(2,3)
+      │    ├── union-all
+      │    │    ├── columns: d.k:1!null d.u:2 d.v:3
+      │    │    ├── left columns: d.k:12 d.u:13 d.v:14
+      │    │    ├── right columns: d.k:18 d.u:19 d.v:20
+      │    │    ├── ordering: +1
+      │    │    ├── index-join d
+      │    │    │    ├── columns: d.k:12!null d.u:13!null d.v:14
+      │    │    │    ├── key: (12)
+      │    │    │    ├── fd: ()-->(13), (12)-->(14)
+      │    │    │    ├── ordering: +12 opt(13) [actual: +12]
+      │    │    │    └── scan d@u
+      │    │    │         ├── columns: d.k:12!null d.u:13!null
+      │    │    │         ├── constraint: /13/12: [/1 - /1]
+      │    │    │         ├── key: (12)
+      │    │    │         ├── fd: ()-->(13)
+      │    │    │         └── ordering: +12 opt(13) [actual: +12]
+      │    │    └── index-join d
+      │    │         ├── columns: d.k:18!null d.u:19 d.v:20!null
+      │    │         ├── key: (18)
+      │    │         ├── fd: ()-->(20), (18)-->(19)
+      │    │         ├── ordering: +18 opt(20) [actual: +18]
+      │    │         └── scan d@v
+      │    │              ├── columns: d.k:18!null d.v:20!null
+      │    │              ├── constraint: /20/18: [/1 - /1]
+      │    │              ├── key: (18)
+      │    │              ├── fd: ()-->(20)
+      │    │              └── ordering: +18 opt(20) [actual: +18]
+      │    └── aggregations
+      │         ├── const-agg [as=d.u:2, outer=(2)]
+      │         │    └── d.u:2
+      │         └── const-agg [as=d.v:3, outer=(3)]
+      │              └── d.v:3
+      ├── scan a
+      │    ├── limit: 1
+      │    └── key: ()
+      └── filters (true)
 
 # Correlated subquery.
 opt expect=SplitDisjunction
@@ -8958,70 +8942,52 @@ project
 opt expect=SplitDisjunctionAddKey
 SELECT u, v FROM d WHERE (u = 1 OR v = 1) AND EXISTS (SELECT u, v FROM a)
 ----
-project
+semi-join (cross)
  ├── columns: u:2 v:3
- └── distinct-on
-      ├── columns: d.k:1!null d.u:2 d.v:3
-      ├── grouping columns: d.k:1!null
-      ├── internal-ordering: +1
-      ├── key: (1)
-      ├── fd: (1)-->(2,3)
-      ├── union-all
-      │    ├── columns: d.k:1!null d.u:2 d.v:3
-      │    ├── left columns: d.k:12 d.u:13 d.v:14
-      │    ├── right columns: d.k:18 d.u:19 d.v:20
-      │    ├── ordering: +1
-      │    ├── index-join d
-      │    │    ├── columns: d.k:12!null d.u:13!null d.v:14
-      │    │    ├── key: (12)
-      │    │    ├── fd: ()-->(13), (12)-->(14)
-      │    │    ├── ordering: +12 opt(13) [actual: +12]
-      │    │    └── select
-      │    │         ├── columns: d.k:12!null d.u:13!null
-      │    │         ├── key: (12)
-      │    │         ├── fd: ()-->(13)
-      │    │         ├── ordering: +12 opt(13) [actual: +12]
-      │    │         ├── scan d@u
-      │    │         │    ├── columns: d.k:12!null d.u:13!null
-      │    │         │    ├── constraint: /13/12: [/1 - /1]
-      │    │         │    ├── key: (12)
-      │    │         │    ├── fd: ()-->(13)
-      │    │         │    └── ordering: +12 opt(13) [actual: +12]
-      │    │         └── filters
-      │    │              └── exists [subquery]
-      │    │                   └── scan a
-      │    │                        ├── columns: a.u:8 a.v:9
-      │    │                        ├── limit: 1
-      │    │                        ├── key: ()
-      │    │                        └── fd: ()-->(8,9)
-      │    └── index-join d
-      │         ├── columns: d.k:18!null d.u:19 d.v:20!null
-      │         ├── key: (18)
-      │         ├── fd: ()-->(20), (18)-->(19)
-      │         ├── ordering: +18 opt(20) [actual: +18]
-      │         └── select
-      │              ├── columns: d.k:18!null d.v:20!null
-      │              ├── key: (18)
-      │              ├── fd: ()-->(20)
-      │              ├── ordering: +18 opt(20) [actual: +18]
-      │              ├── scan d@v
-      │              │    ├── columns: d.k:18!null d.v:20!null
-      │              │    ├── constraint: /20/18: [/1 - /1]
-      │              │    ├── key: (18)
-      │              │    ├── fd: ()-->(20)
-      │              │    └── ordering: +18 opt(20) [actual: +18]
-      │              └── filters
-      │                   └── exists [subquery]
-      │                        └── scan a
-      │                             ├── columns: a.u:8 a.v:9
-      │                             ├── limit: 1
-      │                             ├── key: ()
-      │                             └── fd: ()-->(8,9)
-      └── aggregations
-           ├── const-agg [as=d.u:2, outer=(2)]
-           │    └── d.u:2
-           └── const-agg [as=d.v:3, outer=(3)]
-                └── d.v:3
+ ├── project
+ │    ├── columns: d.u:2 d.v:3
+ │    └── distinct-on
+ │         ├── columns: d.k:1!null d.u:2 d.v:3
+ │         ├── grouping columns: d.k:1!null
+ │         ├── internal-ordering: +1
+ │         ├── key: (1)
+ │         ├── fd: (1)-->(2,3)
+ │         ├── union-all
+ │         │    ├── columns: d.k:1!null d.u:2 d.v:3
+ │         │    ├── left columns: d.k:12 d.u:13 d.v:14
+ │         │    ├── right columns: d.k:18 d.u:19 d.v:20
+ │         │    ├── ordering: +1
+ │         │    ├── index-join d
+ │         │    │    ├── columns: d.k:12!null d.u:13!null d.v:14
+ │         │    │    ├── key: (12)
+ │         │    │    ├── fd: ()-->(13), (12)-->(14)
+ │         │    │    ├── ordering: +12 opt(13) [actual: +12]
+ │         │    │    └── scan d@u
+ │         │    │         ├── columns: d.k:12!null d.u:13!null
+ │         │    │         ├── constraint: /13/12: [/1 - /1]
+ │         │    │         ├── key: (12)
+ │         │    │         ├── fd: ()-->(13)
+ │         │    │         └── ordering: +12 opt(13) [actual: +12]
+ │         │    └── index-join d
+ │         │         ├── columns: d.k:18!null d.u:19 d.v:20!null
+ │         │         ├── key: (18)
+ │         │         ├── fd: ()-->(20), (18)-->(19)
+ │         │         ├── ordering: +18 opt(20) [actual: +18]
+ │         │         └── scan d@v
+ │         │              ├── columns: d.k:18!null d.v:20!null
+ │         │              ├── constraint: /20/18: [/1 - /1]
+ │         │              ├── key: (18)
+ │         │              ├── fd: ()-->(20)
+ │         │              └── ordering: +18 opt(20) [actual: +18]
+ │         └── aggregations
+ │              ├── const-agg [as=d.u:2, outer=(2)]
+ │              │    └── d.u:2
+ │              └── const-agg [as=d.v:3, outer=(3)]
+ │                   └── d.v:3
+ ├── scan a
+ │    ├── limit: 1
+ │    └── key: ()
+ └── filters (true)
 
 # Correlated subquery.
 opt expect=SplitDisjunctionAddKey

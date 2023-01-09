@@ -12,82 +12,107 @@ CREATE TABLE t.b (x INT PRIMARY KEY, y INT)
 norm expect=EliminateMax1Row
 SELECT (SELECT i FROM a LIMIT 1) > 5 AS r
 ----
-values
+project
  ├── columns: r:8
  ├── cardinality: [1 - 1]
  ├── key: ()
  ├── fd: ()-->(8)
- └── tuple
-      └── gt
-           ├── subquery
-           │    └── limit
-           │         ├── columns: i:2
-           │         ├── cardinality: [0 - 1]
-           │         ├── key: ()
-           │         ├── fd: ()-->(2)
-           │         ├── scan a
-           │         │    ├── columns: i:2
-           │         │    └── limit hint: 1.00
-           │         └── 1
-           └── 5
+ ├── left-join (cross)
+ │    ├── columns: i:2
+ │    ├── cardinality: [1 - 1]
+ │    ├── multiplicity: left-rows(exactly-one), right-rows(exactly-one)
+ │    ├── key: ()
+ │    ├── fd: ()-->(2)
+ │    ├── values
+ │    │    ├── cardinality: [1 - 1]
+ │    │    ├── key: ()
+ │    │    └── ()
+ │    ├── limit
+ │    │    ├── columns: i:2
+ │    │    ├── cardinality: [0 - 1]
+ │    │    ├── key: ()
+ │    │    ├── fd: ()-->(2)
+ │    │    ├── scan a
+ │    │    │    ├── columns: i:2
+ │    │    │    └── limit hint: 1.00
+ │    │    └── 1
+ │    └── filters (true)
+ └── projections
+      └── i:2 > 5 [as=r:8, outer=(2)]
 
 norm expect=EliminateMax1Row
 SELECT (SELECT count(*) FROM a) > 100 AS r
 ----
-values
- ├── columns: r:9
+project
+ ├── columns: r:9!null
  ├── cardinality: [1 - 1]
  ├── key: ()
  ├── fd: ()-->(9)
- └── tuple
-      └── gt
-           ├── subquery
-           │    └── scalar-group-by
-           │         ├── columns: count_rows:8!null
-           │         ├── cardinality: [1 - 1]
-           │         ├── key: ()
-           │         ├── fd: ()-->(8)
-           │         ├── scan a
-           │         └── aggregations
-           │              └── count-rows [as=count_rows:8]
-           └── 100
+ ├── scalar-group-by
+ │    ├── columns: count_rows:8!null
+ │    ├── cardinality: [1 - 1]
+ │    ├── key: ()
+ │    ├── fd: ()-->(8)
+ │    ├── scan a
+ │    └── aggregations
+ │         └── count-rows [as=count_rows:8]
+ └── projections
+      └── count_rows:8 > 100 [as=r:9, outer=(8)]
 
 norm expect=EliminateMax1Row
 SELECT (SELECT i FROM a LIMIT 0) > 5 AS r
 ----
-values
+project
  ├── columns: r:8
  ├── cardinality: [1 - 1]
  ├── key: ()
  ├── fd: ()-->(8)
- └── tuple
-      └── gt
-           ├── subquery
-           │    └── values
-           │         ├── columns: i:2!null
-           │         ├── cardinality: [0 - 0]
-           │         ├── key: ()
-           │         └── fd: ()-->(2)
-           └── 5
+ ├── left-join (cross)
+ │    ├── columns: i:2
+ │    ├── cardinality: [1 - 1]
+ │    ├── multiplicity: left-rows(exactly-one), right-rows(exactly-one)
+ │    ├── key: ()
+ │    ├── fd: ()-->(2)
+ │    ├── values
+ │    │    ├── cardinality: [1 - 1]
+ │    │    ├── key: ()
+ │    │    └── ()
+ │    ├── values
+ │    │    ├── columns: i:2!null
+ │    │    ├── cardinality: [0 - 0]
+ │    │    ├── key: ()
+ │    │    └── fd: ()-->(2)
+ │    └── filters (true)
+ └── projections
+      └── i:2 > 5 [as=r:8, outer=(2)]
 
 # Don't remove the Max1Row operator.
 norm expect-not=EliminateMax1Row
 SELECT (SELECT i FROM a) > 5 AS r
 ----
-values
+project
  ├── columns: r:8
  ├── cardinality: [1 - 1]
  ├── key: ()
  ├── fd: ()-->(8)
- └── tuple
-      └── gt
-           ├── subquery
-           │    └── max1-row
-           │         ├── columns: i:2
-           │         ├── error: "more than one row returned by a subquery used as an expression"
-           │         ├── cardinality: [0 - 1]
-           │         ├── key: ()
-           │         ├── fd: ()-->(2)
-           │         └── scan a
-           │              └── columns: i:2
-           └── 5
+ ├── left-join (cross)
+ │    ├── columns: i:2
+ │    ├── cardinality: [1 - 1]
+ │    ├── multiplicity: left-rows(exactly-one), right-rows(exactly-one)
+ │    ├── key: ()
+ │    ├── fd: ()-->(2)
+ │    ├── values
+ │    │    ├── cardinality: [1 - 1]
+ │    │    ├── key: ()
+ │    │    └── ()
+ │    ├── max1-row
+ │    │    ├── columns: i:2
+ │    │    ├── error: "more than one row returned by a subquery used as an expression"
+ │    │    ├── cardinality: [0 - 1]
+ │    │    ├── key: ()
+ │    │    ├── fd: ()-->(2)
+ │    │    └── scan a
+ │    │         └── columns: i:2
+ │    └── filters (true)
+ └── projections
+      └── i:2 > 5 [as=r:8, outer=(2)]

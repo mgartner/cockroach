@@ -2864,52 +2864,57 @@ project
  ├── immutable
  ├── key: ()
  ├── fd: ()-->(24)
- ├── scan customer_account
- │    ├── columns: ca_id:1!null ca_bal:6!null
- │    ├── constraint: /1: [/0 - /0]
+ ├── inner-join (cross)
+ │    ├── columns: ca_id:1!null ca_bal:6!null ca_assets:23
  │    ├── cardinality: [0 - 1]
+ │    ├── multiplicity: left-rows(exactly-one), right-rows(zero-or-one)
+ │    ├── immutable
  │    ├── key: ()
- │    └── fd: ()-->(1,6)
+ │    ├── fd: ()-->(1,6,23)
+ │    ├── scan customer_account
+ │    │    ├── columns: ca_id:1!null ca_bal:6!null
+ │    │    ├── constraint: /1: [/0 - /0]
+ │    │    ├── cardinality: [0 - 1]
+ │    │    ├── key: ()
+ │    │    └── fd: ()-->(1,6)
+ │    ├── project
+ │    │    ├── columns: ca_assets:23
+ │    │    ├── cardinality: [1 - 1]
+ │    │    ├── immutable
+ │    │    ├── key: ()
+ │    │    ├── fd: ()-->(23)
+ │    │    ├── scalar-group-by
+ │    │    │    ├── columns: sum:22
+ │    │    │    ├── cardinality: [1 - 1]
+ │    │    │    ├── immutable
+ │    │    │    ├── key: ()
+ │    │    │    ├── fd: ()-->(22)
+ │    │    │    ├── project
+ │    │    │    │    ├── columns: column21:21
+ │    │    │    │    ├── immutable
+ │    │    │    │    ├── left-join (lookup last_trade)
+ │    │    │    │    │    ├── columns: hs_ca_id:9!null hs_s_symb:10!null hs_qty:11!null lt_s_symb:14 lt_price:16
+ │    │    │    │    │    ├── flags: force lookup join (into right side)
+ │    │    │    │    │    ├── key columns: [10] = [14]
+ │    │    │    │    │    ├── lookup columns are key
+ │    │    │    │    │    ├── key: (10)
+ │    │    │    │    │    ├── fd: ()-->(9), (10)-->(11,14,16), (14)-->(16)
+ │    │    │    │    │    ├── scan holding_summary
+ │    │    │    │    │    │    ├── columns: hs_ca_id:9!null hs_s_symb:10!null hs_qty:11!null
+ │    │    │    │    │    │    ├── constraint: /9/10: [/0 - /0]
+ │    │    │    │    │    │    ├── key: (10)
+ │    │    │    │    │    │    └── fd: ()-->(9), (10)-->(11)
+ │    │    │    │    │    └── filters (true)
+ │    │    │    │    └── projections
+ │    │    │    │         └── hs_qty:11 * lt_price:16 [as=column21:21, outer=(11,16), immutable]
+ │    │    │    └── aggregations
+ │    │    │         └── sum [as=sum:22, outer=(21)]
+ │    │    │              └── column21:21
+ │    │    └── projections
+ │    │         └── COALESCE(sum:22, 0) [as=ca_assets:23, outer=(22)]
+ │    └── filters (true)
  └── projections
-      └── cast: FLOAT8 [as=float8:24, outer=(6), immutable, subquery]
-           └── plus
-                ├── ca_bal:6
-                └── subquery
-                     └── project
-                          ├── columns: ca_assets:23
-                          ├── cardinality: [1 - 1]
-                          ├── immutable
-                          ├── key: ()
-                          ├── fd: ()-->(23)
-                          ├── scalar-group-by
-                          │    ├── columns: sum:22
-                          │    ├── cardinality: [1 - 1]
-                          │    ├── immutable
-                          │    ├── key: ()
-                          │    ├── fd: ()-->(22)
-                          │    ├── project
-                          │    │    ├── columns: column21:21
-                          │    │    ├── immutable
-                          │    │    ├── left-join (lookup last_trade)
-                          │    │    │    ├── columns: hs_ca_id:9!null hs_s_symb:10!null hs_qty:11!null lt_s_symb:14 lt_price:16
-                          │    │    │    ├── flags: force lookup join (into right side)
-                          │    │    │    ├── key columns: [10] = [14]
-                          │    │    │    ├── lookup columns are key
-                          │    │    │    ├── key: (10)
-                          │    │    │    ├── fd: ()-->(9), (10)-->(11,14,16), (14)-->(16)
-                          │    │    │    ├── scan holding_summary
-                          │    │    │    │    ├── columns: hs_ca_id:9!null hs_s_symb:10!null hs_qty:11!null
-                          │    │    │    │    ├── constraint: /9/10: [/0 - /0]
-                          │    │    │    │    ├── key: (10)
-                          │    │    │    │    └── fd: ()-->(9), (10)-->(11)
-                          │    │    │    └── filters (true)
-                          │    │    └── projections
-                          │    │         └── hs_qty:11 * lt_price:16 [as=column21:21, outer=(11,16), immutable]
-                          │    └── aggregations
-                          │         └── sum [as=sum:22, outer=(21)]
-                          │              └── column21:21
-                          └── projections
-                               └── COALESCE(sum:22, 0) [as=ca_assets:23, outer=(22)]
+      └── (ca_bal:6 + ca_assets:23)::FLOAT8 [as=float8:24, outer=(6,23), immutable]
 
 # Q11
 opt
@@ -4017,37 +4022,42 @@ project
  │         │    ├── immutable
  │         │    ├── key: ()
  │         │    ├── fd: ()-->(18,31,46)
- │         │    ├── scan trade
- │         │    │    ├── columns: t_id:18!null trade.t_tax:31!null
- │         │    │    ├── constraint: /18: [/0 - /0]
+ │         │    ├── inner-join (cross)
+ │         │    │    ├── columns: t_id:18!null trade.t_tax:31!null sum:44
  │         │    │    ├── cardinality: [0 - 1]
+ │         │    │    ├── multiplicity: left-rows(exactly-one), right-rows(zero-or-one)
  │         │    │    ├── key: ()
- │         │    │    └── fd: ()-->(18,31)
+ │         │    │    ├── fd: ()-->(18,31,44)
+ │         │    │    ├── scan trade
+ │         │    │    │    ├── columns: t_id:18!null trade.t_tax:31!null
+ │         │    │    │    ├── constraint: /18: [/0 - /0]
+ │         │    │    │    ├── cardinality: [0 - 1]
+ │         │    │    │    ├── key: ()
+ │         │    │    │    └── fd: ()-->(18,31)
+ │         │    │    ├── scalar-group-by
+ │         │    │    │    ├── columns: sum:44
+ │         │    │    │    ├── cardinality: [1 - 1]
+ │         │    │    │    ├── key: ()
+ │         │    │    │    ├── fd: ()-->(44)
+ │         │    │    │    ├── inner-join (lookup taxrate)
+ │         │    │    │    │    ├── columns: tx_id:35!null tx_rate:37!null cx_tx_id:40!null cx_c_id:41!null
+ │         │    │    │    │    ├── key columns: [40] = [35]
+ │         │    │    │    │    ├── lookup columns are key
+ │         │    │    │    │    ├── key: (40)
+ │         │    │    │    │    ├── fd: ()-->(41), (35)-->(37), (35)==(40), (40)==(35)
+ │         │    │    │    │    ├── scan customer_taxrate@customer_taxrate_cx_c_id_idx
+ │         │    │    │    │    │    ├── columns: cx_tx_id:40!null cx_c_id:41!null
+ │         │    │    │    │    │    ├── constraint: /41/40: [/0 - /0]
+ │         │    │    │    │    │    ├── key: (40)
+ │         │    │    │    │    │    └── fd: ()-->(41)
+ │         │    │    │    │    └── filters (true)
+ │         │    │    │    └── aggregations
+ │         │    │    │         └── sum [as=sum:44, outer=(37)]
+ │         │    │    │              └── tx_rate:37
+ │         │    │    └── filters (true)
  │         │    └── projections
- │         │         └── assignment-cast: DECIMAL(10,2) [as=t_tax_cast:46, immutable, subquery]
- │         │              └── mult
- │         │                   ├── subquery
- │         │                   │    └── scalar-group-by
- │         │                   │         ├── columns: sum:44
- │         │                   │         ├── cardinality: [1 - 1]
- │         │                   │         ├── key: ()
- │         │                   │         ├── fd: ()-->(44)
- │         │                   │         ├── inner-join (lookup taxrate)
- │         │                   │         │    ├── columns: tx_id:35!null tx_rate:37!null cx_tx_id:40!null cx_c_id:41!null
- │         │                   │         │    ├── key columns: [40] = [35]
- │         │                   │         │    ├── lookup columns are key
- │         │                   │         │    ├── key: (40)
- │         │                   │         │    ├── fd: ()-->(41), (35)-->(37), (35)==(40), (40)==(35)
- │         │                   │         │    ├── scan customer_taxrate@customer_taxrate_cx_c_id_idx
- │         │                   │         │    │    ├── columns: cx_tx_id:40!null cx_c_id:41!null
- │         │                   │         │    │    ├── constraint: /41/40: [/0 - /0]
- │         │                   │         │    │    ├── key: (40)
- │         │                   │         │    │    └── fd: ()-->(41)
- │         │                   │         │    └── filters (true)
- │         │                   │         └── aggregations
- │         │                   │              └── sum [as=sum:44, outer=(37)]
- │         │                   │                   └── tx_rate:37
- │         │                   └── 2E+1
+ │         │         └── assignment-cast: DECIMAL(10,2) [as=t_tax_cast:46, outer=(44), immutable]
+ │         │              └── sum:44 * 2E+1
  │         └── projections
  │              └── t_tax_cast:46 >= 0 [as=check5:51, outer=(46), immutable]
  └── projections

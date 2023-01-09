@@ -711,26 +711,42 @@ SELECT (tup).@1, (tup).@2 FROM (VALUES ((3,4)), ((SELECT (x, z) FROM b))) AS v(t
 project
  ├── columns: "?column?":8 "?column?":9
  ├── cardinality: [2 - 2]
- ├── values
- │    ├── columns: column1:7
+ ├── inner-join-apply
+ │    ├── columns: "?column?":6 column1:7
  │    ├── cardinality: [2 - 2]
- │    ├── ((3, 4),)
- │    └── tuple
- │         └── subquery
- │              └── max1-row
- │                   ├── columns: "?column?":6
- │                   ├── error: "more than one row returned by a subquery used as an expression"
- │                   ├── cardinality: [0 - 1]
- │                   ├── key: ()
- │                   ├── fd: ()-->(6)
- │                   └── project
- │                        ├── columns: "?column?":6
- │                        ├── scan b
- │                        │    ├── columns: x:1!null z:2
- │                        │    ├── key: (1)
- │                        │    └── fd: (1)-->(2)
- │                        └── projections
- │                             └── (x:1, z:2) [as="?column?":6, outer=(1,2)]
+ │    ├── fd: ()-->(6)
+ │    ├── left-join (cross)
+ │    │    ├── columns: "?column?":6
+ │    │    ├── cardinality: [1 - 1]
+ │    │    ├── multiplicity: left-rows(exactly-one), right-rows(exactly-one)
+ │    │    ├── key: ()
+ │    │    ├── fd: ()-->(6)
+ │    │    ├── values
+ │    │    │    ├── cardinality: [1 - 1]
+ │    │    │    ├── key: ()
+ │    │    │    └── ()
+ │    │    ├── max1-row
+ │    │    │    ├── columns: "?column?":6
+ │    │    │    ├── error: "more than one row returned by a subquery used as an expression"
+ │    │    │    ├── cardinality: [0 - 1]
+ │    │    │    ├── key: ()
+ │    │    │    ├── fd: ()-->(6)
+ │    │    │    └── project
+ │    │    │         ├── columns: "?column?":6
+ │    │    │         ├── scan b
+ │    │    │         │    ├── columns: x:1!null z:2
+ │    │    │         │    ├── key: (1)
+ │    │    │         │    └── fd: (1)-->(2)
+ │    │    │         └── projections
+ │    │    │              └── (x:1, z:2) [as="?column?":6, outer=(1,2)]
+ │    │    └── filters (true)
+ │    ├── values
+ │    │    ├── columns: column1:7
+ │    │    ├── outer: (6)
+ │    │    ├── cardinality: [2 - 2]
+ │    │    ├── ((3, 4),)
+ │    │    └── ("?column?":6,)
+ │    └── filters (true)
  └── projections
       ├── (column1:7).@1 [as="?column?":8, outer=(7)]
       └── (column1:7).@2 [as="?column?":9, outer=(7)]
@@ -828,7 +844,7 @@ project
       └── x:2 [as=x:3, outer=(2)]
 
 # Case with a projection on a column only determined at run-time.
-norm expect=PushColumnRemappingIntoValues
+norm expect=PushColumnRemappingIntoValues disable=HoistValuesSubquery
 WITH a AS (SELECT v FROM (VALUES (1), ((SELECT z FROM b WHERE z=1))) f(v)) SELECT v FROM a
 ----
 values
@@ -957,25 +973,32 @@ norm expect-not=PushColumnRemappingIntoValues
 SELECT (SELECT x FROM (VALUES (1), (2)) f(x)) FROM (VALUES (2), (3))
 ----
 project
- ├── columns: x:3
+ ├── columns: x:3!null
  ├── cardinality: [2 - 2]
- ├── values
+ ├── fd: ()-->(3)
+ ├── inner-join (cross)
+ │    ├── columns: column1:2!null
  │    ├── cardinality: [2 - 2]
- │    ├── ()
- │    └── ()
+ │    ├── multiplicity: left-rows(exactly-one), right-rows(one-or-more)
+ │    ├── fd: ()-->(2)
+ │    ├── values
+ │    │    ├── cardinality: [2 - 2]
+ │    │    ├── ()
+ │    │    └── ()
+ │    ├── max1-row
+ │    │    ├── columns: column1:2!null
+ │    │    ├── error: "more than one row returned by a subquery used as an expression"
+ │    │    ├── cardinality: [1 - 1]
+ │    │    ├── key: ()
+ │    │    ├── fd: ()-->(2)
+ │    │    └── values
+ │    │         ├── columns: column1:2!null
+ │    │         ├── cardinality: [2 - 2]
+ │    │         ├── (1,)
+ │    │         └── (2,)
+ │    └── filters (true)
  └── projections
-      └── subquery [as=x:3, subquery]
-           └── max1-row
-                ├── columns: column1:2!null
-                ├── error: "more than one row returned by a subquery used as an expression"
-                ├── cardinality: [1 - 1]
-                ├── key: ()
-                ├── fd: ()-->(2)
-                └── values
-                     ├── columns: column1:2!null
-                     ├── cardinality: [2 - 2]
-                     ├── (1,)
-                     └── (2,)
+      └── column1:2 [as=x:3, outer=(2)]
 
 # No-op case because a passthrough column is being remapped.
 norm expect-not=PushColumnRemappingIntoValues
@@ -1538,20 +1561,36 @@ project
  ├── columns: x:7
  ├── cardinality: [2 - 2]
  ├── immutable
- ├── values
- │    ├── columns: column1:6
+ ├── inner-join-apply
+ │    ├── columns: j:3 column1:6
  │    ├── cardinality: [2 - 2]
- │    ├── ('{"x": "one"}',)
- │    └── tuple
- │         └── subquery
- │              └── max1-row
- │                   ├── columns: j:3
- │                   ├── error: "more than one row returned by a subquery used as an expression"
- │                   ├── cardinality: [0 - 1]
- │                   ├── key: ()
- │                   ├── fd: ()-->(3)
- │                   └── scan b
- │                        └── columns: j:3
+ │    ├── fd: ()-->(3)
+ │    ├── left-join (cross)
+ │    │    ├── columns: j:3
+ │    │    ├── cardinality: [1 - 1]
+ │    │    ├── multiplicity: left-rows(exactly-one), right-rows(exactly-one)
+ │    │    ├── key: ()
+ │    │    ├── fd: ()-->(3)
+ │    │    ├── values
+ │    │    │    ├── cardinality: [1 - 1]
+ │    │    │    ├── key: ()
+ │    │    │    └── ()
+ │    │    ├── max1-row
+ │    │    │    ├── columns: j:3
+ │    │    │    ├── error: "more than one row returned by a subquery used as an expression"
+ │    │    │    ├── cardinality: [0 - 1]
+ │    │    │    ├── key: ()
+ │    │    │    ├── fd: ()-->(3)
+ │    │    │    └── scan b
+ │    │    │         └── columns: j:3
+ │    │    └── filters (true)
+ │    ├── values
+ │    │    ├── columns: column1:6
+ │    │    ├── outer: (3)
+ │    │    ├── cardinality: [2 - 2]
+ │    │    ├── ('{"x": "one"}',)
+ │    │    └── (j:3,)
+ │    └── filters (true)
  └── projections
       └── column1:6->'x' [as=x:7, outer=(6), immutable]
 

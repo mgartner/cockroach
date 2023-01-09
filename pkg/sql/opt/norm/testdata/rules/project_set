@@ -274,26 +274,25 @@ project
 norm expect-not=ConvertZipArraysToValues
 SELECT unnest((SELECT array_agg(y) FROM xy))
 ----
-project-set
+project
  ├── columns: unnest:7
  ├── immutable
- ├── values
- │    ├── cardinality: [1 - 1]
- │    ├── key: ()
- │    └── ()
- └── zip
-      └── function: unnest [immutable, subquery]
-           └── subquery
-                └── scalar-group-by
-                     ├── columns: array_agg:6
-                     ├── cardinality: [1 - 1]
-                     ├── key: ()
-                     ├── fd: ()-->(6)
-                     ├── scan xy
-                     │    └── columns: y:2
-                     └── aggregations
-                          └── array-agg [as=array_agg:6, outer=(2)]
-                               └── y:2
+ └── project-set
+      ├── columns: array_agg:6 unnest:7
+      ├── immutable
+      ├── fd: ()-->(6)
+      ├── scalar-group-by
+      │    ├── columns: array_agg:6
+      │    ├── cardinality: [1 - 1]
+      │    ├── key: ()
+      │    ├── fd: ()-->(6)
+      │    ├── scan xy
+      │    │    └── columns: y:2
+      │    └── aggregations
+      │         └── array-agg [as=array_agg:6, outer=(2)]
+      │              └── y:2
+      └── zip
+           └── unnest(array_agg:6) [outer=(6), immutable]
 
 # No-op case because a JSON column can only be determined at run-time.
 norm expect-not=ConvertZipArraysToValues

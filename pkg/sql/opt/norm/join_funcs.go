@@ -285,12 +285,16 @@ func (c *CustomFuncs) mapJoinOpEquivalenceGroup(
 func (c *CustomFuncs) CanMapJoinOpFilter(
 	src *memo.FiltersItem, dstCols opt.ColSet, equivFD props.FuncDepSet,
 ) bool {
+	scalarProps := src.ScalarProps()
+	// if scalarProps.HasSubquery {
+	// 	return false
+	// }
+
 	// Fast path if src is already bound by dst.
 	if c.IsBoundBy(src, dstCols) {
 		return true
 	}
 
-	scalarProps := src.ScalarProps()
 	if scalarProps.HasCorrelatedSubquery {
 		return false
 	}

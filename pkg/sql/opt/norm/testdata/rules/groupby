@@ -551,18 +551,29 @@ SELECT
       NULL
   );
 ----
-values
+project
  ├── columns: col2:11
  ├── cardinality: [1 - 1]
  ├── key: ()
  ├── fd: ()-->(11)
- └── tuple
-      └── subquery
-           └── values
-                ├── columns: t1.col2:3!null
-                ├── cardinality: [0 - 0]
-                ├── key: ()
-                └── fd: ()-->(3)
+ ├── left-join (cross)
+ │    ├── columns: t1.col2:3
+ │    ├── cardinality: [1 - 1]
+ │    ├── multiplicity: left-rows(exactly-one), right-rows(exactly-one)
+ │    ├── key: ()
+ │    ├── fd: ()-->(3)
+ │    ├── values
+ │    │    ├── cardinality: [1 - 1]
+ │    │    ├── key: ()
+ │    │    └── ()
+ │    ├── values
+ │    │    ├── columns: t1.col2:3!null
+ │    │    ├── cardinality: [0 - 0]
+ │    │    ├── key: ()
+ │    │    └── fd: ()-->(3)
+ │    └── filters (true)
+ └── projections
+      └── t1.col2:3 [as=col2:11, outer=(3)]
 
 # EnsureDistinctOn case.
 # EliminateMax1Row is disabled to ensure that an EnsureDistinctOn operator is
@@ -752,28 +763,27 @@ upsert nullablecols
       │    │    ├── grouping columns: i:8!null
       │    │    ├── error: "UPSERT or INSERT...ON CONFLICT command cannot affect row a second time"
       │    │    ├── key: (8)
-      │    │    └── select
+      │    │    └── semi-join (cross)
       │    │         ├── columns: k:7!null i:8!null
       │    │         ├── key: (7)
       │    │         ├── fd: (7)-->(8)
-      │    │         ├── scan a
+      │    │         ├── select
       │    │         │    ├── columns: k:7!null i:8!null
       │    │         │    ├── key: (7)
-      │    │         │    └── fd: (7)-->(8)
-      │    │         └── filters
-      │    │              ├── exists [subquery]
-      │    │              │    └── limit
-      │    │              │         ├── columns: k:14!null i:15!null f:16 s:17!null j:18
-      │    │              │         ├── cardinality: [0 - 1]
-      │    │              │         ├── key: ()
-      │    │              │         ├── fd: ()-->(14-18)
-      │    │              │         ├── scan a
-      │    │              │         │    ├── columns: k:14!null i:15!null f:16 s:17!null j:18
-      │    │              │         │    ├── key: (14)
-      │    │              │         │    ├── fd: (14)-->(15-18), (15,17)-->(14,16,18), (15,16)~~>(14,17,18)
-      │    │              │         │    └── limit hint: 1.00
-      │    │              │         └── 1
-      │    │              └── k:7 > 0 [outer=(7), constraints=(/7: [/1 - ]; tight)]
+      │    │         │    ├── fd: (7)-->(8)
+      │    │         │    ├── scan a
+      │    │         │    │    ├── columns: k:7!null i:8!null
+      │    │         │    │    ├── key: (7)
+      │    │         │    │    └── fd: (7)-->(8)
+      │    │         │    └── filters
+      │    │         │         └── k:7 > 0 [outer=(7), constraints=(/7: [/1 - ]; tight)]
+      │    │         ├── limit
+      │    │         │    ├── cardinality: [0 - 1]
+      │    │         │    ├── key: ()
+      │    │         │    ├── scan a
+      │    │         │    │    └── limit hint: 1.00
+      │    │         │    └── 1
+      │    │         └── filters (true)
       │    ├── scan nullablecols
       │    │    ├── columns: c1:21 c2:22 c3:23 rowid:24!null
       │    │    ├── key: (24)

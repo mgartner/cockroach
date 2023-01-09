@@ -7673,8 +7673,9 @@ SELECT count(*), (SELECT count(*) FROM q) FROM (
 ) GROUP BY boroname
 ----
 with &1 (q)
- ├── columns: count:31!null count:43
+ ├── columns: count:31!null count:43!null
  ├── immutable
+ ├── fd: ()-->(43)
  ├── select
  │    ├── columns: nyc_census_blocks.gid:1!null nyc_census_blocks.blkid:2 nyc_census_blocks.popn_total:3 nyc_census_blocks.popn_white:4 nyc_census_blocks.popn_black:5 nyc_census_blocks.popn_nativ:6 nyc_census_blocks.popn_asian:7 nyc_census_blocks.popn_other:8 nyc_census_blocks.boroname:9!null nyc_census_blocks.geom:10
  │    ├── key: (1)
@@ -7686,46 +7687,54 @@ with &1 (q)
  │    └── filters
  │         └── nyc_census_blocks.boroname:9 = 'Manhattan' [outer=(9), constraints=(/9: [/'Manhattan' - /'Manhattan']; tight), fd=()-->(9)]
  └── project
-      ├── columns: count:43 count_rows:31!null
+      ├── columns: count:43!null count_rows:31!null
       ├── immutable
-      ├── group-by (hash)
-      │    ├── columns: n.boroname:25 count_rows:31!null
-      │    ├── grouping columns: n.boroname:25
+      ├── fd: ()-->(43)
+      ├── inner-join (cross)
+      │    ├── columns: n.boroname:25 count_rows:31!null count_rows:42!null
+      │    ├── multiplicity: left-rows(exactly-one), right-rows(zero-or-more)
       │    ├── immutable
       │    ├── key: (25)
-      │    ├── fd: (25)-->(31)
-      │    ├── left-join (lookup nyc_neighborhoods [as=n])
-      │    │    ├── columns: geom:23 n.boroname:25 n.geom:27
-      │    │    ├── key columns: [44] = [24]
-      │    │    ├── lookup columns are key
-      │    │    ├── second join in paired joiner
+      │    ├── fd: ()-->(42), (25)-->(31)
+      │    ├── group-by (hash)
+      │    │    ├── columns: n.boroname:25 count_rows:31!null
+      │    │    ├── grouping columns: n.boroname:25
       │    │    ├── immutable
-      │    │    ├── left-join (inverted nyc_neighborhoods@nyc_neighborhoods_geo_idx [as=n])
-      │    │    │    ├── columns: geom:23 n.gid:44 continuation:51
-      │    │    │    ├── first join in paired joiner; continuation column: continuation:51
-      │    │    │    ├── inverted-expr
-      │    │    │    │    └── st_intersects(geom:23, n.geom:47)
-      │    │    │    ├── fd: (44)-->(51)
-      │    │    │    ├── with-scan &1 (q)
-      │    │    │    │    ├── columns: geom:23
-      │    │    │    │    └── mapping:
-      │    │    │    │         └──  nyc_census_blocks.geom:10 => geom:23
-      │    │    │    └── filters (true)
-      │    │    └── filters
-      │    │         └── st_intersects(geom:23, n.geom:27) [outer=(23,27), immutable, constraints=(/23: (/NULL - ]; /27: (/NULL - ])]
-      │    └── aggregations
-      │         └── count-rows [as=count_rows:31]
+      │    │    ├── key: (25)
+      │    │    ├── fd: (25)-->(31)
+      │    │    ├── left-join (lookup nyc_neighborhoods [as=n])
+      │    │    │    ├── columns: geom:23 n.boroname:25 n.geom:27
+      │    │    │    ├── key columns: [44] = [24]
+      │    │    │    ├── lookup columns are key
+      │    │    │    ├── second join in paired joiner
+      │    │    │    ├── immutable
+      │    │    │    ├── left-join (inverted nyc_neighborhoods@nyc_neighborhoods_geo_idx [as=n])
+      │    │    │    │    ├── columns: geom:23 n.gid:44 continuation:51
+      │    │    │    │    ├── first join in paired joiner; continuation column: continuation:51
+      │    │    │    │    ├── inverted-expr
+      │    │    │    │    │    └── st_intersects(geom:23, n.geom:47)
+      │    │    │    │    ├── fd: (44)-->(51)
+      │    │    │    │    ├── with-scan &1 (q)
+      │    │    │    │    │    ├── columns: geom:23
+      │    │    │    │    │    └── mapping:
+      │    │    │    │    │         └──  nyc_census_blocks.geom:10 => geom:23
+      │    │    │    │    └── filters (true)
+      │    │    │    └── filters
+      │    │    │         └── st_intersects(geom:23, n.geom:27) [outer=(23,27), immutable, constraints=(/23: (/NULL - ]; /27: (/NULL - ])]
+      │    │    └── aggregations
+      │    │         └── count-rows [as=count_rows:31]
+      │    ├── scalar-group-by
+      │    │    ├── columns: count_rows:42!null
+      │    │    ├── cardinality: [1 - 1]
+      │    │    ├── key: ()
+      │    │    ├── fd: ()-->(42)
+      │    │    ├── with-scan &1 (q)
+      │    │    │    └── mapping:
+      │    │    └── aggregations
+      │    │         └── count-rows [as=count_rows:42]
+      │    └── filters (true)
       └── projections
-           └── subquery [as=count:43, subquery]
-                └── scalar-group-by
-                     ├── columns: count_rows:42!null
-                     ├── cardinality: [1 - 1]
-                     ├── key: ()
-                     ├── fd: ()-->(42)
-                     ├── with-scan &1 (q)
-                     │    └── mapping:
-                     └── aggregations
-                          └── count-rows [as=count_rows:42]
+           └── count_rows:42 [as=count:43, outer=(42)]
 
 # Unable to use inverted index due to inner join on the right side.
 opt

@@ -47,10 +47,12 @@ func (c *CustomFuncs) HasHoistableSubquery(scalar opt.ScalarExpr) bool {
 func (c *CustomFuncs) deriveHasHoistableSubquery(scalar opt.ScalarExpr) bool {
 	switch t := scalar.(type) {
 	case *memo.SubqueryExpr:
-		return !t.Input.Relational().OuterCols.Empty()
+		return true
+		// return !t.Input.Relational().OuterCols.Empty()
 
 	case *memo.ExistsExpr:
-		return !t.Input.Relational().OuterCols.Empty()
+		return true
+		// return !t.Input.Relational().OuterCols.Empty()
 
 	case *memo.ArrayFlattenExpr:
 		return !t.Input.Relational().OuterCols.Empty()
@@ -61,7 +63,8 @@ func (c *CustomFuncs) deriveHasHoistableSubquery(scalar opt.ScalarExpr) bool {
 		// subquery in this case. Note that if an Any is at the top-level of a
 		// WHERE clause, it will be transformed to an Exists operator, so this case
 		// only occurs when the Any is nested, in a projection, etc.
-		return !t.Input.Relational().OuterCols.Empty()
+		return true
+		// return !t.Input.Relational().OuterCols.Empty()
 
 	case *memo.UDFExpr:
 		// Do not attempt to hoist UDFs.
@@ -796,9 +799,9 @@ func (r *subqueryHoister) hoistAll(scalar opt.ScalarExpr) opt.ScalarExpr {
 	switch scalar.Op() {
 	case opt.SubqueryOp, opt.ExistsOp, opt.AnyOp, opt.ArrayFlattenOp:
 		subquery := scalar.Child(0).(memo.RelExpr)
-		if subquery.Relational().OuterCols.Empty() {
-			break
-		}
+		// if subquery.Relational().OuterCols.Empty() {
+		// 	break
+		// }
 
 		switch t := scalar.(type) {
 		case *memo.ExistsExpr:

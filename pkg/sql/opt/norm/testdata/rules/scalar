@@ -419,7 +419,7 @@ values
 norm expect=EliminateExistsProject
 SELECT * FROM a WHERE EXISTS(SELECT i+1, i*k FROM a)
 ----
-select
+semi-join (cross)
  ├── columns: k:1!null i:2 f:3 s:4 arr:5
  ├── key: (1)
  ├── fd: (1)-->(2-5)
@@ -427,19 +427,13 @@ select
  │    ├── columns: k:1!null i:2 f:3 s:4 arr:5
  │    ├── key: (1)
  │    └── fd: (1)-->(2-5)
- └── filters
-      └── exists [subquery]
-           └── limit
-                ├── columns: k:8!null i:9
-                ├── cardinality: [0 - 1]
-                ├── key: ()
-                ├── fd: ()-->(8,9)
-                ├── scan a
-                │    ├── columns: k:8!null i:9
-                │    ├── key: (8)
-                │    ├── fd: (8)-->(9)
-                │    └── limit hint: 1.00
-                └── 1
+ ├── limit
+ │    ├── cardinality: [0 - 1]
+ │    ├── key: ()
+ │    ├── scan a
+ │    │    └── limit hint: 1.00
+ │    └── 1
+ └── filters (true)
 
 # --------------------------------------------------
 # EliminateExistsGroupBy
@@ -449,34 +443,15 @@ select
 norm expect-not=EliminateExistsGroupBy
 SELECT * FROM a WHERE EXISTS(SELECT max(s) FROM a WHERE False)
 ----
-select
+scan a
  ├── columns: k:1!null i:2 f:3 s:4 arr:5
  ├── key: (1)
- ├── fd: (1)-->(2-5)
- ├── scan a
- │    ├── columns: k:1!null i:2 f:3 s:4 arr:5
- │    ├── key: (1)
- │    └── fd: (1)-->(2-5)
- └── filters
-      └── exists [subquery]
-           └── scalar-group-by
-                ├── columns: max:15
-                ├── cardinality: [1 - 1]
-                ├── key: ()
-                ├── fd: ()-->(15)
-                ├── values
-                │    ├── columns: s:11!null
-                │    ├── cardinality: [0 - 0]
-                │    ├── key: ()
-                │    └── fd: ()-->(11)
-                └── aggregations
-                     └── max [as=max:15, outer=(11)]
-                          └── s:11
+ └── fd: (1)-->(2-5)
 
 norm expect=EliminateExistsGroupBy
 SELECT * FROM a WHERE EXISTS(SELECT DISTINCT s FROM a)
 ----
-select
+semi-join (cross)
  ├── columns: k:1!null i:2 f:3 s:4 arr:5
  ├── key: (1)
  ├── fd: (1)-->(2-5)
@@ -484,22 +459,18 @@ select
  │    ├── columns: k:1!null i:2 f:3 s:4 arr:5
  │    ├── key: (1)
  │    └── fd: (1)-->(2-5)
- └── filters
-      └── exists [subquery]
-           └── limit
-                ├── columns: s:11
-                ├── cardinality: [0 - 1]
-                ├── key: ()
-                ├── fd: ()-->(11)
-                ├── scan a
-                │    ├── columns: s:11
-                │    └── limit hint: 1.00
-                └── 1
+ ├── limit
+ │    ├── cardinality: [0 - 1]
+ │    ├── key: ()
+ │    ├── scan a
+ │    │    └── limit hint: 1.00
+ │    └── 1
+ └── filters (true)
 
 norm expect=EliminateExistsGroupBy
 SELECT * FROM a WHERE EXISTS(SELECT DISTINCT ON (i) s FROM a)
 ----
-select
+semi-join (cross)
  ├── columns: k:1!null i:2 f:3 s:4 arr:5
  ├── key: (1)
  ├── fd: (1)-->(2-5)
@@ -507,23 +478,19 @@ select
  │    ├── columns: k:1!null i:2 f:3 s:4 arr:5
  │    ├── key: (1)
  │    └── fd: (1)-->(2-5)
- └── filters
-      └── exists [subquery]
-           └── limit
-                ├── columns: i:9 s:11
-                ├── cardinality: [0 - 1]
-                ├── key: ()
-                ├── fd: ()-->(9,11)
-                ├── scan a
-                │    ├── columns: i:9 s:11
-                │    └── limit hint: 1.00
-                └── 1
+ ├── limit
+ │    ├── cardinality: [0 - 1]
+ │    ├── key: ()
+ │    ├── scan a
+ │    │    └── limit hint: 1.00
+ │    └── 1
+ └── filters (true)
 
 # Ensure that EliminateExistsGroupBy does not activate for an EnsureDistinctOn.
 norm expect-not=EliminateExistsGroupBy
 SELECT * FROM a WHERE EXISTS(SELECT (SELECT y FROM xy WHERE y=k) FROM a)
 ----
-select
+semi-join (cross)
  ├── columns: k:1!null i:2 f:3 s:4 arr:5
  ├── key: (1)
  ├── fd: (1)-->(2-5)
@@ -531,34 +498,29 @@ select
  │    ├── columns: k:1!null i:2 f:3 s:4 arr:5
  │    ├── key: (1)
  │    └── fd: (1)-->(2-5)
- └── filters
-      └── exists [subquery]
-           └── limit
-                ├── columns: k:8!null xy.y:16
-                ├── cardinality: [0 - 1]
-                ├── key: ()
-                ├── fd: ()-->(8,16)
-                ├── ensure-distinct-on
-                │    ├── columns: k:8!null xy.y:16
-                │    ├── grouping columns: k:8!null
-                │    ├── error: "more than one row returned by a subquery used as an expression"
-                │    ├── key: (8)
-                │    ├── fd: (8)-->(16)
-                │    ├── limit hint: 1.00
-                │    ├── left-join (hash)
-                │    │    ├── columns: k:8!null xy.y:16
-                │    │    ├── multiplicity: left-rows(one-or-more), right-rows(zero-or-one)
-                │    │    ├── scan a
-                │    │    │    ├── columns: k:8!null
-                │    │    │    └── key: (8)
-                │    │    ├── scan xy
-                │    │    │    └── columns: xy.y:16
-                │    │    └── filters
-                │    │         └── xy.y:16 = k:8 [outer=(8,16), constraints=(/8: (/NULL - ]; /16: (/NULL - ]), fd=(8)==(16), (16)==(8)]
-                │    └── aggregations
-                │         └── const-agg [as=xy.y:16, outer=(16)]
-                │              └── xy.y:16
-                └── 1
+ ├── limit
+ │    ├── columns: k:8!null
+ │    ├── cardinality: [0 - 1]
+ │    ├── key: ()
+ │    ├── fd: ()-->(8)
+ │    ├── ensure-distinct-on
+ │    │    ├── columns: k:8!null
+ │    │    ├── grouping columns: k:8!null
+ │    │    ├── error: "more than one row returned by a subquery used as an expression"
+ │    │    ├── key: (8)
+ │    │    ├── limit hint: 1.00
+ │    │    └── left-join (hash)
+ │    │         ├── columns: k:8!null xy.y:16
+ │    │         ├── multiplicity: left-rows(one-or-more), right-rows(zero-or-one)
+ │    │         ├── scan a
+ │    │         │    ├── columns: k:8!null
+ │    │         │    └── key: (8)
+ │    │         ├── scan xy
+ │    │         │    └── columns: xy.y:16
+ │    │         └── filters
+ │    │              └── xy.y:16 = k:8 [outer=(8,16), constraints=(/8: (/NULL - ]; /16: (/NULL - ]), fd=(8)==(16), (16)==(8)]
+ │    └── 1
+ └── filters (true)
 
 # --------------------------------------------------
 # EliminateExistsGroupBy + EliminateExistsProject
@@ -566,7 +528,7 @@ select
 norm expect=(EliminateExistsGroupBy,EliminateExistsProject)
 SELECT * FROM a WHERE EXISTS(SELECT max(s) FROM a GROUP BY i)
 ----
-select
+semi-join (cross)
  ├── columns: k:1!null i:2 f:3 s:4 arr:5
  ├── key: (1)
  ├── fd: (1)-->(2-5)
@@ -574,17 +536,13 @@ select
  │    ├── columns: k:1!null i:2 f:3 s:4 arr:5
  │    ├── key: (1)
  │    └── fd: (1)-->(2-5)
- └── filters
-      └── exists [subquery]
-           └── limit
-                ├── columns: i:9 s:11
-                ├── cardinality: [0 - 1]
-                ├── key: ()
-                ├── fd: ()-->(9,11)
-                ├── scan a
-                │    ├── columns: i:9 s:11
-                │    └── limit hint: 1.00
-                └── 1
+ ├── limit
+ │    ├── cardinality: [0 - 1]
+ │    ├── key: ()
+ │    ├── scan a
+ │    │    └── limit hint: 1.00
+ │    └── 1
+ └── filters (true)
 
 # --------------------------------------------------
 # InlineExistsSelectTuple
@@ -712,7 +670,7 @@ semi-join (hash)
 norm expect=IntroduceExistsLimit
 SELECT * FROM a WHERE EXISTS(SELECT i FROM a)
 ----
-select
+semi-join (cross)
  ├── columns: k:1!null i:2 f:3 s:4 arr:5
  ├── key: (1)
  ├── fd: (1)-->(2-5)
@@ -720,17 +678,13 @@ select
  │    ├── columns: k:1!null i:2 f:3 s:4 arr:5
  │    ├── key: (1)
  │    └── fd: (1)-->(2-5)
- └── filters
-      └── exists [subquery]
-           └── limit
-                ├── columns: i:9
-                ├── cardinality: [0 - 1]
-                ├── key: ()
-                ├── fd: ()-->(9)
-                ├── scan a
-                │    ├── columns: i:9
-                │    └── limit hint: 1.00
-                └── 1
+ ├── limit
+ │    ├── cardinality: [0 - 1]
+ │    ├── key: ()
+ │    ├── scan a
+ │    │    └── limit hint: 1.00
+ │    └── 1
+ └── filters (true)
 
 # Don't introduce a limit on correlated subqueries (when HasOuterCols is true).
 norm expect-not=IntroduceExistsLimit
@@ -753,22 +707,10 @@ semi-join (hash)
 norm expect-not=IntroduceExistsLimit
 SELECT * FROM a WHERE EXISTS(SELECT * FROM (VALUES (1)))
 ----
-select
+scan a
  ├── columns: k:1!null i:2 f:3 s:4 arr:5
  ├── key: (1)
- ├── fd: (1)-->(2-5)
- ├── scan a
- │    ├── columns: k:1!null i:2 f:3 s:4 arr:5
- │    ├── key: (1)
- │    └── fd: (1)-->(2-5)
- └── filters
-      └── exists [subquery]
-           └── values
-                ├── columns: column1:8!null
-                ├── cardinality: [1 - 1]
-                ├── key: ()
-                ├── fd: ()-->(8)
-                └── (1,)
+ └── fd: (1)-->(2-5)
 
 # --------------------------------------------------
 # EliminateExistsLimit
@@ -819,7 +761,7 @@ values
 norm expect-not=EliminateExistsLimit
 SELECT * FROM a WHERE EXISTS(SELECT * FROM a LIMIT 1)
 ----
-select
+semi-join (cross)
  ├── columns: k:1!null i:2 f:3 s:4 arr:5
  ├── key: (1)
  ├── fd: (1)-->(2-5)
@@ -827,19 +769,13 @@ select
  │    ├── columns: k:1!null i:2 f:3 s:4 arr:5
  │    ├── key: (1)
  │    └── fd: (1)-->(2-5)
- └── filters
-      └── exists [subquery]
-           └── limit
-                ├── columns: k:8!null i:9 f:10 s:11 arr:12
-                ├── cardinality: [0 - 1]
-                ├── key: ()
-                ├── fd: ()-->(8-12)
-                ├── scan a
-                │    ├── columns: k:8!null i:9 f:10 s:11 arr:12
-                │    ├── key: (8)
-                │    ├── fd: (8)-->(9-12)
-                │    └── limit hint: 1.00
-                └── 1
+ ├── limit
+ │    ├── cardinality: [0 - 1]
+ │    ├── key: ()
+ │    ├── scan a
+ │    │    └── limit hint: 1.00
+ │    └── 1
+ └── filters (true)
 
 # --------------------------------------------------
 # SimplifyCaseWhenConstValue
@@ -1333,39 +1269,46 @@ select
  └── filters
       └── k:1 IN (1, 2, 3) [outer=(1), constraints=(/1: [/1 - /1] [/2 - /2] [/3 - /3]; tight)]
 
-norm expect=InlineAnyValuesSingleCol
+norm expect=InlineAnyValuesSingleCol disable=HoistValuesSubquery
 SELECT k FROM a WHERE k IN (VALUES ((SELECT k*i FROM a)), (2), (3))
 ----
-select
+project
  ├── columns: k:1!null
  ├── immutable
  ├── key: (1)
- ├── scan a
- │    ├── columns: k:1!null
- │    └── key: (1)
- └── filters
-      └── in [outer=(1), immutable, subquery]
-           ├── k:1
-           └── tuple
-                ├── subquery
-                │    └── max1-row
-                │         ├── columns: "?column?":15
-                │         ├── error: "more than one row returned by a subquery used as an expression"
-                │         ├── cardinality: [0 - 1]
-                │         ├── immutable
-                │         ├── key: ()
-                │         ├── fd: ()-->(15)
-                │         └── project
-                │              ├── columns: "?column?":15
-                │              ├── immutable
-                │              ├── scan a
-                │              │    ├── columns: k:8!null i:9
-                │              │    ├── key: (8)
-                │              │    └── fd: (8)-->(9)
-                │              └── projections
-                │                   └── k:8 * i:9 [as="?column?":15, outer=(8,9), immutable]
-                ├── 2
-                └── 3
+ └── select
+      ├── columns: k:1!null "?column?":15
+      ├── immutable
+      ├── key: (1)
+      ├── fd: (1)-->(15)
+      ├── left-join (cross)
+      │    ├── columns: k:1!null "?column?":15
+      │    ├── multiplicity: left-rows(exactly-one), right-rows(zero-or-more)
+      │    ├── immutable
+      │    ├── key: (1)
+      │    ├── fd: (1)-->(15)
+      │    ├── scan a
+      │    │    ├── columns: k:1!null
+      │    │    └── key: (1)
+      │    ├── max1-row
+      │    │    ├── columns: "?column?":15
+      │    │    ├── error: "more than one row returned by a subquery used as an expression"
+      │    │    ├── cardinality: [0 - 1]
+      │    │    ├── immutable
+      │    │    ├── key: ()
+      │    │    ├── fd: ()-->(15)
+      │    │    └── project
+      │    │         ├── columns: "?column?":15
+      │    │         ├── immutable
+      │    │         ├── scan a
+      │    │         │    ├── columns: k:8!null i:9
+      │    │         │    ├── key: (8)
+      │    │         │    └── fd: (8)-->(9)
+      │    │         └── projections
+      │    │              └── k:8 * i:9 [as="?column?":15, outer=(8,9), immutable]
+      │    └── filters (true)
+      └── filters
+           └── k:1 IN ("?column?":15, 2, 3) [outer=(1,15)]
 
 # --------------------------------------------------
 # InlineAnyValuesMultiCol

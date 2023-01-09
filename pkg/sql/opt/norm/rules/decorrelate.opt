@@ -1088,3 +1088,8 @@
     )
     $private
 )
+
+# [ConvertCorrelatedSubqueryToUDF, Normalize]
+# (Subquery $input:* $private:* & (HasOuterCols $input))
+# =>
+# (ConvertCorrelatedSubqueryToUDF $input $private)

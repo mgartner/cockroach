@@ -1215,93 +1215,105 @@ scalar-group-by
 opt expect=ReplaceScalarMinMaxWithScalarSubqueries
 SELECT max(z), min(x) FROM xyz HAVING (max(z),min(x)) = (SELECT max(z), min(x) FROM xyz)
 ----
-select
+project
  ├── columns: max:6 min:7
  ├── cardinality: [0 - 1]
  ├── immutable
  ├── key: ()
  ├── fd: ()-->(6,7)
- ├── values
- │    ├── columns: max:6 min:7
- │    ├── cardinality: [1 - 1]
- │    ├── key: ()
- │    ├── fd: ()-->(6,7)
- │    └── tuple
- │         ├── subquery
- │         │    └── scalar-group-by
- │         │         ├── columns: max:6
- │         │         ├── cardinality: [1 - 1]
- │         │         ├── key: ()
- │         │         ├── fd: ()-->(6)
- │         │         ├── scan xyz@zyx,rev
- │         │         │    ├── columns: z:18!null
- │         │         │    ├── constraint: /18/17/16: (/NULL - ]
- │         │         │    ├── limit: 1(rev)
- │         │         │    ├── key: ()
- │         │         │    └── fd: ()-->(18)
- │         │         └── aggregations
- │         │              └── const-agg [as=max:6, outer=(18)]
- │         │                   └── z:18
- │         └── subquery
- │              └── scalar-group-by
- │                   ├── columns: min:7
- │                   ├── cardinality: [1 - 1]
- │                   ├── key: ()
- │                   ├── fd: ()-->(7)
- │                   ├── scan xyz@xy
- │                   │    ├── columns: x:21!null
- │                   │    ├── limit: 1
- │                   │    ├── key: ()
- │                   │    └── fd: ()-->(21)
- │                   └── aggregations
- │                        └── const-agg [as=min:7, outer=(21)]
- │                             └── x:21
- └── filters
-      └── eq [outer=(6,7), immutable, subquery]
-           ├── (max:6, min:7)
-           └── subquery
-                └── project
-                     ├── columns: column15:15
-                     ├── cardinality: [1 - 1]
-                     ├── key: ()
-                     ├── fd: ()-->(15)
-                     ├── values
-                     │    ├── columns: max:13 min:14
-                     │    ├── cardinality: [1 - 1]
-                     │    ├── key: ()
-                     │    ├── fd: ()-->(13,14)
-                     │    └── tuple
-                     │         ├── subquery
-                     │         │    └── scalar-group-by
-                     │         │         ├── columns: max:13
-                     │         │         ├── cardinality: [1 - 1]
-                     │         │         ├── key: ()
-                     │         │         ├── fd: ()-->(13)
-                     │         │         ├── scan xyz@zyx,rev
-                     │         │         │    ├── columns: z:28!null
-                     │         │         │    ├── constraint: /28/27/26: (/NULL - ]
-                     │         │         │    ├── limit: 1(rev)
-                     │         │         │    ├── key: ()
-                     │         │         │    └── fd: ()-->(28)
-                     │         │         └── aggregations
-                     │         │              └── const-agg [as=max:13, outer=(28)]
-                     │         │                   └── z:28
-                     │         └── subquery
-                     │              └── scalar-group-by
-                     │                   ├── columns: min:14
-                     │                   ├── cardinality: [1 - 1]
-                     │                   ├── key: ()
-                     │                   ├── fd: ()-->(14)
-                     │                   ├── scan xyz@xy
-                     │                   │    ├── columns: x:31!null
-                     │                   │    ├── limit: 1
-                     │                   │    ├── key: ()
-                     │                   │    └── fd: ()-->(31)
-                     │                   └── aggregations
-                     │                        └── const-agg [as=min:14, outer=(31)]
-                     │                             └── x:31
-                     └── projections
-                          └── (max:13, min:14) [as=column15:15, outer=(13,14)]
+ └── inner-join (merge)
+      ├── columns: max:6 min:7 column15:15!null column16:16!null
+      ├── left ordering: +16
+      ├── right ordering: +15
+      ├── cardinality: [0 - 1]
+      ├── immutable
+      ├── key: ()
+      ├── fd: ()-->(6,7,15,16), (16)==(15), (15)==(16)
+      ├── project
+      │    ├── columns: column16:16 max:6 min:7
+      │    ├── cardinality: [1 - 1]
+      │    ├── key: ()
+      │    ├── fd: ()-->(6,7,16)
+      │    ├── values
+      │    │    ├── columns: max:6 min:7
+      │    │    ├── cardinality: [1 - 1]
+      │    │    ├── key: ()
+      │    │    ├── fd: ()-->(6,7)
+      │    │    └── tuple
+      │    │         ├── subquery
+      │    │         │    └── scalar-group-by
+      │    │         │         ├── columns: max:6
+      │    │         │         ├── cardinality: [1 - 1]
+      │    │         │         ├── key: ()
+      │    │         │         ├── fd: ()-->(6)
+      │    │         │         ├── scan xyz@zyx,rev
+      │    │         │         │    ├── columns: z:19!null
+      │    │         │         │    ├── constraint: /19/18/17: (/NULL - ]
+      │    │         │         │    ├── limit: 1(rev)
+      │    │         │         │    ├── key: ()
+      │    │         │         │    └── fd: ()-->(19)
+      │    │         │         └── aggregations
+      │    │         │              └── const-agg [as=max:6, outer=(19)]
+      │    │         │                   └── z:19
+      │    │         └── subquery
+      │    │              └── scalar-group-by
+      │    │                   ├── columns: min:7
+      │    │                   ├── cardinality: [1 - 1]
+      │    │                   ├── key: ()
+      │    │                   ├── fd: ()-->(7)
+      │    │                   ├── scan xyz@xy
+      │    │                   │    ├── columns: x:22!null
+      │    │                   │    ├── limit: 1
+      │    │                   │    ├── key: ()
+      │    │                   │    └── fd: ()-->(22)
+      │    │                   └── aggregations
+      │    │                        └── const-agg [as=min:7, outer=(22)]
+      │    │                             └── x:22
+      │    └── projections
+      │         └── (max:6, min:7) [as=column16:16, outer=(6,7)]
+      ├── project
+      │    ├── columns: column15:15
+      │    ├── cardinality: [1 - 1]
+      │    ├── key: ()
+      │    ├── fd: ()-->(15)
+      │    ├── values
+      │    │    ├── columns: max:13 min:14
+      │    │    ├── cardinality: [1 - 1]
+      │    │    ├── key: ()
+      │    │    ├── fd: ()-->(13,14)
+      │    │    └── tuple
+      │    │         ├── subquery
+      │    │         │    └── scalar-group-by
+      │    │         │         ├── columns: max:13
+      │    │         │         ├── cardinality: [1 - 1]
+      │    │         │         ├── key: ()
+      │    │         │         ├── fd: ()-->(13)
+      │    │         │         ├── scan xyz@zyx,rev
+      │    │         │         │    ├── columns: z:29!null
+      │    │         │         │    ├── constraint: /29/28/27: (/NULL - ]
+      │    │         │         │    ├── limit: 1(rev)
+      │    │         │         │    ├── key: ()
+      │    │         │         │    └── fd: ()-->(29)
+      │    │         │         └── aggregations
+      │    │         │              └── const-agg [as=max:13, outer=(29)]
+      │    │         │                   └── z:29
+      │    │         └── subquery
+      │    │              └── scalar-group-by
+      │    │                   ├── columns: min:14
+      │    │                   ├── cardinality: [1 - 1]
+      │    │                   ├── key: ()
+      │    │                   ├── fd: ()-->(14)
+      │    │                   ├── scan xyz@xy
+      │    │                   │    ├── columns: x:32!null
+      │    │                   │    ├── limit: 1
+      │    │                   │    ├── key: ()
+      │    │                   │    └── fd: ()-->(32)
+      │    │                   └── aggregations
+      │    │                        └── const-agg [as=min:14, outer=(32)]
+      │    │                             └── x:32
+      │    └── projections
+      │         └── (max:13, min:14) [as=column15:15, outer=(13,14)]
+      └── filters (true)
 
 # --------------------------------------------------
 # ReplaceFilteredScalarMinMaxWithSubqueries

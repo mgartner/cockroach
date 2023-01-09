@@ -417,6 +417,9 @@ func (c *CustomFuncs) InlineConstVar(f memo.FiltersExpr) memo.FiltersExpr {
 // able to inline volatile UDFs. We must take care not to inline UDFs with
 // volatile arguments used more than once in the function body.
 func (c *CustomFuncs) IsInlinableUDF(args memo.ScalarListExpr, udfp *memo.UDFPrivate) bool {
+	// if udfp.DisableInline {
+	// 	return false
+	// }
 	if udfp.Volatility == volatility.Volatile || len(udfp.Body) > 1 {
 		return false
 	}
@@ -480,3 +483,48 @@ func (c *CustomFuncs) ConvertUDFToSubquery(
 		&memo.SubqueryPrivate{},
 	)
 }
+
+// // ConvertCorrelatedSubqueryToUDF TODO...
+// func (c *CustomFuncs) ConvertCorrelatedSubqueryToUDF(
+// 	input memo.RelExpr, private *memo.SubqueryPrivate,
+// ) opt.ScalarExpr {
+// 	// Build the argument expressions which are the outer columns of the
+// 	// subquery.
+// 	outerCols := input.Relational().OuterCols
+// 	var params opt.ColList
+// 	var args memo.ScalarListExpr
+// 	if !outerCols.Empty() {
+// 		params = outerCols.ToList()
+// 		args = make(memo.ScalarListExpr, len(params))
+// 		for i, col := range params {
+// 			args[i] = c.f.ConstructVariable(col)
+// 		}
+// 	}
+//
+// 	// outputCols := input.Relational().OutputCols.ToList()
+// 	// p := &physical.Required{
+// 	// 	Presentation: outputCols,
+// 	// }
+// 	var oc props.OrderingChoice
+// 	oc.FromOrdering(private.Ordering)
+// 	body := memo.RelListExpr{memo.RelRequiredPropsExpr{
+// 		RelExpr:   input,
+// 		PhysProps: &physical.Required{Ordering: oc},
+// 	}}
+//
+// 	outputCol := input.Relational().OutputCols.SingleColumn()
+// 	typ := c.mem.Metadata().ColumnMeta(outputCol).Type
+//
+// 	return c.f.ConstructUDF(
+// 		args,
+// 		&memo.UDFPrivate{
+// 			Name:       "subquery",
+// 			Params:     params,
+// 			Body:       body,
+// 			Typ:        typ,
+// 			Volatility: volatility.Stable,
+// 			// DisableInline: true,
+// 		},
+// 	)
+//
+// }
