@@ -2201,11 +2201,10 @@ func typeCheckComparisonOp(
 	foldedOp, foldedLeft, foldedRight, switched, _ := FoldComparisonExpr(op, left, right)
 	ops := CmpOps[foldedOp.Symbol]
 
-	_, leftIsTuple := foldedLeft.(*Tuple)
-	_, rightIsTuple := foldedRight.(*Tuple)
+	// _, leftIsTuple := foldedLeft.(*Tuple)
+	// _, rightIsTuple := foldedRight.(*Tuple)
 	_, rightIsSubquery := foldedRight.(SubqueryExpr)
 
-	handleTupleTypeMismatch := false
 	switch {
 	case foldedOp.Symbol == treecmp.In && rightIsTuple:
 		rightTuple := foldedRight.(*Tuple)
@@ -2271,31 +2270,78 @@ func typeCheckComparisonOp(
 		}
 		return typedLeft, typedRight, fn, false, nil
 
-	case leftIsTuple && rightIsTuple:
-		fn, ok := ops.LookupImpl(types.AnyTuple, types.AnyTuple)
-		if !ok {
-			sig := fmt.Sprintf(compSignatureFmt, types.AnyTuple, op, types.AnyTuple)
-			return nil, nil, nil, false,
-				pgerror.Newf(pgcode.InvalidParameterValue, unsupportedCompErrFmt, sig)
-		}
-		// Using non-folded left and right to avoid having to swap later.
-		typedLeft, typedRight, err := typeCheckTupleComparison(ctx, semaCtx, op, left.(*Tuple), right.(*Tuple))
-		if err != nil {
-			return nil, nil, nil, false, err
-		}
-		return typedLeft, typedRight, fn, false, nil
+		// case leftIsTuple && rightIsTuple:
+		// 	fn, ok := ops.LookupImpl(types.AnyTuple, types.AnyTuple)
+		// 	if !ok {
+		// 		sig := fmt.Sprintf(compSignatureFmt, types.AnyTuple, op, types.AnyTuple)
+		// 		return nil, nil, nil, false,
+		// 			pgerror.Newf(pgcode.InvalidParameterValue, unsupportedCompErrFmt, sig)
+		// 	}
+		// 	// Using non-folded left and right to avoid having to swap later.
+		// 	typedLeft, typedRight, err := typeCheckTupleComparison(ctx, semaCtx, op, left.(*Tuple), right.(*Tuple))
+		// 	if err != nil {
+		// 		return nil, nil, nil, false, err
+		// 	}
+		// 	return typedLeft, typedRight, fn, false, nil
+		//
+		// case leftIsTuple || rightIsTuple:
+		// 	// Tuple must compare with a tuple type, as handled above.
+		// 	typedLeft, errLeft := foldedLeft.TypeCheck(ctx, semaCtx, types.Any)
+		// 	typedRight, errRight := foldedRight.TypeCheck(ctx, semaCtx, types.Any)
+		// 	if errLeft == nil && errRight == nil &&
+		// 		((typedLeft.ResolvedType().Family() == types.TupleFamily &&
+		// 			typedRight.ResolvedType().Family() != types.TupleFamily) ||
+		// 			(typedRight.ResolvedType().Family() == types.TupleFamily &&
+		// 				typedLeft.ResolvedType().Family() != types.TupleFamily)) {
+		// 		handleTupleTypeMismatch = true
+		// 	}
+	}
 
-	case leftIsTuple || rightIsTuple:
-		// Tuple must compare with a tuple type, as handled above.
-		typedLeft, errLeft := foldedLeft.TypeCheck(ctx, semaCtx, types.Any)
-		typedRight, errRight := foldedRight.TypeCheck(ctx, semaCtx, types.Any)
-		if errLeft == nil && errRight == nil &&
-			((typedLeft.ResolvedType().Family() == types.TupleFamily &&
-				typedRight.ResolvedType().Family() != types.TupleFamily) ||
-				(typedRight.ResolvedType().Family() == types.TupleFamily &&
-					typedLeft.ResolvedType().Family() != types.TupleFamily)) {
-			handleTupleTypeMismatch = true
+	typedLeft, errLeft := foldedLeft.TypeCheck(ctx, semaCtx, types.Any)
+	if errLeft != nil {
+		return nil, nil, nil, false, errLeft
+	}
+	typedRight, errRight := foldedRight.TypeCheck(ctx, semaCtx, types.Any)
+	if errRight != nil {
+		return nil, nil, nil, false, errRight
+	}
+
+	leftType := typedLeft.ResolvedType()
+	rightType := typedRight.ResolvedType()
+	if leftType.Family() == types.TupleFamily && rightType.Family() == types.TupleFamily {
+		if len(leftType.TupleContents()) != len(rightType.TupleContents()) {
+			return nil, nil, nil, false,
+				pgerror.Newf(pgcode.DatatypeMismatch, "cannot compare tuples of different lengths")
 		}
+		// The elements at each position of the tuple must be comparable.
+		for i := range leftType.TupleContents() {
+			lType := leftType.TupleContents()[i]
+			rType := rightType.TupleContents()[i]
+
+		}
+		left.typ = types.MakeTuple(make([]*types.T, tupLen))
+		right.typ = types.MakeTuple(make([]*types.T, tupLen))
+		for elemIdx := range left.Exprs {
+			leftSubExpr := left.Exprs[elemIdx]
+			rightSubExpr := right.Exprs[elemIdx]
+			leftSubExprTyped, rightSubExprTyped, _, _, err := typeCheckComparisonOp(ctx, semaCtx, op, leftSubExpr, rightSubExpr)
+			if err != nil {
+				exps := Exprs([]Expr{left, right})
+				return nil, nil, pgerror.Wrapf(err, pgcode.DatatypeMismatch, "tuples %s are not comparable at index %d",
+					&exps, elemIdx+1)
+			}
+			left.Exprs[elemIdx] = leftSubExprTyped
+			left.typ.TupleContents()[elemIdx] = leftSubExprTyped.ResolvedType()
+			right.Exprs[elemIdx] = rightSubExprTyped
+			right.typ.TupleContents()[elemIdx] = rightSubExprTyped.ResolvedType()
+		}
+		return left, right, nil
+	}
+
+	if leftType.Family() == types.TupleFamily || rightType.Family() == types.TupleFamily {
+		sig := fmt.Sprintf(compSignatureFmt, leftType, op, rightType)
+		return nil, nil, nil, false,
+			pgerror.Newf(pgcode.InvalidParameterValue, unsupportedCompErrFmt, sig)
 	}
 
 	// For comparisons, we do not stimulate the typing of untyped NULL with the
@@ -2384,7 +2430,7 @@ func typeCheckComparisonOp(
 	genericComparison := leftIsGeneric && rightIsGeneric
 
 	typeMismatch := false
-	if (genericComparison || handleTupleTypeMismatch) && !nullComparison {
+	if genericComparison && !nullComparison {
 		// A generic comparison (one between two generic types, like arrays) is not
 		// well-typed if the two input types are not equivalent, unless one of the
 		// sides is NULL.
