@@ -25,6 +25,36 @@ const (
 	maxRandSetSize = 20
 )
 
+// func TestMarcus(t *testing.T) {
+// 	s := new(Sparse)
+// 	s.Add(1)
+// 	s.Add(128)
+// 	s.Add(-1)
+// 	s.Add(-100_000)
+// 	s.Add(129)
+// 	// s.Remove(-1)
+// 	// if s.Contains(1) {
+// 	// 	t.Fatalf("FAIL")
+// 	// }
+// 	// if s.Contains(-1) {
+// 	// 	t.Fatalf("FAIL")
+// 	// }
+// 	// if s.Contains(1) {
+// 	// 	t.Fatalf("FAIL")
+// 	// }
+// 	// if !s.Contains(128) {
+// 	// 	fmt.Println(s)
+// 	// 	t.Fatalf("FAIL")
+// 	// }
+// 	// if s.Contains(127) {
+// 	// 	t.Fatalf("FAIL")
+// 	// }
+// 	for i := s.LowerBound(MinInt); i < MaxInt; i = s.LowerBound(i + 1) {
+// 		fmt.Println(i)
+// 	}
+// 	t.Fatalf("BLEH")
+// }
+
 func TestSparse(t *testing.T) {
 	for _, minVal := range []int{-100_000, -smallCutoff * 10, -smallCutoff, 0, smallCutoff, smallCutoff * 10} {
 		for _, maxVal := range []int{1, smallCutoff, smallCutoff * 10, 100_000} {
@@ -39,7 +69,7 @@ func TestSparse(t *testing.T) {
 				t.Parallel() // SAFE FOR TESTING (this comment is for the linter)
 				rng, _ := randutil.NewTestRand()
 				o := new(oracle)
-				s := new(Sparse)
+				s := NewSparse()
 
 				for i := 0; i < numOps; i++ {
 					v := minVal + rng.Intn(maxVal-minVal)
@@ -57,7 +87,7 @@ func TestSparse(t *testing.T) {
 						oCopy := new(oracle)
 						oCopy.Copy(o)
 						o = oCopy
-						sCopy := new(Sparse)
+						sCopy := NewSparse()
 						sCopy.Copy(s)
 						s = sCopy
 					case 3:
@@ -165,7 +195,7 @@ func validateSparseSet(t *testing.T, o *oracle, s *Sparse) {
 
 func randomSets(rng *rand.Rand, minVal, maxVal int) (*oracle, *Sparse) {
 	o := new(oracle)
-	s := new(Sparse)
+	s := NewSparse()
 	for i, n := 0, rng.Intn(maxRandSetSize); i < n; i++ {
 		v := minVal + rng.Intn(maxVal-minVal)
 		o.Add(v)

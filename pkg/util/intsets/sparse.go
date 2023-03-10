@@ -10,6 +10,8 @@
 
 package intsets
 
+import "sync"
+
 // Sparse is a set of integers. It is not thread-safe. It must be copied with
 // the Copy method.
 //
@@ -26,8 +28,10 @@ package intsets
 // a smaller API, providing only the methods required by Fast. The omission of a
 // Max method allows us to use a singly-linked list here instead of a
 // circular, doubly-linked list.
-type Sparse struct {
-	root block
+type Sparse = block
+
+func NewSparse() *Sparse {
+	return newBlock()
 }
 
 // block is a node in a singly-linked list with an offset and a bitmap. A block
@@ -36,6 +40,10 @@ type block struct {
 	offset int
 	bits   bitmap
 	next   *block
+}
+
+var blockPool = sync.Pool{
+	New: func() interface{} { return new(block) },
 }
 
 const (
@@ -69,53 +77,64 @@ func bit(i int) int {
 	return i & smallCutoffMask
 }
 
+func newBlock() *block {
+	return blockPool.Get().(*block)
+}
+
+func (b *block) release() {
+	*b = block{}
+	blockPool.Put(b)
+}
+
 // empty returns true if the block is empty, i.e., none of its bits have been
 // set.
 //
 //gcassert:inline
-func (s block) empty() bool {
-	return s.bits == bitmap{}
+func (b block) empty() bool {
+	return b.bits == bitmap{}
 }
 
 // insertBlock inserts a block after prev and returns it. If prev is nil, a
 // block is inserted at the front of the list.
 func (s *Sparse) insertBlock(prev *block) *block {
 	if s.Empty() {
-		return &s.root
+		return s
 	}
 	if prev == nil {
 		// Insert a new block at the front of the list.
-		second := s.root
-		s.root = block{}
-		s.root.next = &second
-		return &s.root
+		n := newBlock()
+		*n = *s
+		*s = block{}
+		s.next = n
+		return s
 	}
 	// Insert a new block in the middle of the list.
-	n := block{}
+	n := newBlock()
 	n.next = prev.next
-	prev.next = &n
-	return &n
+	prev.next = n
+	return n
 }
 
 // removeBlock removes a block from the list. prev must be the block before b.
 func (s *Sparse) removeBlock(prev, b *block) *block {
 	if prev == nil {
 		if b.next == nil {
-			s.root = block{}
+			*s = block{}
 			return nil
 		}
-		s.root.offset = b.next.offset
-		s.root.bits = b.next.bits
-		s.root.next = b.next.next
-		return &s.root
+		s.offset = b.next.offset
+		s.bits = b.next.bits
+		s.next = b.next.next
+		return s
 	}
+	defer b.release()
 	prev.next = prev.next.next
 	return prev.next
 }
 
 // Clear empties the set.
 func (s *Sparse) Clear() {
-	s.root = block{}
+	*s = block{}
 }
 
 // Add adds an integer to the set.
@@ -123,7 +142,7 @@ func (s *Sparse) Add(i int) {
 	o := offset(i)
 	b := bit(i)
 	var last *block
-	for sb := &s.root; sb != nil && sb.offset <= o; sb = sb.next {
+	for sb := s; sb != nil && sb.offset <= o; sb = sb.next {
 		if sb.offset == o {
 			sb.bits.Set(b)
 			return
@@ -140,7 +159,7 @@ func (s *Sparse) Remove(i int) {
 	o := offset(i)
 	b := bit(i)
 	var last *block
-	for sb := &s.root; sb != nil && sb.offset <= o; sb = sb.next {
+	for sb := s; sb != nil && sb.offset <= o; sb = sb.next {
 		if sb.offset == o {
 			sb.bits.Unset(b)
 			if sb.empty() {
@@ -153,10 +172,10 @@ func (s *Sparse) Remove(i int) {
 }
 
 // Contains returns true if the set contains the given integer.
-func (s Sparse) Contains(i int) bool {
+func (s *Sparse) Contains(i int) bool {
 	o := offset(i)
 	b := bit(i)
-	for sb := &s.root; sb != nil && sb.offset <= o; sb = sb.next {
+	for sb := s; sb != nil && sb.offset <= o; sb = sb.next {
 		if sb.offset == o {
 			return sb.bits.IsSet(b)
 		}
@@ -165,14 +184,14 @@ func (s Sparse) Contains(i int) bool {
 }
 
 // Empty returns true if the set contains no integers.
-func (s Sparse) Empty() bool {
-	return s.root.empty()
+func (s *Sparse) Empty() bool {
+	return s.empty()
 }
 
 // Len returns the number of integers in the set.
-func (s Sparse) Len() int {
+func (s *Sparse) Len() int {
 	l := 0
-	for sb := &s.root; sb != nil; sb = sb.next {
+	for sb := s; sb != nil; sb = sb.next {
 		l += sb.bits.OnesCount()
 	}
 	return l
@@ -186,7 +205,7 @@ func (s *Sparse) LowerBound(startVal int) int {
 	}
 	o := offset(startVal)
 	b := bit(startVal)
-	for sb := &s.root; sb != nil; sb = sb.next {
+	for sb := s; sb != nil; sb = sb.next {
 		if sb.offset > o {
 			v, _ := sb.bits.Next(0)
 			return v + sb.offset
@@ -206,17 +225,16 @@ func (s *Sparse) Min() int {
 	if s.Empty() {
 		return MaxInt
 	}
-	b := s.root
-	v, _ := b.bits.Next(0)
-	return v + b.offset
+	v, _ := s.bits.Next(0)
+	return v + s.offset
 }
 
 // Copy sets the receiver to a copy of rhs, which can then be modified
 // independently.
 func (s *Sparse) Copy(rhs *Sparse) {
 	var last *block
-	sb := &s.root
-	rb := &rhs.root
+	sb := s
+	rb := rhs
 	for rb != nil {
 		if sb == nil {
 			sb = s.insertBlock(last)
@@ -239,8 +257,8 @@ func (s *Sparse) UnionWith(rhs *Sparse) {
 	}
 
 	var last *block
-	sb := &s.root
-	rb := &rhs.root
+	sb := s
+	rb := rhs
 	for rb != nil {
 		if sb != nil && sb.offset == rb.offset {
 			sb.bits.UnionWith(rb.bits)
@@ -259,8 +277,8 @@ func (s *Sparse) UnionWith(rhs *Sparse) {
 // IntersectionWith removes any elements not in rhs from this set.
 func (s *Sparse) IntersectionWith(rhs *Sparse) {
 	var last *block
-	sb := &s.root
-	rb := &rhs.root
+	sb := s
+	rb := rhs
 	for sb != nil && rb != nil {
 		switch {
 		case sb.offset > rb.offset:
@@ -282,7 +300,7 @@ func (s *Sparse) IntersectionWith(rhs *Sparse) {
 			rb = rb.next
 		}
 	}
-	if sb == &s.root {
+	if sb == s {
 		// This is a special case that only happens when all the following are
 		// true:
 		//
@@ -294,7 +312,10 @@ func (s *Sparse) IntersectionWith(rhs *Sparse) {
 		// In this case, the root block would not have been removed in the loop,
 		// and it may have a non-zero offset and a non-nil next block, so we
 		// clear it here.
-		s.root = block{}
+		if s.next != nil {
+			s.next.release()
+		}
+		*s = block{}
 	}
 	if last != nil {
 		// At this point, last is a pointer to the last block in s that we've
@@ -308,8 +329,8 @@ func (s *Sparse) IntersectionWith(rhs *Sparse) {
 
 // Intersects returns true if s has any elements in common with rhs.
 func (s *Sparse) Intersects(rhs *Sparse) bool {
-	sb := &s.root
-	rb := &rhs.root
+	sb := s
+	rb := rhs
 	for sb != nil && rb != nil {
 		switch {
 		case sb.offset > rb.offset:
@@ -330,8 +351,8 @@ func (s *Sparse) Intersects(rhs *Sparse) bool {
 // DifferenceWith removes any elements in rhs from this set.
 func (s *Sparse) DifferenceWith(rhs *Sparse) {
 	var last *block
-	sb := &s.root
-	rb := &rhs.root
+	sb := s
+	rb := rhs
 	for sb != nil && rb != nil {
 		switch {
 		case sb.offset > rb.offset:
@@ -354,8 +375,8 @@ func (s *Sparse) DifferenceWith(rhs *Sparse) {
 
 // Equals returns true if the two sets are identical.
 func (s *Sparse) Equals(rhs *Sparse) bool {
-	sb := &s.root
-	rb := &rhs.root
+	sb := s
+	rb := rhs
 	for sb != nil && rb != nil {
 		if sb.offset != rb.offset || sb.bits != rb.bits {
 			return false
@@ -371,8 +392,8 @@ func (s *Sparse) SubsetOf(rhs *Sparse) bool {
 	if s.Empty() {
 		return true
 	}
-	sb := &s.root
-	rb := &rhs.root
+	sb := s
+	rb := rhs
 	for sb != nil && rb != nil {
 		if sb.offset > rb.offset {
 			rb = rb.next

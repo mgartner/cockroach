@@ -59,7 +59,7 @@ func (s *Fast) Add(i int) {
 		return
 	}
 	if s.large == nil {
-		s.large = new(Sparse)
+		s.large = NewSparse()
 	}
 	s.large.Add(i)
 }
