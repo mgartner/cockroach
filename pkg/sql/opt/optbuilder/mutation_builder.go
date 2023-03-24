@@ -289,6 +289,7 @@ func (mb *mutationBuilder) buildInputForUpdate(
 	mb.fetchScope = mb.b.buildScan(
 		mb.b.addTable(mb.tab, &mb.alias),
 		tableOrdinals(mb.tab, columnKinds{
+			// includeMutations: false,
 			includeMutations: true,
 			includeSystem:    true,
 			includeInverted:  false,

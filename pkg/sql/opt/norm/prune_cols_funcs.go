@@ -228,11 +228,13 @@ func (c *CustomFuncs) NeededMutationFetchCols(
 		// to compose the keys of rows to delete. Include mutation indexes, since
 		// it is necessary to delete rows even from indexes that are being added
 		// or dropped.
+		// TODO: This requires that no mutation index has a mutation column.
 		for i, n := 0, tabMeta.Table.DeletableIndexCount(); i < n; i++ {
 			cols.UnionWith(tabMeta.IndexKeyColumnsMapInverted(i))
 		}
 
 		// Add inbound foreign keys that may require a check or cascade.
+		// TODO: This requires that no FKs reference a mutation column.
 		for i, n := 0, tabMeta.Table.InboundForeignKeyCount(); i < n; i++ {
 			inboundFK := tabMeta.Table.InboundForeignKey(i)
 			for j, m := 0, inboundFK.ColumnCount(); j < m; j++ {
