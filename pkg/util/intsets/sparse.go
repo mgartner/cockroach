@@ -410,3 +410,11 @@ func (s *Sparse) SubsetOf(rhs *Sparse) bool {
 	}
 	return sb == nil
 }
+
+func (s *Sparse) Release() {
+	for sb := s; sb != nil; {
+		next := sb.next
+		sb.release()
+		sb = next
+	}
+}

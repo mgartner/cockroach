@@ -672,6 +672,20 @@ func (f *FuncDepSet) ComputeClosure(cols opt.ColSet) opt.ColSet {
 	return cols
 }
 
+func (f *FuncDepSet) ComputeClosureNoCopy(cols opt.ColSet) opt.ColSet {
+	for i := 0; i < len(f.deps); i++ {
+		fd := &f.deps[i]
+
+		if fd.strict && fd.from.SubsetOf(cols) && !fd.to.SubsetOf(cols) {
+			cols.UnionWith(fd.to)
+
+			// Restart iteration to get transitive closure.
+			i = -1
+		}
+	}
+	return cols
+}
+
 // AreColsEquiv returns true if the two given columns are equivalent.
 func (f *FuncDepSet) AreColsEquiv(col1, col2 opt.ColumnID) bool {
 	if col1 == col2 {

@@ -299,6 +299,13 @@ func (s Fast) SubsetOf(rhs Fast) bool {
 	return s.small.SubsetOf(rhs.small) && s.large.SubsetOf(rhs.large)
 }
 
+// TODO
+func (s Fast) Release() {
+	if s.large != nil {
+		s.large.Release()
+	}
+}
+
 // Encode the set and write it to a bytes.Buffer using binary.varint byte
 // encoding.
 //
