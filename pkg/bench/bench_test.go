@@ -288,21 +288,33 @@ func runBenchmarkInsert(b *testing.B, db *sqlutils.SQLRunner, count int) {
 
 	b.ResetTimer()
 	var buf bytes.Buffer
+
+	buf.WriteString(`PREPARE ins AS INSERT INTO bench.insert VALUES `)
+	for j := 0; j < count; j++ {
+		if j > 0 {
+			buf.WriteString(", ")
+		}
+		fmt.Fprintf(&buf, "($%d)", j+1)
+	}
+	db.Exec(b, buf.String())
+
 	val := 0
 	for i := 0; i < b.N; i++ {
 		buf.Reset()
-		buf.WriteString(`INSERT INTO bench.insert VALUES `)
+		buf.WriteString(`EXECUTE ins(`)
 		for j := 0; j < count; j++ {
 			if j > 0 {
 				buf.WriteString(", ")
 			}
-			fmt.Fprintf(&buf, "(%d)", val)
+			fmt.Fprintf(&buf, "%d", val)
 			val++
 		}
+		buf.WriteByte(')')
 		db.Exec(b, buf.String())
 	}
 	b.StopTimer()
 
+	db.Exec(b, "DEALLOCATE ins")
 }
 
 // runBenchmarkInsertFK benchmarks inserting count rows into a table with a
@@ -418,6 +430,7 @@ func BenchmarkSQL(b *testing.B) {
 	defer log.Scope(b).Close(b)
 	ForEachDB(b, func(b *testing.B, db *sqlutils.SQLRunner) {
 		for _, runFn := range []func(*testing.B, *sqlutils.SQLRunner, int){
+			// TODO
 			runBenchmarkDelete,
 			runBenchmarkInsert,
 			runBenchmarkInsertDistinct,
