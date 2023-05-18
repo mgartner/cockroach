@@ -668,6 +668,10 @@ func (b *logicalPropsBuilder) buildGroupingExprProps(groupExpr RelExpr, rel *pro
 		} else {
 			b.updateCardinalityFromTypes(groupingCols, rel)
 		}
+		// TODO
+		// if groupingCols.Empty() && len(aggs) == 1 && aggs[0].Agg.Op() == opt.CountRowsOp {
+		// 	rel.Cardinality = props.OneCardinality
+		// }
 	}
 
 	// Statistics

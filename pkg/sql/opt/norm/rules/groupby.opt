@@ -164,6 +164,17 @@
     (RemoveGroupingCols $groupingPrivate $redundantCols)
 )
 
+# TODO
+[ConvertGroupByToScalarGroupBy, Normalize]
+(GroupBy
+    $input:*
+    $aggs:*
+    $groupingPrivate:* &
+        (ColsAreEmpty (GroupingCols $groupingPrivate))
+)
+=>
+(ScalarGroupBy $input $aggs $groupingPrivate)
+
 # ReduceNotNullGroupingCols is similar to ReduceGroupingCols, but with the
 # additional restriction that nullable columns cannot be removed from the set of
 # grouping columns. This is because the UpsertDistinctOn operator treats NULL
