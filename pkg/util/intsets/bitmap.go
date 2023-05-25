@@ -82,7 +82,9 @@ func (v *bitmap) DifferenceWith(other bitmap) {
 }
 
 func (v bitmap) SubsetOf(other bitmap) bool {
-	return (v.lo&other.lo == v.lo) && (v.hi&other.hi == v.hi)
+	lo := v.lo&other.lo == v.lo
+	hi := v.hi&other.hi == v.hi
+	return lo && hi
 }
 
 func (v bitmap) OnesCount() int {
