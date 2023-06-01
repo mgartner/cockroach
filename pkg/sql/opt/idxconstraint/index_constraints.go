@@ -19,6 +19,7 @@ import (
 	"github.com/cockroachdb/cockroach/pkg/sql/opt/memo"
 	"github.com/cockroachdb/cockroach/pkg/sql/opt/norm"
 	"github.com/cockroachdb/cockroach/pkg/sql/opt/partition"
+	"github.com/cockroachdb/cockroach/pkg/sql/opt/props"
 	"github.com/cockroachdb/cockroach/pkg/sql/sem/eval"
 	"github.com/cockroachdb/cockroach/pkg/sql/sem/tree"
 	"github.com/cockroachdb/cockroach/pkg/sql/types"
@@ -540,22 +541,46 @@ func (c *indexConstraintCtx) makeSpansForTupleIn(
 	// Find the longest prefix of columns starting at <offset> which is contained
 	// in the left-hand tuple; tuplePos[i] is the position of column <offset+i> in
 	// the tuple.
-	var tuplePos []int
+	type positionOrExpr struct {
+		pos  int
+		expr opt.ScalarExpr
+	}
+	var posExpr []positionOrExpr
+	var constrainedCols opt.ColSet
+	var requiredCols opt.ColSet
 	for i := offset; i < len(c.columns); i++ {
 		found := false
 		for j, child := range lhs.Elems {
 			if c.isIndexColumn(child, i) {
-				tuplePos = append(tuplePos, j)
+				constrainedCols.Add(c.columns[i].ID())
+				posExpr = append(posExpr, positionOrExpr{pos: j})
 				found = true
 				break
+			}
+		}
+		if c.evalCtx.SessionData().OptimizerUseImprovedComputedColumnFiltersDerivation {
+			for col, expr := range c.computedCols {
+				if col == c.columns[i].ID() {
+					var sharedProps props.Shared
+					memo.BuildSharedProps(expr, &sharedProps, c.evalCtx)
+					requiredCols.UnionWith(sharedProps.OuterCols)
+					posExpr = append(posExpr, positionOrExpr{expr: expr})
+					found = true
+					break
+				}
 			}
 		}
 		if !found {
 			break
 		}
 	}
-	if len(tuplePos) == 0 {
+	if len(posExpr) == 0 {
 		c.unconstrained(offset, out)
+		return false
+	}
+	// All the columns referenced in computed column expressions must be
+	// constrained.
+	if !requiredCols.SubsetOf(constrainedCols) {
 		return false
 	}
 
@@ -570,9 +595,13 @@ func (c *indexConstraintCtx) makeSpansForTupleIn(
 			c.unconstrained(offset, out)
 			return false
 		}
-		vals := make(tree.Datums, len(tuplePos))
-		for i, pos := range tuplePos {
-			val := valTuple.Elems[pos]
+		vals := make(tree.Datums, len(posExpr))
+		for i, pos := range posExpr {
+			if pos.expr != nil {
+				// Skip expressions first.
+				continue
+			}
+			val := valTuple.Elems[pos.pos]
 			if !opt.IsConstValueOp(val) {
 				c.unconstrained(offset, out)
 				return false
@@ -584,6 +613,46 @@ func (c *indexConstraintCtx) makeSpansForTupleIn(
 			}
 			vals[i] = datum
 		}
+		// Now compute the expressions.
+		for i, pos := range posExpr {
+			if pos.expr == nil {
+				// Skip positions.
+				continue
+			}
+			expr := pos.expr
+			var r norm.ReplaceFunc
+			r = func(e opt.Expr) opt.Expr {
+				if v, ok := e.(*memo.VariableExpr); ok {
+					// Find the position of the variable.
+					for j := offset; j < len(c.columns); j++ {
+						if c.columns[j].ID() == v.Col {
+							return c.factory.ConstructConstVal(vals[j], c.colType(j))
+						}
+					}
+				}
+				return e
+			}
+			expr = c.factory.Replace(expr.(opt.Expr), r).(opt.ScalarExpr)
+			if !opt.IsConstValueOp(expr) {
+				c.unconstrained(offset, out)
+				return false
+			}
+			datum := memo.ExtractConstDatum(expr)
+			if !c.verifyType(offset+i, datum.ResolvedType()) {
+				c.unconstrained(offset, out)
+				return false
+			}
+			vals[i] = datum
+		}
+
+		// Check if any vals are not set.
+		for j := range vals {
+			if vals[j] == nil {
+				c.unconstrained(offset, out)
+				return false
+			}
+		}
+
 		containsNull := false
 		for _, d := range vals {
 			containsNull = containsNull || (d == tree.DNull)
@@ -606,7 +675,7 @@ func (c *indexConstraintCtx) makeSpansForTupleIn(
 	spans.SortAndMerge(keyCtx)
 	out.Init(keyCtx, &spans)
 	// The spans are "tight" unless we used just a prefix.
-	return len(tuplePos) == len(lhs.Elems)
+	return len(posExpr) == len(lhs.Elems)
 }
 
 // makeSpansForExpr creates spans for index columns starting at <offset>

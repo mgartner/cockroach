@@ -346,8 +346,6 @@ func (c *CustomFuncs) GetOptionalFiltersAndFilterColumns(
 	optionalFilters = c.checkConstraintFilters(scanPrivate.Table)
 	computedColFilters := c.computedColFilters(scanPrivate, explicitFilters, optionalFilters)
 	optionalFilters = append(optionalFilters, computedColFilters...)
-	combinedFilters := c.combineComputedColFilters(scanPrivate, explicitFilters, optionalFilters)
-	optionalFilters = append(optionalFilters, combinedFilters...)
 
 	filterColumns = c.FilterOuterCols(explicitFilters)
 	filterColumns.UnionWith(c.FilterOuterCols(optionalFilters))
@@ -1013,6 +1011,11 @@ func (c *CustomFuncs) canMaybeConstrainNonInvertedIndex(
 ) bool {
 	md := c.e.mem.Metadata()
 	index := md.Table(tabID).Index(indexOrd)
+	tabMeta := md.TableMeta(tabID)
+	var computedCols opt.ColSet
+	for colID := range tabMeta.ComputedCols {
+		computedCols.Add(colID)
+	}
 
 	for i := range filters {
 		filterProps := filters[i].ScalarProps()
@@ -1022,6 +1025,15 @@ func (c *CustomFuncs) canMaybeConstrainNonInvertedIndex(
 		firstIndexCol := tabID.IndexColumnID(index, 0)
 		if filterProps.OuterCols.Contains(firstIndexCol) {
 			return true
+		}
+
+		// If the first index column is a computed column and the filter involves
+		// columns in the computed column expression, then the index can possibly be
+		// constrained.
+		if computedCols.Contains(firstIndexCol) {
+			if tabMeta.ColsInComputedColsExpressions.Intersects(filterProps.OuterCols) {
+				return true
+			}
 		}
 
 		// If the constraints are not tight, then the index can possibly be
