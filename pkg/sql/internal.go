@@ -73,8 +73,9 @@ func NewInternalSessionData(
 	shouldRevert := func(v string) bool {
 		switch v {
 		case
-			"optimizer_use_histograms",
-			"optimizer_use_multicol_stats",
+			// "optimizer_use_histograms",
+			// "optimizer_use_multicol_stats",
+
 			"optimizer_use_forecasts":
 
 			// ABOVE ARE SUSPECTS
