@@ -73,12 +73,14 @@ func NewInternalSessionData(
 	shouldRevert := func(v string) bool {
 		switch v {
 		case
-			// "optimizer_use_histograms",
-			// "optimizer_use_multicol_stats",
-			// "optimizer_use_forecasts",
-			"locality_optimized_partitioned_index_scan",
-			"enable_implicit_select_for_update",
-			"enable_insert_fast_path":
+			"optimizer_use_histograms",
+			"optimizer_use_multicol_stats",
+			"optimizer_use_forecasts":
+
+			// ABOVE ARE SUSPECTS
+			// "locality_optimized_partitioned_index_scan",
+			// "enable_implicit_select_for_update",
+			// "enable_insert_fast_path":
 
 			// ABOVE ARE SUSPECTS
 			// "enable_implicit_transaction_for_batch_statements",
