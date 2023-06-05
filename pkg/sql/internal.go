@@ -78,10 +78,11 @@ func NewInternalSessionData(
 			"optimizer_use_forecasts",
 			"locality_optimized_partitioned_index_scan",
 			"enable_implicit_select_for_update",
-			"enable_insert_fast_path":
-			// "enable_implicit_transaction_for_batch_statements",
-			// "optimizer_always_use_histograms",
-			// "optimizer_hoist_uncorrelated_equality_subqueries",
+			"enable_insert_fast_path",
+			// ABOVE ARE GOOD
+			"enable_implicit_transaction_for_batch_statements",
+			"optimizer_always_use_histograms",
+			"optimizer_hoist_uncorrelated_equality_subqueries":
 			// "optimizer_use_improved_computed_column_filters_derivation",
 			// "streamer_enabled",
 			// "enable_zigzag_join":
