@@ -70,37 +70,38 @@ func NewInternalSessionData(
 	})
 	sdMutIterator := makeSessionDataMutatorIterator(sds, defaults, settings)
 
-	shouldRevert := func(v string) bool {
-		switch v {
-		case
-			// "optimizer_use_histograms",
-			// "optimizer_use_multicol_stats",
-
-			"optimizer_use_forecasts":
-
-			// ABOVE ARE SUSPECTS
-			// "locality_optimized_partitioned_index_scan",
-			// "enable_implicit_select_for_update",
-			// "enable_insert_fast_path":
-
-			// ABOVE ARE SUSPECTS
-			// "enable_implicit_transaction_for_batch_statements",
-			// "optimizer_always_use_histograms",
-			// "optimizer_hoist_uncorrelated_equality_subqueries":
-			// "optimizer_use_improved_computed_column_filters_derivation",
-			// "streamer_enabled",
-			// "enable_zigzag_join":
-			return true
-		default:
-			return false
-		}
-	}
+	// shouldRevert := func(v string) bool {
+	// 	switch v {
+	// 	case
+	// 		// I THINK THESE ARE SAFE.
+	// 		// "optimizer_use_histograms",
+	// 		// "optimizer_use_multicol_stats",
+	//
+	// 		"optimizer_use_forecasts":
+	//
+	// 		// I THINK THESE ARE SAFE.
+	// 		// "locality_optimized_partitioned_index_scan",
+	// 		// "enable_implicit_select_for_update",
+	// 		// "enable_insert_fast_path":
+	//
+	// 		// I THINK THESE ARE SAFE.
+	// 		// "enable_implicit_transaction_for_batch_statements",
+	// 		// "optimizer_always_use_histograms",
+	// 		// "optimizer_hoist_uncorrelated_equality_subqueries":
+	// 		// "optimizer_use_improved_computed_column_filters_derivation",
+	// 		// "streamer_enabled",
+	// 		// "enable_zigzag_join":
+	// 		return true
+	// 	default:
+	// 		return false
+	// 	}
+	// }
 
 	sdMutIterator.applyOnEachMutator(func(m sessionDataMutator) {
 		for varName, v := range varGen {
-			if shouldRevert(varName) {
-				continue
-			}
+			// if shouldRevert(varName) {
+			// 	continue
+			// }
 			if v.Set != nil {
 				hasDefault, defVal := getSessionVarDefaultString(varName, v, m.sessionDataMutatorBase)
 				if hasDefault {
