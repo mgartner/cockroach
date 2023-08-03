@@ -943,7 +943,30 @@ func (b *Builder) buildUDF(ctx *buildScalarCtx, scalar opt.ScalarExpr) (tree.Typ
 		}
 	}
 
-	// Create a tree.RoutinePlanFn that can plan the statements in the UDF body.
+	// Enable stepping for volatile functions so that statements within the UDF
+	// see mutations made by the invoking statement and by previous executed
+	// statements.
+	enableStepping := udf.Def.Volatility == volatility.Volatile
+
+	// Try the fast-path.
+	expr, ok := b.buildSimpleRoutineExpr(udf.Def.Params, udf.Def.Body, udf.Def.BodyProps)
+	if ok {
+		// return expr, nil
+		return tree.NewTypedSimpleRoutineExpr(
+			udf.Def.Name,
+			args,
+			expr,
+			udf.Typ,
+			enableStepping,
+			udf.Def.CalledOnNullInput,
+			udf.Def.MultiColDataSource,
+			udf.Def.SetReturning,
+			udf.TailCall,
+		), nil
+	}
+
+	// If a simple routine is not possible, create a tree.RoutinePlanFn that can
+	// plan the statements in the UDF body.
 	// TODO(mgartner): Add support for WITH expressions inside UDF bodies.
 	planGen := b.buildRoutinePlanGenerator(
 		udf.Def.Params,
@@ -952,11 +975,6 @@ func (b *Builder) buildUDF(ctx *buildScalarCtx, scalar opt.ScalarExpr) (tree.Typ
 		false, /* allowOuterWithRefs */
 		nil,   /* wrapRootExpr */
 	)
-
-	// Enable stepping for volatile functions so that statements within the UDF
-	// see mutations made by the invoking statement and by previous executed
-	// statements.
-	enableStepping := udf.Def.Volatility == volatility.Volatile
 
 	return tree.NewTypedRoutineExpr(
 		udf.Def.Name,
@@ -972,6 +990,48 @@ func (b *Builder) buildUDF(ctx *buildScalarCtx, scalar opt.ScalarExpr) (tree.Typ
 }
 
 type wrapRootExprFn func(f *norm.Factory, e memo.RelExpr) opt.Expr
+
+func (b *Builder) buildSimpleRoutineExpr(
+	params opt.ColList, stmts []memo.RelExpr, stmtProps []*physical.Required,
+) (_ tree.TypedExpr, ok bool) {
+	// TODO(mgartner): Support simple routines with parameters.
+	if len(params) > 1 {
+		return nil, false
+	}
+	// Simple routine expressions can only be constructed for UDFs with a single
+	// statement.
+	if len(stmts) != 1 {
+		return nil, false
+	}
+
+	stmt := stmts[0]
+	vals, ok := stmt.(*memo.ValuesExpr)
+	if !ok {
+		return nil, false
+	}
+	if len(vals.Rows) != 1 {
+		return nil, false
+	}
+	row := vals.Rows[0].(*memo.TupleExpr)
+	if len(row.Elems) != 1 {
+		return nil, false
+	}
+	val := row.Elems[0]
+	var ctx buildScalarCtx
+	// TODO(mgartner): Use indexed vars for arguments somehow.
+	// md := b.mem.Metadata()
+	// ctx.ivh = tree.MakeIndexedVarHelper(&mdVarContainer{md: md}, md.NumColumns())
+	// for i := 0; i < md.NumColumns(); i++ {
+	// 	ctx.ivarMap.Set(i+1, i)
+	// }
+	// TODO(mgartner): It can't have subqueries... Or can it?
+	expr, err := b.buildScalar(&ctx, val)
+	if err != nil {
+		// TODO(mgartner): Should probably log this error.
+		return nil, false
+	}
+	return expr, true
+}
 
 // buildRoutinePlanGenerator returns a tree.RoutinePlanFn that can plan the
 // statements in a routine that has one or more arguments.

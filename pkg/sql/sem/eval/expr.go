@@ -622,6 +622,9 @@ func (e *evaluator) EvalRoutineExpr(
 	if err != nil {
 		return nil, err
 	}
+	if routine.Expr != nil {
+		return routine.Expr.Eval(ctx, e)
+	}
 	return e.Planner.EvalRoutineExpr(ctx, routine, args)
 }
 

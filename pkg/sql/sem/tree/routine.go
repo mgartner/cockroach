@@ -54,7 +54,12 @@ type RoutineExpr struct {
 	// Args contains the argument expressions to the routine.
 	Args TypedExprs
 
-	// ForEachPlan generates a plan for each statement in the routine.
+	// Expr is a typed expression representing the routine. Only one of Expr or
+	// ForEachPlan can be set.
+	Expr TypedExpr
+
+	// ForEachPlan generates a plan for each statement in the routine. Only one
+	// of Expr or ForEachPlan can be set.
 	ForEachPlan RoutinePlanGenerator
 
 	// Typ is the type of the routine's result.
@@ -135,6 +140,33 @@ func NewTypedRoutineExpr(
 	return &RoutineExpr{
 		Args:              args,
 		ForEachPlan:       gen,
+		Typ:               typ,
+		EnableStepping:    enableStepping,
+		Name:              name,
+		CalledOnNullInput: calledOnNullInput,
+		MultiColOutput:    multiColOutput,
+		Generator:         generator,
+		TailCall:          tailCall,
+	}
+}
+
+// NewTypedSimpleRoutineExpr returns a new RoutineExpr that is well-typed and
+// defined as a TypedExpr.
+// TODO(mgartner): Do I need all these arguments?
+func NewTypedSimpleRoutineExpr(
+	name string,
+	args TypedExprs,
+	expr TypedExpr,
+	typ *types.T,
+	enableStepping bool,
+	calledOnNullInput bool,
+	multiColOutput bool,
+	generator bool,
+	tailCall bool,
+) *RoutineExpr {
+	return &RoutineExpr{
+		Args:              args,
+		Expr:              expr,
 		Typ:               typ,
 		EnableStepping:    enableStepping,
 		Name:              name,
