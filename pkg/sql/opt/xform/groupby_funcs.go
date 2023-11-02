@@ -322,7 +322,7 @@ func (c *CustomFuncs) GenerateStreamingGroupBy(
 	aggs memo.AggregationsExpr,
 	private *memo.GroupingPrivate,
 ) {
-	orders := ordering.DeriveInterestingOrderings(input)
+	orders := ordering.DeriveInterestingOrderings(c.e.mem.Metadata(), input)
 	intraOrd := private.Ordering
 	for _, ord := range orders {
 		newOrd, fullPrefix, found := getPrefixFromOrdering(ord.ToOrdering(), intraOrd, input,

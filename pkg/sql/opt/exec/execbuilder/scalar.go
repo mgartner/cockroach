@@ -1181,7 +1181,7 @@ func (b *Builder) buildRoutinePlanGenerator(
 
 				return f.CopyAndReplaceDefault(e, replaceFn)
 			}
-			f.CopyAndReplace(stmt, props, replaceFn)
+			f.CopyAndReplace(b.mem, stmt, props, replaceFn)
 
 			if wrapRootExpr != nil {
 				wrapped := wrapRootExpr(f, f.Memo().RootExpr().(memo.RelExpr)).(memo.RelExpr)

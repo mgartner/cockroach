@@ -16,7 +16,9 @@ import (
 	"github.com/cockroachdb/cockroach/pkg/sql/opt/props"
 )
 
-func ordinalityCanProvideOrdering(expr memo.RelExpr, required *props.OrderingChoice) bool {
+func ordinalityCanProvideOrdering(
+	md *opt.Metadata, expr memo.RelExpr, required *props.OrderingChoice,
+) bool {
 	r := expr.(*memo.OrdinalityExpr)
 	prefix := ordinalityOrdPrefix(r, required)
 	if prefix < len(required.Columns) {
@@ -55,7 +57,7 @@ func ordinalityOrdPrefix(r *memo.OrdinalityExpr, required *props.OrderingChoice)
 }
 
 func ordinalityBuildChildReqOrdering(
-	parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
+	md *opt.Metadata, parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
 ) props.OrderingChoice {
 	if childIdx != 0 {
 		return props.OrderingChoice{}
@@ -64,7 +66,9 @@ func ordinalityBuildChildReqOrdering(
 	return parent.(*memo.OrdinalityExpr).Ordering
 }
 
-func ordinalityBuildProvided(expr memo.RelExpr, required *props.OrderingChoice) opt.Ordering {
+func ordinalityBuildProvided(
+	md *opt.Metadata, expr memo.RelExpr, required *props.OrderingChoice,
+) opt.Ordering {
 	r := expr.(*memo.OrdinalityExpr)
 	childProvided := r.Input.ProvidedPhysical().Ordering
 	prefix := ordinalityOrdPrefix(r, required)

@@ -17,6 +17,7 @@ import (
 	"github.com/cockroachdb/cockroach/pkg/settings/cluster"
 	"github.com/cockroachdb/cockroach/pkg/sql/opt"
 	"github.com/cockroachdb/cockroach/pkg/sql/opt/invertedidx"
+	"github.com/cockroachdb/cockroach/pkg/sql/opt/memo"
 	"github.com/cockroachdb/cockroach/pkg/sql/opt/norm"
 	"github.com/cockroachdb/cockroach/pkg/sql/opt/testutils"
 	"github.com/cockroachdb/cockroach/pkg/sql/opt/testutils/testcat"
@@ -29,10 +30,10 @@ func TestTryJoinJsonOrArrayIndex(t *testing.T) {
 	st := cluster.MakeTestingClusterSettings()
 	evalCtx := eval.NewTestingEvalContext(st)
 
-	tc := testcat.New()
+	tcat := testcat.New()
 
 	// Create the input table.
-	if _, err := tc.ExecuteDDL(
+	if _, err := tcat.ExecuteDDL(
 		"CREATE TABLE t1 (json1 JSON, array1 INT[], json11 JSONB, array11 INT[], " +
 			"inet1 INET)",
 	); err != nil {
@@ -40,7 +41,7 @@ func TestTryJoinJsonOrArrayIndex(t *testing.T) {
 	}
 
 	// Create the indexed table.
-	if _, err := tc.ExecuteDDL(
+	if _, err := tcat.ExecuteDDL(
 		"CREATE TABLE t2 (json2 JSON, array2 INT[], inet2 INET, " +
 			"INVERTED INDEX (json2), INVERTED INDEX (array2))",
 	); err != nil {
@@ -48,12 +49,12 @@ func TestTryJoinJsonOrArrayIndex(t *testing.T) {
 	}
 
 	var f norm.Factory
-	f.Init(context.Background(), evalCtx, tc)
+	f.Init(context.Background(), evalCtx, tcat)
 	md := f.Metadata()
 	tn1 := tree.NewUnqualifiedTableName("t1")
 	tn2 := tree.NewUnqualifiedTableName("t2")
-	tab1 := md.AddTable(tc.Table(tn1), tn1)
-	tab2 := md.AddTable(tc.Table(tn2), tn2)
+	tab1 := md.AddTable(tcat.Table(tn1), tn1)
+	tab2 := md.AddTable(tcat.Table(tn2), tn2)
 	jsonOrd, arrayOrd := 1, 2
 
 	testCases := []struct {
@@ -211,8 +212,20 @@ func TestTryJoinJsonOrArrayIndex(t *testing.T) {
 			t.Fatalf("expected <nil>, got %v", actInvertedExpr)
 		}
 
+		toString := func(e opt.ScalarExpr) string {
+			fmtCtx := memo.MakeExprFmtCtx(
+				context.Background(),
+				memo.ExprFmtHideQualifications,
+				false, /* redactableValues */
+				f.Memo(),
+				tcat,
+			)
+			fmtCtx.FormatExpr(e)
+			return fmtCtx.Buffer.String()
+		}
+
 		expInvertedExpr := testutils.BuildScalar(t, &f, &semaCtx, evalCtx, tc.invertedExpr)
-		if actInvertedExpr.String() != expInvertedExpr.String() {
+		if toString(actInvertedExpr) != toString(expInvertedExpr) {
 			t.Errorf("expected %v, got %v", expInvertedExpr, actInvertedExpr)
 		}
 	}

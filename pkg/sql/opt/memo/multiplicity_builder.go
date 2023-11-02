@@ -23,14 +23,14 @@ import (
 // only be called during construction of the join by the initUnexportedFields
 // methods. Panics if called on an operator that does not support
 // JoinMultiplicity.
-func initJoinMultiplicity(in RelExpr) {
+func initJoinMultiplicity(md *opt.Metadata, in RelExpr) {
 	switch t := in.(type) {
 	case *InnerJoinExpr, *LeftJoinExpr, *FullJoinExpr, *SemiJoinExpr:
 		// Calculate JoinMultiplicity and set the multiplicity field of the join.
 		left := t.Child(0).(RelExpr)
 		right := t.Child(1).(RelExpr)
 		filters := *t.Child(2).(*FiltersExpr)
-		multiplicity := DeriveJoinMultiplicityFromInputs(left, right, filters)
+		multiplicity := DeriveJoinMultiplicityFromInputs(md, left, right, filters)
 		t.(joinWithMultiplicity).setMultiplicity(multiplicity)
 
 	default:
@@ -60,10 +60,10 @@ func GetJoinMultiplicity(in RelExpr) props.JoinMultiplicity {
 // property is used in calculating the JoinMultiplicity, and is lazily derived
 // by a call to deriveUnfilteredCols.
 func DeriveJoinMultiplicityFromInputs(
-	left, right RelExpr, filters FiltersExpr,
+	md *opt.Metadata, left, right RelExpr, filters FiltersExpr,
 ) props.JoinMultiplicity {
-	leftMultiplicity := getJoinLeftMultiplicityVal(left, right, filters)
-	rightMultiplicity := getJoinLeftMultiplicityVal(right, left, filters)
+	leftMultiplicity := getJoinLeftMultiplicityVal(md, left, right, filters)
+	rightMultiplicity := getJoinLeftMultiplicityVal(md, right, left, filters)
 
 	return props.JoinMultiplicity{
 		LeftMultiplicity:  leftMultiplicity,
@@ -74,7 +74,7 @@ func DeriveJoinMultiplicityFromInputs(
 // deriveUnfilteredCols recursively derives the UnfilteredCols field and
 // populates the props.Relational.Rule.UnfilteredCols field as it goes to
 // make future calls faster.
-func deriveUnfilteredCols(in RelExpr) opt.ColSet {
+func deriveUnfilteredCols(md *opt.Metadata, in RelExpr) opt.ColSet {
 	// If the UnfilteredCols property has already been derived, return it
 	// immediately.
 	relational := in.Relational()
@@ -104,7 +104,6 @@ func deriveUnfilteredCols(in RelExpr) opt.ColSet {
 		// non-null foreign key relation - rows in kr imply rows in xy. However,
 		// the columns from xy are not output columns, so in order to see that this
 		// is the case we must bubble up non-output columns.
-		md := t.Memo().Metadata()
 		baseTable := md.Table(t.Table)
 		if t.IsUnfiltered(md) {
 			for i, cnt := 0, baseTable.ColumnCount(); i < cnt; i++ {
@@ -115,7 +114,7 @@ func deriveUnfilteredCols(in RelExpr) opt.ColSet {
 	case *ProjectExpr:
 		// Project never filters rows, so it passes through unfiltered columns.
 		// Include non-output columns for the same reasons as for the Scan operator.
-		unfilteredCols.UnionWith(deriveUnfilteredCols(t.Input))
+		unfilteredCols.UnionWith(deriveUnfilteredCols(md, t.Input))
 
 	case *InnerJoinExpr, *LeftJoinExpr, *FullJoinExpr:
 		left := t.Child(0).(RelExpr)
@@ -125,16 +124,16 @@ func deriveUnfilteredCols(in RelExpr) opt.ColSet {
 		// Use the join's multiplicity to determine whether unfiltered columns
 		// can be passed through.
 		if multiplicity.JoinPreservesLeftRows(t.Op()) {
-			unfilteredCols.UnionWith(deriveUnfilteredCols(left))
+			unfilteredCols.UnionWith(deriveUnfilteredCols(md, left))
 		}
 		if multiplicity.JoinPreservesRightRows(t.Op()) {
-			unfilteredCols.UnionWith(deriveUnfilteredCols(right))
+			unfilteredCols.UnionWith(deriveUnfilteredCols(md, right))
 		}
 
 	case *SemiJoinExpr:
 		multiplicity := GetJoinMultiplicity(t)
 		if multiplicity.JoinPreservesLeftRows(t.Op()) {
-			unfilteredCols.UnionWith(deriveUnfilteredCols(t.Left))
+			unfilteredCols.UnionWith(deriveUnfilteredCols(md, t.Left))
 		}
 
 	default:
@@ -150,12 +149,14 @@ func deriveUnfilteredCols(in RelExpr) opt.ColSet {
 //
 // The duplicated and filtered flags will be set unless it can be statically
 // proven that no rows will be duplicated or filtered respectively.
-func getJoinLeftMultiplicityVal(left, right RelExpr, filters FiltersExpr) props.MultiplicityValue {
+func getJoinLeftMultiplicityVal(
+	md *opt.Metadata, left, right RelExpr, filters FiltersExpr,
+) props.MultiplicityValue {
 	multiplicity := props.MultiplicityIndeterminateVal
 	if filtersMatchLeftRowsAtMostOnce(left, right, filters) {
 		multiplicity |= props.MultiplicityNotDuplicatedVal
 	}
-	if filtersMatchAllLeftRows(left, right, filters) {
+	if filtersMatchAllLeftRows(md, left, right, filters) {
 		multiplicity |= props.MultiplicityPreservedVal
 	}
 	return multiplicity
@@ -268,7 +269,7 @@ func filtersMatchLeftRowsAtMostOnce(left, right RelExpr, filters FiltersExpr) bo
 // Note: in the foreign key case, if the key's match method is match simple, all
 // columns in the foreign key must be not-null in order to guarantee that all
 // rows will have a match in the referenced table.
-func filtersMatchAllLeftRows(left, right RelExpr, filters FiltersExpr) bool {
+func filtersMatchAllLeftRows(md *opt.Metadata, left, right RelExpr, filters FiltersExpr) bool {
 	if filters.IsTrue() {
 		// Cross join case.
 		if !right.Relational().Cardinality.CanBeZero() {
@@ -278,23 +279,23 @@ func filtersMatchAllLeftRows(left, right RelExpr, filters FiltersExpr) bool {
 		// Case 1b. We don't have to check verifyFiltersAreValidEqualities because
 		// there are no filters.
 		return checkForeignKeyCase(
-			left.Memo().Metadata(),
+			md,
 			left.Relational().NotNullCols,
-			deriveUnfilteredCols(right),
+			deriveUnfilteredCols(md, right),
 			filters,
 		)
 	}
-	rightEqualityCols, ok := verifyFiltersAreValidEqualities(left, right, filters)
+	rightEqualityCols, ok := verifyFiltersAreValidEqualities(md, left, right, filters)
 	if !ok {
 		return false
 	}
-	if checkSelfJoinCase(left.Memo().Metadata(), filters) {
+	if checkSelfJoinCase(md, filters) {
 		// Case 2a.
 		return true
 	}
 	// Case 2b.
 	return checkForeignKeyCase(
-		left.Memo().Metadata(),
+		md,
 		left.Relational().NotNullCols,
 		rightEqualityCols,
 		filters,
@@ -318,13 +319,11 @@ func filtersMatchAllLeftRows(left, right RelExpr, filters FiltersExpr) bool {
 //
 // Returns ok=false if any of these conditions are unsatisfied.
 func verifyFiltersAreValidEqualities(
-	left, right RelExpr, filters FiltersExpr,
+	md *opt.Metadata, left, right RelExpr, filters FiltersExpr,
 ) (rightEqualityCols opt.ColSet, ok bool) {
-	md := left.Memo().Metadata()
-
 	var leftTab, rightTab opt.TableID
 	leftNotNullCols := left.Relational().NotNullCols
-	rightUnfilteredCols := deriveUnfilteredCols(right)
+	rightUnfilteredCols := deriveUnfilteredCols(md, right)
 
 	for i := range filters {
 		eq, _ := filters[i].Condition.(*EqExpr)
@@ -355,7 +354,7 @@ func verifyFiltersAreValidEqualities(
 		switch {
 		case rightUnfilteredCols.Contains(rightColID):
 		// Condition #3a: the right column is unfiltered.
-		case rightHasSingleFilterThatMatchesLeft(left, right, leftColID, rightColID):
+		case rightHasSingleFilterThatMatchesLeft(md, left, right, leftColID, rightColID):
 		// Condition #3b: The left and right are Selects where the left filters
 		// imply the right filters when replacing the left column with the right
 		// column, and the right column is unfiltered in the right Select's
@@ -403,7 +402,9 @@ func verifyFiltersAreValidEqualities(
 // equal by the join filters. This may be a good opportunity to reuse
 // partialidx.Implicator. Be aware that it might not be possible to simply
 // replace columns in a filter when one of the columns has a composite type.
-func rightHasSingleFilterThatMatchesLeft(left, right RelExpr, leftCol, rightCol opt.ColumnID) bool {
+func rightHasSingleFilterThatMatchesLeft(
+	md *opt.Metadata, left, right RelExpr, leftCol, rightCol opt.ColumnID,
+) bool {
 	leftSelect, ok := left.(*SelectExpr)
 	if !ok {
 		return false
@@ -415,7 +416,7 @@ func rightHasSingleFilterThatMatchesLeft(left, right RelExpr, leftCol, rightCol 
 
 	// Return false if the right column has been filtered in the input to
 	// rightSelect.
-	rightUnfilteredCols := deriveUnfilteredCols(rightSelect.Input)
+	rightUnfilteredCols := deriveUnfilteredCols(md, rightSelect.Input)
 	if !rightUnfilteredCols.Contains(rightCol) {
 		return false
 	}

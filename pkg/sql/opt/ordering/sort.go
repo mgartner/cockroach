@@ -16,7 +16,9 @@ import (
 	"github.com/cockroachdb/cockroach/pkg/sql/opt/props"
 )
 
-func sortBuildProvided(expr memo.RelExpr, required *props.OrderingChoice) opt.Ordering {
+func sortBuildProvided(
+	md *opt.Metadata, expr memo.RelExpr, required *props.OrderingChoice,
+) opt.Ordering {
 	provided := required.ToOrdering()
 	// The required ordering might not have been simplified (if normalization
 	// rules are off) so we may need to trim.
@@ -24,7 +26,7 @@ func sortBuildProvided(expr memo.RelExpr, required *props.OrderingChoice) opt.Or
 }
 
 func sortBuildChildReqOrdering(
-	parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
+	md *opt.Metadata, parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
 ) props.OrderingChoice {
 	return parent.(*memo.SortExpr).InputOrdering
 }

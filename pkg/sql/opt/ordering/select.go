@@ -16,13 +16,15 @@ import (
 	"github.com/cockroachdb/cockroach/pkg/sql/opt/props"
 )
 
-func selectCanProvideOrdering(expr memo.RelExpr, required *props.OrderingChoice) bool {
+func selectCanProvideOrdering(
+	md *opt.Metadata, expr memo.RelExpr, required *props.OrderingChoice,
+) bool {
 	// Select operator can always pass through ordering to its input.
 	return true
 }
 
 func selectBuildChildReqOrdering(
-	parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
+	md *opt.Metadata, parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
 ) props.OrderingChoice {
 	if childIdx != 0 {
 		return props.OrderingChoice{}
@@ -47,7 +49,7 @@ func selectBuildChildReqOrdering(
 	// down +1,+2,+3 as the required ordering to avoid an unnecessary sort.
 	//
 	// See #33023 for more details.
-	orders := DeriveInterestingOrderings(child)
+	orders := DeriveInterestingOrderings(md, child)
 	for i := range orders {
 		if orders[i].Implies(required) {
 			// Get the common prefix of this ordering and the required ordering to
@@ -87,7 +89,9 @@ func trimColumnGroups(required *props.OrderingChoice, fds *props.FuncDepSet) pro
 	return res
 }
 
-func selectBuildProvided(expr memo.RelExpr, required *props.OrderingChoice) opt.Ordering {
+func selectBuildProvided(
+	md *opt.Metadata, expr memo.RelExpr, required *props.OrderingChoice,
+) opt.Ordering {
 	s := expr.(*memo.SelectExpr)
 	rel := s.Relational()
 	// We don't need to remap columns, but we want to remove columns that are now

@@ -1197,7 +1197,7 @@ func (b *Builder) buildApplyJoin(join memo.RelExpr) (execPlan, error) {
 			}
 			return f.CopyAndReplaceDefault(e, replaceFn)
 		}
-		f.CopyAndReplace(rightExpr, &rightRequiredProps, replaceFn)
+		f.CopyAndReplace(b.mem, rightExpr, &rightRequiredProps, replaceFn)
 
 		newRightSide, err := o.Optimize()
 		if err != nil {
@@ -2361,7 +2361,12 @@ func (b *Builder) handleRemoteLookupJoinError(join *memo.LookupJoinExpr) (err er
 	// more.
 	if homeRegion == "" && b.optimizer != nil && b.optimizer.Coster() != nil {
 		_, physicalDistribution := distribution.BuildLookupJoinLookupTableDistribution(
-			b.ctx, b.evalCtx, join, join.RequiredPhysical(), b.optimizer.MaybeGetBestCostRelation,
+			b.ctx,
+			md,
+			b.evalCtx,
+			join,
+			join.RequiredPhysical(),
+			b.optimizer.MaybeGetBestCostRelation,
 		)
 		if len(physicalDistribution.Regions) == 1 {
 			homeRegion = physicalDistribution.Regions[0]
@@ -3503,7 +3508,7 @@ func (b *Builder) applySaveTable(
 	// opttester.
 	outputCols := e.Relational().OutputCols
 	colNames := make([]string, outputCols.Len())
-	colNameGen := memo.NewColumnNameGenerator(e)
+	colNameGen := memo.NewColumnNameGenerator(b.mem, e)
 	for col, ok := outputCols.Next(0); ok; col, ok = outputCols.Next(col + 1) {
 		ord, _ := input.outputCols.Get(int(col))
 		colNames[ord] = colNameGen.GenerateName(col)

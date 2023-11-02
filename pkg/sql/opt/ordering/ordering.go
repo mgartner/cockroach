@@ -22,14 +22,14 @@ import (
 
 // CanProvide returns true if the given operator returns rows that can
 // satisfy the given required ordering.
-func CanProvide(expr memo.RelExpr, required *props.OrderingChoice) bool {
+func CanProvide(md *opt.Metadata, expr memo.RelExpr, required *props.OrderingChoice) bool {
 	if required.Any() {
 		return true
 	}
 	if buildutil.CrdbTestBuild {
 		checkRequired(expr, required)
 	}
-	return funcMap[expr.Op()].canProvideOrdering(expr, required)
+	return funcMap[expr.Op()].canProvideOrdering(md, expr, required)
 }
 
 // CanEnforce returns true if the output of the given operator can be sorted
@@ -60,9 +60,9 @@ func CanEnforce(expr memo.RelExpr, required *props.OrderingChoice) bool {
 // given child in order to satisfy a required ordering. Can only be called if
 // CanProvide is true for the required ordering.
 func BuildChildRequired(
-	parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
+	md *opt.Metadata, parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
 ) props.OrderingChoice {
-	result := funcMap[parent.Op()].buildChildReqOrdering(parent, required, childIdx)
+	result := funcMap[parent.Op()].buildChildReqOrdering(md, parent, required, childIdx)
 	if buildutil.CrdbTestBuild && !result.Any() {
 		checkRequired(parent.Child(childIdx).(memo.RelExpr), &result)
 	}
@@ -85,12 +85,12 @@ func BuildChildRequired(
 // This function assumes that the provided orderings have already been set in
 // the children of the expression.
 func BuildProvided(
-	evalCtx *eval.Context, expr memo.RelExpr, required *props.OrderingChoice,
+	md *opt.Metadata, evalCtx *eval.Context, expr memo.RelExpr, required *props.OrderingChoice,
 ) opt.Ordering {
 	if required.Any() {
 		return nil
 	}
-	provided := funcMap[expr.Op()].buildProvidedOrdering(expr, required)
+	provided := funcMap[expr.Op()].buildProvidedOrdering(md, expr, required)
 	if evalCtx.SessionData().OptimizerUseProvidedOrderingFix {
 		provided = finalizeProvided(provided, required, expr.Relational().OutputCols)
 	}
@@ -103,14 +103,16 @@ func BuildProvided(
 }
 
 type funcs struct {
-	canProvideOrdering func(expr memo.RelExpr, required *props.OrderingChoice) bool
+	canProvideOrdering func(
+		md *opt.Metadata, expr memo.RelExpr, required *props.OrderingChoice,
+	) bool
 
 	buildChildReqOrdering func(
-		parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
+		md *opt.Metadata, parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
 	) props.OrderingChoice
 
 	buildProvidedOrdering func(
-		expr memo.RelExpr, required *props.OrderingChoice,
+		md *opt.Metadata, expr memo.RelExpr, required *props.OrderingChoice,
 	) opt.Ordering
 }
 
@@ -328,17 +330,21 @@ func init() {
 	}
 }
 
-func canNeverProvideOrdering(expr memo.RelExpr, required *props.OrderingChoice) bool {
+func canNeverProvideOrdering(
+	md *opt.Metadata, expr memo.RelExpr, required *props.OrderingChoice,
+) bool {
 	return false
 }
 
 func noChildReqOrdering(
-	parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
+	md *opt.Metadata, parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
 ) props.OrderingChoice {
 	return props.OrderingChoice{}
 }
 
-func noProvidedOrdering(expr memo.RelExpr, required *props.OrderingChoice) opt.Ordering {
+func noProvidedOrdering(
+	md *opt.Metadata, expr memo.RelExpr, required *props.OrderingChoice,
+) opt.Ordering {
 	return nil
 }
 

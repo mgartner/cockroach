@@ -745,7 +745,7 @@ func (ot *OptTester) RunCommand(tb testing.TB, d *datadriven.TestData) string {
 		return result
 
 	case "memo":
-		result, err := ot.Memo()
+		result, err := ot.MemoStr()
 		if err != nil {
 			d.Fatalf(tb, "%+v", err)
 		}
@@ -836,10 +836,7 @@ func (ot *OptTester) RunCommand(tb testing.TB, d *datadriven.TestData) string {
 
 // FormatExpr is a convenience wrapper for memo.FormatExpr.
 func (ot *OptTester) FormatExpr(e opt.Expr) string {
-	var mem *memo.Memo
-	if rel, ok := e.(memo.RelExpr); ok {
-		mem = rel.Memo()
-	}
+	mem := ot.Memo()
 	return memo.FormatExpr(
 		ot.ctx, e, ot.Flags.ExprFormat, false /* redactableValues */, mem, ot.catalog,
 	)
@@ -876,7 +873,8 @@ func (ot *OptTester) postProcess(tb testing.TB, d *datadriven.TestData, e opt.Ex
 
 	if rel, ok := e.(memo.RelExpr); ok {
 		for _, cols := range ot.Flags.ColStats {
-			memo.RequestColStat(ot.ctx, &ot.evalCtx, rel, cols)
+			ot.Memo()
+			memo.RequestColStat(ot.ctx, &ot.evalCtx, ot.Memo(), rel, cols)
 		}
 	}
 	ot.checkExpectedRules(tb, d)
@@ -892,10 +890,11 @@ func (ot *OptTester) fillInLazyProps(e opt.Expr) {
 		ot.f.CustomFuncs().DerivePruneCols(rel, intsets.Fast{} /* disabledRules */)
 
 		// Derive columns that are candidates for null rejection.
-		norm.DeriveRejectNullCols(rel, intsets.Fast{} /* disabledRules */)
+		md := ot.Memo().Metadata()
+		norm.DeriveRejectNullCols(md, rel, intsets.Fast{} /* disabledRules */)
 
 		// Make sure the interesting orderings are calculated.
-		ordering.DeriveInterestingOrderings(rel)
+		ordering.DeriveInterestingOrderings(md, rel)
 	}
 
 	for i, n := 0, e.ChildCount(); i < n; i++ {
@@ -1284,9 +1283,14 @@ func (ot *OptTester) PlaceholderFastPath() (_ opt.Expr, ok bool, _ error) {
 	return o.TryPlaceholderFastPath()
 }
 
-// Memo returns a string that shows the memo data structure that is constructed
+// Memo returns the memo data structure that is constructed by the optimizer.
+func (ot *OptTester) Memo() *memo.Memo {
+	return ot.f.Memo()
+}
+
+// MemoStr returns a string that shows the memo data structure that is constructed
 // by the optimizer.
-func (ot *OptTester) Memo() (string, error) {
+func (ot *OptTester) MemoStr() (string, error) {
 	o := ot.makeOptimizer()
 	o.NotifyOnMatchedRule(func(ruleName opt.RuleName) bool {
 		return !ot.Flags.DisableRules.Contains(int(ruleName))
@@ -2038,7 +2042,7 @@ func (ot *OptTester) createTableAs(name tree.TableName, rel memo.RelExpr) (*test
 
 	relProps := rel.Relational()
 	outputCols := relProps.OutputCols
-	colNameGen := memo.NewColumnNameGenerator(rel)
+	colNameGen := memo.NewColumnNameGenerator(ot.Memo(), rel)
 
 	// Create each of the columns and their estimated stats for the test catalog
 	// table.
@@ -2046,7 +2050,7 @@ func (ot *OptTester) createTableAs(name tree.TableName, rel memo.RelExpr) (*test
 	jsonStats := make([]stats.JSONStatistic, outputCols.Len())
 	i := 0
 	for col, ok := outputCols.Next(0); ok; col, ok = outputCols.Next(col + 1) {
-		colMeta := rel.Memo().Metadata().ColumnMeta(col)
+		colMeta := ot.Memo().Metadata().ColumnMeta(col)
 		colName := colNameGen.GenerateName(col)
 
 		columns[i].Init(
@@ -2066,7 +2070,7 @@ func (ot *OptTester) createTableAs(name tree.TableName, rel memo.RelExpr) (*test
 
 		// Make sure we have estimated stats for this column.
 		colSet := opt.MakeColSet(col)
-		memo.RequestColStat(ot.ctx, &ot.evalCtx, rel, colSet)
+		memo.RequestColStat(ot.ctx, &ot.evalCtx, ot.Memo(), rel, colSet)
 		stat, ok := relProps.Statistics().ColStats.Lookup(colSet)
 		if !ok {
 			return nil, fmt.Errorf("could not find statistic for column %s", colName)
@@ -2165,7 +2169,7 @@ func (ot *OptTester) IndexCandidates() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	indexCandidates := indexrec.FindIndexCandidateSet(expr, expr.(memo.RelExpr).Memo().Metadata())
+	indexCandidates := indexrec.FindIndexCandidateSet(expr, ot.Memo().Metadata())
 
 	// Build a formatted string to output from the map of indexCandidates.
 	tablesOutput := make([]string, 0, len(indexCandidates))
@@ -2207,7 +2211,7 @@ func (ot *OptTester) IndexRecommendations() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	md := normExpr.(memo.RelExpr).Memo().Metadata()
+	md := ot.Memo().Metadata()
 	indexCandidates := indexrec.FindIndexCandidateSet(normExpr, md)
 	_, hypTables := indexrec.BuildOptAndHypTableMaps(ot.catalog, indexCandidates)
 
@@ -2215,7 +2219,6 @@ func (ot *OptTester) IndexRecommendations() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	md = optExpr.(memo.RelExpr).Memo().Metadata()
 	recs, err := indexrec.FindRecs(ot.ctx, optExpr, md)
 	if err != nil {
 		return "", err

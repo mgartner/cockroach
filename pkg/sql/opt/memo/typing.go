@@ -33,7 +33,7 @@ func InferType(mem *Memo, e opt.ScalarExpr) *types.T {
 	if fn == nil {
 		panic(errors.AssertionFailedf("type inference for %v is not yet implemented", redact.Safe(e.Op())))
 	}
-	return fn(e)
+	return fn(mem.Metadata(), e)
 }
 
 // InferUnaryType infers the return type of a unary operator, given the type of
@@ -172,7 +172,7 @@ func FindAggregateOverload(e opt.ScalarExpr) (name string, overload *tree.Overlo
 	panic(errors.AssertionFailedf("could not find overload for %s aggregate", name))
 }
 
-type typingFunc func(e opt.ScalarExpr) *types.T
+type typingFunc func(md *opt.Metadata, e opt.ScalarExpr) *types.T
 
 // typingFuncMap is a lookup table from scalar operator type to a function
 // which returns the data type of an instance of that operator.
@@ -254,7 +254,7 @@ func typeVariable(mem *Memo, e opt.ScalarExpr) *types.T {
 
 // typeArrayAgg returns an array type with element type equal to the type of the
 // aggregate expression's first (and only) argument.
-func typeArrayAgg(e opt.ScalarExpr) *types.T {
+func typeArrayAgg(md *opt.Metadata, e opt.ScalarExpr) *types.T {
 	arrayAgg := e.(*ArrayAggExpr)
 	typ := arrayAgg.Input.DataType()
 	return types.MakeArray(typ)
@@ -262,7 +262,7 @@ func typeArrayAgg(e opt.ScalarExpr) *types.T {
 
 // typeIndirection returns the type of the element after the indirection
 // is applied.
-func typeIndirection(e opt.ScalarExpr) *types.T {
+func typeIndirection(md *opt.Metadata, e opt.ScalarExpr) *types.T {
 	t := e.Child(0).(opt.ScalarExpr).DataType()
 	switch t.Family() {
 	case types.JsonFamily:
@@ -275,21 +275,20 @@ func typeIndirection(e opt.ScalarExpr) *types.T {
 }
 
 // typeCollate returns the collated string typed with the given locale.
-func typeCollate(e opt.ScalarExpr) *types.T {
+func typeCollate(md *opt.Metadata, e opt.ScalarExpr) *types.T {
 	locale := e.(*CollateExpr).Locale
 	return types.MakeCollatedString(types.String, locale)
 }
 
 // typeArrayFlatten returns the type of the subquery as an array.
-func typeArrayFlatten(e opt.ScalarExpr) *types.T {
-	input := e.Child(0).(RelExpr)
+func typeArrayFlatten(md *opt.Metadata, e opt.ScalarExpr) *types.T {
 	colID := e.(*ArrayFlattenExpr).RequestedCol
-	return types.MakeArray(input.Memo().Metadata().ColumnMeta(colID).Type)
+	return types.MakeArray(md.ColumnMeta(colID).Type)
 }
 
 // typeIfErr returns the type of the IfErrExpr. The type is boolean if
 // there is no OrElse, and the type of Cond/OrElse otherwise.
-func typeIfErr(e opt.ScalarExpr) *types.T {
+func typeIfErr(md *opt.Metadata, e opt.ScalarExpr) *types.T {
 	if e.(*IfErrExpr).OrElse.ChildCount() == 0 {
 		return types.Bool
 	}
@@ -297,25 +296,25 @@ func typeIfErr(e opt.ScalarExpr) *types.T {
 }
 
 // typeAsFirstArg returns the type of the expression's 0th argument.
-func typeAsFirstArg(e opt.ScalarExpr) *types.T {
+func typeAsFirstArg(md *opt.Metadata, e opt.ScalarExpr) *types.T {
 	return e.Child(0).(opt.ScalarExpr).DataType()
 }
 
 // typeAsTypedExpr returns the resolved type of the private field, with the
 // assumption that it is a tree.TypedExpr.
-func typeAsTypedExpr(e opt.ScalarExpr) *types.T {
+func typeAsTypedExpr(md *opt.Metadata, e opt.ScalarExpr) *types.T {
 	return e.Private().(tree.TypedExpr).ResolvedType()
 }
 
 // typeAsUnary returns the type of a unary expression by hooking into the sql
 // semantics code that searches for unary operator overloads.
-func typeAsUnary(e opt.ScalarExpr) *types.T {
+func typeAsUnary(md *opt.Metadata, e opt.ScalarExpr) *types.T {
 	return InferUnaryType(e.Op(), e.Child(0).(opt.ScalarExpr).DataType())
 }
 
 // typeAsBinary returns the type of a binary expression by hooking into the sql
 // semantics code that searches for binary operator overloads.
-func typeAsBinary(e opt.ScalarExpr) *types.T {
+func typeAsBinary(md *opt.Metadata, e opt.ScalarExpr) *types.T {
 	leftType := e.Child(0).(opt.ScalarExpr).DataType()
 	rightType := e.Child(1).(opt.ScalarExpr).DataType()
 	return InferBinaryType(e.Op(), leftType, rightType)
@@ -323,7 +322,7 @@ func typeAsBinary(e opt.ScalarExpr) *types.T {
 
 // typeAsAggregate returns the type of an aggregate expression by hooking into
 // the sql semantics code that searches for aggregate operator overloads.
-func typeAsAggregate(e opt.ScalarExpr) *types.T {
+func typeAsAggregate(md *opt.Metadata, e opt.ScalarExpr) *types.T {
 	// Only handle cases where the return type is not dependent on argument
 	// types (i.e. pass nil to the ReturnTyper). Aggregates with return types
 	// that depend on argument types are handled separately.
@@ -337,7 +336,7 @@ func typeAsAggregate(e opt.ScalarExpr) *types.T {
 
 // typeAsWindow returns the type of a window function expression similar to
 // typeAsAggregate.
-func typeAsWindow(e opt.ScalarExpr) *types.T {
+func typeAsWindow(md *opt.Metadata, e opt.ScalarExpr) *types.T {
 	_, overload := FindWindowOverload(e)
 	t := overload.ReturnType(nil)
 	if t == tree.UnknownReturnType {
@@ -349,7 +348,7 @@ func typeAsWindow(e opt.ScalarExpr) *types.T {
 
 // typeCoalesce returns the type of a coalesce expression, which is equal to
 // the type of its first non-null child.
-func typeCoalesce(e opt.ScalarExpr) *types.T {
+func typeCoalesce(md *opt.Metadata, e opt.ScalarExpr) *types.T {
 	for _, arg := range e.(*CoalesceExpr).Args {
 		childType := arg.DataType()
 		if childType.Family() != types.UnknownFamily {
@@ -370,36 +369,36 @@ func typeCoalesce(e opt.ScalarExpr) *types.T {
 //
 // The type is equal to the type of the WHEN <condval> THEN <expr> clauses, or
 // the type of the ELSE <expr> value if all the previous types are unknown.
-func typeCase(e opt.ScalarExpr) *types.T {
+func typeCase(md *opt.Metadata, e opt.ScalarExpr) *types.T {
 	caseExpr := e.(*CaseExpr)
 	return InferWhensType(caseExpr.Whens, caseExpr.OrElse)
 }
 
 // typeWhen returns the type of a WHEN <condval> THEN <expr> clause inside a
 // CASE statement.
-func typeWhen(e opt.ScalarExpr) *types.T {
+func typeWhen(md *opt.Metadata, e opt.ScalarExpr) *types.T {
 	return e.(*WhenExpr).Value.DataType()
 }
 
 // typeCast returns the type of a CAST operator.
-func typeCast(e opt.ScalarExpr) *types.T {
+func typeCast(md *opt.Metadata, e opt.ScalarExpr) *types.T {
 	return e.(*CastExpr).Typ
 }
 
 // typeUDFCall returns the type of a UDF call operator
-func typeUDFCall(e opt.ScalarExpr) *types.T {
+func typeUDFCall(md *opt.Metadata, e opt.ScalarExpr) *types.T {
 	return e.(*UDFCallExpr).Def.Typ
 }
 
 // typeSubquery returns the type of a subquery, which is equal to the type of
 // its first (and only) column.
-func typeSubquery(e opt.ScalarExpr) *types.T {
+func typeSubquery(md *opt.Metadata, e opt.ScalarExpr) *types.T {
 	input := e.Child(0).(RelExpr)
 	colID := input.Relational().OutputCols.SingleColumn()
-	return input.Memo().Metadata().ColumnMeta(colID).Type
+	return md.ColumnMeta(colID).Type
 }
 
-func typeColumnAccess(e opt.ScalarExpr) *types.T {
+func typeColumnAccess(md *opt.Metadata, e opt.ScalarExpr) *types.T {
 	colAccess := e.(*ColumnAccessExpr)
 	typ := colAccess.Input.DataType()
 	return typ.TupleContents()[colAccess.Idx]

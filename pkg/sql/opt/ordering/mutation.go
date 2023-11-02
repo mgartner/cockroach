@@ -16,13 +16,15 @@ import (
 	"github.com/cockroachdb/cockroach/pkg/sql/opt/props"
 )
 
-func mutationCanProvideOrdering(expr memo.RelExpr, required *props.OrderingChoice) bool {
+func mutationCanProvideOrdering(
+	md *opt.Metadata, expr memo.RelExpr, required *props.OrderingChoice,
+) bool {
 	// The mutation operator can always pass through ordering to its input.
 	return true
 }
 
 func mutationBuildChildReqOrdering(
-	parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
+	md *opt.Metadata, parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
 ) props.OrderingChoice {
 	if childIdx != 0 {
 		return props.OrderingChoice{}
@@ -43,7 +45,9 @@ func mutationBuildChildReqOrdering(
 	return props.OrderingChoice{Optional: optional, Columns: columns}
 }
 
-func mutationBuildProvided(expr memo.RelExpr, required *props.OrderingChoice) opt.Ordering {
+func mutationBuildProvided(
+	md *opt.Metadata, expr memo.RelExpr, required *props.OrderingChoice,
+) opt.Ordering {
 	private := expr.Private().(*memo.MutationPrivate)
 	input := expr.Child(0).(memo.RelExpr)
 	provided := input.ProvidedPhysical().Ordering
@@ -52,19 +56,21 @@ func mutationBuildProvided(expr memo.RelExpr, required *props.OrderingChoice) op
 	// be used by remapProvided.
 	var fdset props.FuncDepSet
 	fdset.CopyFrom(&input.Relational().FuncDeps)
-	private.AddEquivTableCols(expr.Memo().Metadata(), &fdset)
+	private.AddEquivTableCols(md, &fdset)
 
 	// Ensure that provided ordering only uses projected columns.
 	return remapProvided(provided, &fdset, expr.Relational().OutputCols)
 }
 
-func lockCanProvideOrdering(expr memo.RelExpr, required *props.OrderingChoice) bool {
+func lockCanProvideOrdering(
+	md *opt.Metadata, expr memo.RelExpr, required *props.OrderingChoice,
+) bool {
 	// The lock operator can always pass through ordering to its input.
 	return true
 }
 
 func lockBuildChildReqOrdering(
-	parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
+	md *opt.Metadata, parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
 ) props.OrderingChoice {
 	if childIdx != 0 {
 		return props.OrderingChoice{}
@@ -72,7 +78,9 @@ func lockBuildChildReqOrdering(
 	return *required
 }
 
-func lockBuildProvided(expr memo.RelExpr, required *props.OrderingChoice) opt.Ordering {
+func lockBuildProvided(
+	md *opt.Metadata, expr memo.RelExpr, required *props.OrderingChoice,
+) opt.Ordering {
 	lock := expr.(*memo.LockExpr)
 	return lock.Input.ProvidedPhysical().Ordering
 }

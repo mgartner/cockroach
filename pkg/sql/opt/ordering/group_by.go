@@ -17,7 +17,7 @@ import (
 )
 
 func scalarGroupByBuildChildReqOrdering(
-	parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
+	md *opt.Metadata, parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
 ) props.OrderingChoice {
 	if childIdx != 0 {
 		return props.OrderingChoice{}
@@ -26,7 +26,9 @@ func scalarGroupByBuildChildReqOrdering(
 	return parent.(*memo.ScalarGroupByExpr).Ordering
 }
 
-func groupByCanProvideOrdering(expr memo.RelExpr, required *props.OrderingChoice) bool {
+func groupByCanProvideOrdering(
+	md *opt.Metadata, expr memo.RelExpr, required *props.OrderingChoice,
+) bool {
 	// GroupBy may require a certain ordering of its input, but can also pass
 	// through a stronger ordering on the grouping columns.
 	groupBy := expr.(*memo.GroupByExpr)
@@ -34,7 +36,7 @@ func groupByCanProvideOrdering(expr memo.RelExpr, required *props.OrderingChoice
 }
 
 func groupByBuildChildReqOrdering(
-	parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
+	md *opt.Metadata, parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
 ) props.OrderingChoice {
 	if childIdx != 0 {
 		return props.OrderingChoice{}
@@ -56,7 +58,9 @@ func groupByBuildChildReqOrdering(
 	return result
 }
 
-func groupByBuildProvided(expr memo.RelExpr, required *props.OrderingChoice) opt.Ordering {
+func groupByBuildProvided(
+	md *opt.Metadata, expr memo.RelExpr, required *props.OrderingChoice,
+) opt.Ordering {
 	groupBy := expr.(*memo.GroupByExpr)
 	provided := groupBy.Input.ProvidedPhysical().Ordering
 	inputFDs := &groupBy.Input.Relational().FuncDeps
@@ -67,14 +71,16 @@ func groupByBuildProvided(expr memo.RelExpr, required *props.OrderingChoice) opt
 	return remapProvided(provided, inputFDs, groupBy.GroupingCols)
 }
 
-func distinctOnCanProvideOrdering(expr memo.RelExpr, required *props.OrderingChoice) bool {
+func distinctOnCanProvideOrdering(
+	md *opt.Metadata, expr memo.RelExpr, required *props.OrderingChoice,
+) bool {
 	// DistinctOn may require a certain ordering of its input, but can also pass
 	// through a stronger ordering on the grouping columns.
 	return required.Intersects(&expr.Private().(*memo.GroupingPrivate).Ordering)
 }
 
 func distinctOnBuildChildReqOrdering(
-	parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
+	md *opt.Metadata, parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
 ) props.OrderingChoice {
 	if childIdx != 0 {
 		return props.OrderingChoice{}
@@ -87,7 +93,9 @@ func distinctOnBuildChildReqOrdering(
 	return result
 }
 
-func distinctOnBuildProvided(expr memo.RelExpr, required *props.OrderingChoice) opt.Ordering {
+func distinctOnBuildProvided(
+	md *opt.Metadata, expr memo.RelExpr, required *props.OrderingChoice,
+) opt.Ordering {
 	input := expr.Child(0).(memo.RelExpr)
 	provided := input.ProvidedPhysical().Ordering
 	inputFDs := &input.Relational().FuncDeps

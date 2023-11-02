@@ -16,7 +16,9 @@ import (
 	"github.com/cockroachdb/cockroach/pkg/sql/opt/props"
 )
 
-func mergeJoinCanProvideOrdering(expr memo.RelExpr, required *props.OrderingChoice) bool {
+func mergeJoinCanProvideOrdering(
+	md *opt.Metadata, expr memo.RelExpr, required *props.OrderingChoice,
+) bool {
 	m := expr.(*memo.MergeJoinExpr)
 	// TODO(radu): in principle, we could pass through an ordering that covers
 	// more than the equality columns. For example, if we have a merge join
@@ -40,7 +42,7 @@ func mergeJoinCanProvideOrdering(expr memo.RelExpr, required *props.OrderingChoi
 }
 
 func mergeJoinBuildChildReqOrdering(
-	parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
+	md *opt.Metadata, parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
 ) props.OrderingChoice {
 	switch childIdx {
 	case 0:
@@ -52,7 +54,9 @@ func mergeJoinBuildChildReqOrdering(
 	}
 }
 
-func mergeJoinBuildProvided(expr memo.RelExpr, required *props.OrderingChoice) opt.Ordering {
+func mergeJoinBuildProvided(
+	md *opt.Metadata, expr memo.RelExpr, required *props.OrderingChoice,
+) opt.Ordering {
 	m := expr.(*memo.MergeJoinExpr)
 	// This code parallels the one in mergeJoinCanProvideOrdering: the required
 	// ordering has to be provided by one of the inputs (as allowed by the join

@@ -23,6 +23,7 @@ import (
 	"github.com/cockroachdb/cockroach/pkg/sql/inverted"
 	"github.com/cockroachdb/cockroach/pkg/sql/opt"
 	"github.com/cockroachdb/cockroach/pkg/sql/opt/invertedidx"
+	"github.com/cockroachdb/cockroach/pkg/sql/opt/memo"
 	"github.com/cockroachdb/cockroach/pkg/sql/opt/norm"
 	"github.com/cockroachdb/cockroach/pkg/sql/opt/testutils"
 	"github.com/cockroachdb/cockroach/pkg/sql/opt/testutils/testcat"
@@ -38,10 +39,10 @@ func TestTryJoinGeoIndex(t *testing.T) {
 	st := cluster.MakeTestingClusterSettings()
 	evalCtx := eval.NewTestingEvalContext(st)
 
-	tc := testcat.New()
+	tcat := testcat.New()
 
 	// Create the input table.
-	if _, err := tc.ExecuteDDL(
+	if _, err := tcat.ExecuteDDL(
 		"CREATE TABLE t1 (geom1 GEOMETRY, geog1 GEOGRAPHY, geom11 GEOMETRY, geog11 GEOGRAPHY, " +
 			"inet1 INET, bbox1 box2d)",
 	); err != nil {
@@ -49,7 +50,7 @@ func TestTryJoinGeoIndex(t *testing.T) {
 	}
 
 	// Create the indexed table.
-	if _, err := tc.ExecuteDDL(
+	if _, err := tcat.ExecuteDDL(
 		"CREATE TABLE t2 (geom2 GEOMETRY, geog2 GEOGRAPHY, inet2 INET, bbox2 box2d, " +
 			"INVERTED INDEX (geom2), INVERTED INDEX (geog2))",
 	); err != nil {
@@ -57,12 +58,12 @@ func TestTryJoinGeoIndex(t *testing.T) {
 	}
 
 	var f norm.Factory
-	f.Init(context.Background(), evalCtx, tc)
+	f.Init(context.Background(), evalCtx, tcat)
 	md := f.Metadata()
 	tn1 := tree.NewUnqualifiedTableName("t1")
 	tn2 := tree.NewUnqualifiedTableName("t2")
-	tab1 := md.AddTable(tc.Table(tn1), tn1)
-	tab2 := md.AddTable(tc.Table(tn2), tn2)
+	tab1 := md.AddTable(tcat.Table(tn1), tn1)
+	tab2 := md.AddTable(tcat.Table(tn2), tn2)
 	geomOrd, geogOrd := 1, 2
 
 	testCases := []struct {
@@ -307,8 +308,21 @@ func TestTryJoinGeoIndex(t *testing.T) {
 			t.Fatalf("expected <nil>, got %v", actInvertedExpr)
 		}
 
+		toString := func(e opt.ScalarExpr) string {
+			fmtCtx := memo.MakeExprFmtCtx(
+				context.Background(),
+				memo.ExprFmtHideQualifications,
+				false, /* redactableValues */
+				f.Memo(),
+				tcat,
+			)
+			fmtCtx.FormatExpr(e)
+			return fmtCtx.Buffer.String()
+		}
+
 		expInvertedExpr := testutils.BuildScalar(t, &f, &semaCtx, evalCtx, tc.invertedExpr)
-		if actInvertedExpr.String() != expInvertedExpr.String() {
+		// TODO: Re-add using format.
+		if toString(actInvertedExpr) != toString(expInvertedExpr) {
 			t.Errorf("expected %v, got %v", expInvertedExpr, actInvertedExpr)
 		}
 	}
@@ -319,17 +333,17 @@ func TestTryFilterGeoIndex(t *testing.T) {
 	st := cluster.MakeTestingClusterSettings()
 	evalCtx := eval.NewTestingEvalContext(st)
 
-	tc := testcat.New()
-	if _, err := tc.ExecuteDDL(
+	tcat := testcat.New()
+	if _, err := tcat.ExecuteDDL(
 		"CREATE TABLE t (geom GEOMETRY, geog GEOGRAPHY, INVERTED INDEX (geom), INVERTED INDEX (geog))",
 	); err != nil {
 		t.Fatal(err)
 	}
 	var f norm.Factory
-	f.Init(context.Background(), evalCtx, tc)
+	f.Init(context.Background(), evalCtx, tcat)
 	md := f.Metadata()
 	tn := tree.NewUnqualifiedTableName("t")
-	tab := md.AddTable(tc.Table(tn), tn)
+	tab := md.AddTable(tcat.Table(tn), tn)
 	geomOrd, geogOrd := 1, 2
 
 	testCases := []struct {
@@ -525,8 +539,21 @@ func TestTryFilterGeoIndex(t *testing.T) {
 				require.Nil(t, pfState)
 			} else {
 				require.NotNil(t, pfState)
+
+				toString := func(e opt.ScalarExpr) string {
+					fmtCtx := memo.MakeExprFmtCtx(
+						context.Background(),
+						memo.ExprFmtHideQualifications,
+						false, /* redactableValues */
+						f.Memo(),
+						tcat,
+					)
+					fmtCtx.FormatExpr(e)
+					return fmtCtx.Buffer.String()
+				}
+
 				pfExpr := testutils.BuildScalar(t, &f, &semaCtx, evalCtx, tc.preFilterExpr)
-				require.Equal(t, pfExpr.String(), pfState.Expr.String())
+				require.Equal(t, toString(pfExpr), toString(pfState.Expr))
 				require.Equal(t, tc.preFilterCol, pfState.Col)
 				require.Equal(t, tc.preFilterTypeFamily, pfState.Typ.Family())
 			}

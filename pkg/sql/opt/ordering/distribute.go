@@ -16,19 +16,23 @@ import (
 	"github.com/cockroachdb/cockroach/pkg/sql/opt/props"
 )
 
-func distributeCanProvideOrdering(expr memo.RelExpr, required *props.OrderingChoice) bool {
+func distributeCanProvideOrdering(
+	md *opt.Metadata, expr memo.RelExpr, required *props.OrderingChoice,
+) bool {
 	// Distribute operator can always pass through ordering to its input.
 	return true
 }
 
 func distributeBuildChildReqOrdering(
-	parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
+	md *opt.Metadata, parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
 ) props.OrderingChoice {
 	// We can pass through any required ordering to the input.
 	return *required
 }
 
-func distributeBuildProvided(expr memo.RelExpr, required *props.OrderingChoice) opt.Ordering {
+func distributeBuildProvided(
+	md *opt.Metadata, expr memo.RelExpr, required *props.OrderingChoice,
+) opt.Ordering {
 	d := expr.(*memo.DistributeExpr)
 	return d.Input.ProvidedPhysical().Ordering
 }

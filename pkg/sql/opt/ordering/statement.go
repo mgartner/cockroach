@@ -11,6 +11,7 @@
 package ordering
 
 import (
+	"github.com/cockroachdb/cockroach/pkg/sql/opt"
 	"github.com/cockroachdb/cockroach/pkg/sql/opt/memo"
 	"github.com/cockroachdb/cockroach/pkg/sql/opt/props"
 	"github.com/cockroachdb/errors"
@@ -44,7 +45,7 @@ func statementBuildChildReqOrdering(
 }
 
 func explainBuildChildReqOrdering(
-	parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
+	md *opt.Metadata, parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
 ) props.OrderingChoice {
 	return statementBuildChildReqOrdering(
 		parent, childIdx, parent.(*memo.ExplainExpr).Props.Ordering,
@@ -52,7 +53,7 @@ func explainBuildChildReqOrdering(
 }
 
 func alterTableSplitBuildChildReqOrdering(
-	parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
+	md *opt.Metadata, parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
 ) props.OrderingChoice {
 	return statementBuildChildReqOrdering(
 		parent, childIdx, parent.(*memo.AlterTableSplitExpr).Props.Ordering,
@@ -60,7 +61,7 @@ func alterTableSplitBuildChildReqOrdering(
 }
 
 func alterTableUnsplitBuildChildReqOrdering(
-	parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
+	md *opt.Metadata, parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
 ) props.OrderingChoice {
 	return statementBuildChildReqOrdering(
 		parent, childIdx, parent.(*memo.AlterTableUnsplitExpr).Props.Ordering,
@@ -68,7 +69,7 @@ func alterTableUnsplitBuildChildReqOrdering(
 }
 
 func alterTableRelocateBuildChildReqOrdering(
-	parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
+	md *opt.Metadata, parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
 ) props.OrderingChoice {
 	return statementBuildChildReqOrdering(
 		parent, childIdx, parent.(*memo.AlterTableRelocateExpr).Props.Ordering,
@@ -76,7 +77,7 @@ func alterTableRelocateBuildChildReqOrdering(
 }
 
 func alterRangeRelocateBuildChildReqOrdering(
-	parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
+	md *opt.Metadata, parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
 ) props.OrderingChoice {
 	return statementBuildChildReqOrdering(
 		parent, childIdx, parent.(*memo.AlterRangeRelocateExpr).Props.Ordering,
@@ -84,7 +85,7 @@ func alterRangeRelocateBuildChildReqOrdering(
 }
 
 func controlJobsBuildChildReqOrdering(
-	parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
+	md *opt.Metadata, parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
 ) props.OrderingChoice {
 	return statementBuildChildReqOrdering(
 		parent, childIdx, parent.(*memo.ControlJobsExpr).Props.Ordering,
@@ -92,7 +93,7 @@ func controlJobsBuildChildReqOrdering(
 }
 
 func cancelQueriesBuildChildReqOrdering(
-	parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
+	md *opt.Metadata, parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
 ) props.OrderingChoice {
 	return statementBuildChildReqOrdering(
 		parent, childIdx, parent.(*memo.CancelQueriesExpr).Props.Ordering,
@@ -100,7 +101,7 @@ func cancelQueriesBuildChildReqOrdering(
 }
 
 func cancelSessionsBuildChildReqOrdering(
-	parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
+	md *opt.Metadata, parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
 ) props.OrderingChoice {
 	return statementBuildChildReqOrdering(
 		parent, childIdx, parent.(*memo.CancelSessionsExpr).Props.Ordering,
@@ -108,7 +109,7 @@ func cancelSessionsBuildChildReqOrdering(
 }
 
 func exportBuildChildReqOrdering(
-	parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
+	md *opt.Metadata, parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
 ) props.OrderingChoice {
 	return statementBuildChildReqOrdering(
 		parent, childIdx, parent.(*memo.ExportExpr).Props.Ordering,

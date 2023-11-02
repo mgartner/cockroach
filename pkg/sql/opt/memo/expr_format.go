@@ -879,6 +879,7 @@ func (f *ExprFmtCtx) formatRelational(e RelExpr, tp treeprinter.Node) {
 		if lookupJoinExpr, ok := e.(*LookupJoinExpr); ok && f.Catalog != nil {
 			if optimizer := f.Catalog.Optimizer(); optimizer != nil {
 				providedDistribution := GetLookupJoinLookupTableDistribution(
+					f.Memo.Metadata(),
 					lookupJoinExpr,
 					lookupJoinExpr.RequiredPhysical(),
 					optimizer,

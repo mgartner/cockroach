@@ -286,15 +286,15 @@ func (g *exprsGen) genExprFuncs(define *lang.DefineExpr) {
 	fmt.Fprintf(g.w, "}\n\n")
 
 	// Generate the String method.
-	fmt.Fprintf(g.w, "func (e *%s) String() string {\n", opTyp.name)
-	if define.Tags.Contains("Scalar") {
-		fmt.Fprintf(g.w, "  f := makeExprFmtCtxForString(ExprFmtHideQualifications, nil, nil)\n")
-	} else {
-		fmt.Fprintf(g.w, "  f := makeExprFmtCtxForString(ExprFmtHideQualifications, e.Memo(), nil)\n")
-	}
-	fmt.Fprintf(g.w, "  f.FormatExpr(e)\n")
-	fmt.Fprintf(g.w, "  return f.Buffer.String()\n")
-	fmt.Fprintf(g.w, "}\n\n")
+	// fmt.Fprintf(g.w, "func (e *%s) String() string {\n", opTyp.name)
+	// if define.Tags.Contains("Scalar") {
+	// 	fmt.Fprintf(g.w, "  f := makeExprFmtCtxForString(ExprFmtHideQualifications, nil, nil)\n")
+	// } else {
+	// 	fmt.Fprintf(g.w, "  f := makeExprFmtCtxForString(ExprFmtHideQualifications, e.Memo(), nil)\n")
+	// }
+	// fmt.Fprintf(g.w, "  f.FormatExpr(e)\n")
+	// fmt.Fprintf(g.w, "  return f.Buffer.String()\n")
+	// fmt.Fprintf(g.w, "}\n\n")
 
 	// Generate the SetChild method.
 	fmt.Fprintf(g.w, "func (e *%s) SetChild(nth int, child opt.Expr) {\n", opTyp.name)
@@ -341,11 +341,6 @@ func (g *exprsGen) genExprFuncs(define *lang.DefineExpr) {
 			fmt.Fprintf(g.w, "}\n\n")
 		}
 	} else {
-		// Generate the Memo method.
-		fmt.Fprintf(g.w, "func (e *%s) Memo() *Memo {\n", opTyp.name)
-		fmt.Fprintf(g.w, "  return e.grp.memo()\n")
-		fmt.Fprintf(g.w, "}\n\n")
-
 		// Generate the Relational method.
 		fmt.Fprintf(g.w, "func (e *%s) Relational() *props.Relational {\n", opTyp.name)
 		fmt.Fprintf(g.w, "  return e.grp.relational()\n")
@@ -434,11 +429,11 @@ func (g *exprsGen) genEnforcerFuncs(define *lang.DefineExpr) {
 	fmt.Fprintf(g.w, "}\n\n")
 
 	// Generate the String method.
-	fmt.Fprintf(g.w, "func (e *%s) String() string {\n", opTyp.name)
-	fmt.Fprintf(g.w, "  f := makeExprFmtCtxForString(ExprFmtHideQualifications, e.Memo(), nil)\n")
-	fmt.Fprintf(g.w, "  f.FormatExpr(e)\n")
-	fmt.Fprintf(g.w, "  return f.Buffer.String()\n")
-	fmt.Fprintf(g.w, "}\n\n")
+	// fmt.Fprintf(g.w, "func (e *%s) String() string {\n", opTyp.name)
+	// fmt.Fprintf(g.w, "  f := makeExprFmtCtxForString(ExprFmtHideQualifications, nil, nil)\n")
+	// fmt.Fprintf(g.w, "  f.FormatExpr(e)\n")
+	// fmt.Fprintf(g.w, "  return f.Buffer.String()\n")
+	// fmt.Fprintf(g.w, "}\n\n")
 
 	// Generate the SetChild method.
 	fmt.Fprintf(g.w, "func (e *%s) SetChild(nth int, child opt.Expr) {\n", opTyp.name)
@@ -447,11 +442,6 @@ func (g *exprsGen) genEnforcerFuncs(define *lang.DefineExpr) {
 	fmt.Fprintf(g.w, "    return\n")
 	fmt.Fprintf(g.w, "  }\n")
 	fmt.Fprintf(g.w, "  panic(errors.AssertionFailedf(\"child index out of range\"))\n")
-	fmt.Fprintf(g.w, "}\n\n")
-
-	// Generate the Memo method.
-	fmt.Fprintf(g.w, "func (e *%s) Memo() *Memo {\n", opTyp.name)
-	fmt.Fprintf(g.w, "  return e.Input.Memo()\n")
 	fmt.Fprintf(g.w, "}\n\n")
 
 	// Generate the Relational method.
@@ -543,11 +533,11 @@ func (g *exprsGen) genListExprFuncs(define *lang.DefineExpr) {
 	fmt.Fprintf(g.w, "}\n\n")
 
 	// Generate the String method.
-	fmt.Fprintf(g.w, "func (e *%s) String() string {\n", opTyp.name)
-	fmt.Fprintf(g.w, "  f := makeExprFmtCtxForString(ExprFmtHideQualifications, nil, nil)\n")
-	fmt.Fprintf(g.w, "  f.FormatExpr(e)\n")
-	fmt.Fprintf(g.w, "  return f.Buffer.String()\n")
-	fmt.Fprintf(g.w, "}\n\n")
+	// fmt.Fprintf(g.w, "func (e *%s) String() string {\n", opTyp.name)
+	// fmt.Fprintf(g.w, "  f := makeExprFmtCtxForString(ExprFmtHideQualifications, nil, nil)\n")
+	// fmt.Fprintf(g.w, "  f.FormatExpr(e)\n")
+	// fmt.Fprintf(g.w, "  return f.Buffer.String()\n")
+	// fmt.Fprintf(g.w, "}\n\n")
 
 	// Generate the SetChild method.
 	// Use castFromDynamicParam and then fieldStorePrefix, in order to first cast

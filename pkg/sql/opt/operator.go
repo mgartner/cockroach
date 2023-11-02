@@ -81,7 +81,7 @@ type Expr interface {
 
 	// String returns a human-readable string representation for the expression
 	// that can be used for debugging and testing.
-	String() string
+	// String() string
 }
 
 // ScalarRank is the type of the sort order given to every scalar

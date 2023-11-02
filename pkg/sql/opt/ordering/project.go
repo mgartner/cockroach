@@ -17,7 +17,9 @@ import (
 	"github.com/cockroachdb/errors"
 )
 
-func projectCanProvideOrdering(expr memo.RelExpr, required *props.OrderingChoice) bool {
+func projectCanProvideOrdering(
+	md *opt.Metadata, expr memo.RelExpr, required *props.OrderingChoice,
+) bool {
 	// Project can pass through its ordering if the ordering depends only on
 	// columns present in the input.
 	proj := expr.(*memo.ProjectExpr)
@@ -35,7 +37,7 @@ func projectCanProvideOrdering(expr memo.RelExpr, required *props.OrderingChoice
 }
 
 func projectBuildChildReqOrdering(
-	parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
+	md *opt.Metadata, parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
 ) props.OrderingChoice {
 	if childIdx != 0 {
 		return props.OrderingChoice{}
@@ -74,7 +76,9 @@ func projectOrderingToInput(
 	return result
 }
 
-func projectBuildProvided(expr memo.RelExpr, required *props.OrderingChoice) opt.Ordering {
+func projectBuildProvided(
+	md *opt.Metadata, expr memo.RelExpr, required *props.OrderingChoice,
+) opt.Ordering {
 	// Ensure that the child provided ordering only refers to columns from the
 	// required ordering choice. This is necessary because there may be cases
 	// where the input of the Project has undergone transformations that allow it

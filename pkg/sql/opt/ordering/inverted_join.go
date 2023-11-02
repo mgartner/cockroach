@@ -16,7 +16,9 @@ import (
 	"github.com/cockroachdb/cockroach/pkg/sql/opt/props"
 )
 
-func invertedJoinCanProvideOrdering(expr memo.RelExpr, required *props.OrderingChoice) bool {
+func invertedJoinCanProvideOrdering(
+	md *opt.Metadata, expr memo.RelExpr, required *props.OrderingChoice,
+) bool {
 	// InvertedJoin can pass through its ordering if the ordering
 	// depends only on columns present in the input.
 	inputCols := expr.Child(0).(memo.RelExpr).Relational().OutputCols
@@ -24,7 +26,7 @@ func invertedJoinCanProvideOrdering(expr memo.RelExpr, required *props.OrderingC
 }
 
 func invertedJoinBuildChildReqOrdering(
-	parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
+	md *opt.Metadata, parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
 ) props.OrderingChoice {
 	if childIdx != 0 {
 		return props.OrderingChoice{}
@@ -44,7 +46,9 @@ func invertedJoinBuildChildReqOrdering(
 	return trimColumnGroups(&res, &child.Relational().FuncDeps)
 }
 
-func invertedJoinBuildProvided(expr memo.RelExpr, required *props.OrderingChoice) opt.Ordering {
+func invertedJoinBuildProvided(
+	md *opt.Metadata, expr memo.RelExpr, required *props.OrderingChoice,
+) opt.Ordering {
 	invertedJoin := expr.(*memo.InvertedJoinExpr)
 	childProvided := invertedJoin.Input.ProvidedPhysical().Ordering
 

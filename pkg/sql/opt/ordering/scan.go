@@ -18,12 +18,10 @@ import (
 	"github.com/cockroachdb/errors"
 )
 
-func scanCanProvideOrdering(expr memo.RelExpr, required *props.OrderingChoice) bool {
-	ok, _ := ScanPrivateCanProvide(
-		expr.Memo().Metadata(),
-		&expr.(*memo.ScanExpr).ScanPrivate,
-		required,
-	)
+func scanCanProvideOrdering(
+	md *opt.Metadata, expr memo.RelExpr, required *props.OrderingChoice,
+) bool {
+	ok, _ := ScanPrivateCanProvide(md, &expr.(*memo.ScanExpr).ScanPrivate, required)
 	return ok
 }
 
@@ -31,12 +29,8 @@ func scanCanProvideOrdering(expr memo.RelExpr, required *props.OrderingChoice) b
 // in order to satisfy the required ordering. If either direction is ok (e.g. no
 // required ordering), reutrns false. The scan must be able to satisfy the
 // required ordering, according to ScanCanProvideOrdering.
-func ScanIsReverse(scan *memo.ScanExpr, required *props.OrderingChoice) bool {
-	ok, reverse := ScanPrivateCanProvide(
-		scan.Memo().Metadata(),
-		&scan.ScanPrivate,
-		required,
-	)
+func ScanIsReverse(md *opt.Metadata, scan *memo.ScanExpr, required *props.OrderingChoice) bool {
+	ok, reverse := ScanPrivateCanProvide(md, &scan.ScanPrivate, required)
 	if !ok {
 		panic(errors.AssertionFailedf("scan can't provide required ordering"))
 	}
@@ -118,14 +112,15 @@ func ScanPrivateCanProvide(
 	return true, direction == rev
 }
 
-func scanBuildProvided(expr memo.RelExpr, required *props.OrderingChoice) opt.Ordering {
+func scanBuildProvided(
+	md *opt.Metadata, expr memo.RelExpr, required *props.OrderingChoice,
+) opt.Ordering {
 	scan := expr.(*memo.ScanExpr)
-	md := scan.Memo().Metadata()
 	index := md.Table(scan.Table).Index(scan.Index)
 	fds := &scan.Relational().FuncDeps
 
 	// We need to know the direction of the scan.
-	reverse := ScanIsReverse(scan, required)
+	reverse := ScanIsReverse(md, scan, required)
 
 	// We generate the longest ordering that this scan can provide, then we trim
 	// it. This is the longest prefix of index columns that are output by the scan

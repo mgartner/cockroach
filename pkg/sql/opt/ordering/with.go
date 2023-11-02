@@ -16,13 +16,15 @@ import (
 	"github.com/cockroachdb/cockroach/pkg/sql/opt/props"
 )
 
-func withCanProvideOrdering(expr memo.RelExpr, required *props.OrderingChoice) bool {
+func withCanProvideOrdering(
+	md *opt.Metadata, expr memo.RelExpr, required *props.OrderingChoice,
+) bool {
 	// With operator can always pass through ordering to its main input.
 	return true
 }
 
 func withBuildChildReqOrdering(
-	parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
+	md *opt.Metadata, parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
 ) props.OrderingChoice {
 	switch childIdx {
 	case 0:
@@ -35,7 +37,9 @@ func withBuildChildReqOrdering(
 	return props.OrderingChoice{}
 }
 
-func withBuildProvided(expr memo.RelExpr, required *props.OrderingChoice) opt.Ordering {
+func withBuildProvided(
+	md *opt.Metadata, expr memo.RelExpr, required *props.OrderingChoice,
+) opt.Ordering {
 	w := expr.(*memo.WithExpr)
 	return w.Main.ProvidedPhysical().Ordering
 }

@@ -16,7 +16,9 @@ import (
 	"github.com/cockroachdb/cockroach/pkg/sql/opt/props"
 )
 
-func setOpCanProvideOrdering(expr memo.RelExpr, required *props.OrderingChoice) bool {
+func setOpCanProvideOrdering(
+	md *opt.Metadata, expr memo.RelExpr, required *props.OrderingChoice,
+) bool {
 	// Set operations can provide the required ordering if it intersects with the
 	// set private ordering.
 	private := expr.Private().(*memo.SetPrivate)
@@ -24,7 +26,7 @@ func setOpCanProvideOrdering(expr memo.RelExpr, required *props.OrderingChoice) 
 }
 
 func setOpBuildChildReqOrdering(
-	parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
+	md *opt.Metadata, parent memo.RelExpr, required *props.OrderingChoice, childIdx int,
 ) props.OrderingChoice {
 	if childIdx != 0 && childIdx != 1 {
 		return props.OrderingChoice{}
@@ -53,7 +55,9 @@ func setOpBuildChildReqOrdering(
 	return childReq
 }
 
-func setOpBuildProvided(expr memo.RelExpr, required *props.OrderingChoice) opt.Ordering {
+func setOpBuildProvided(
+	md *opt.Metadata, expr memo.RelExpr, required *props.OrderingChoice,
+) opt.Ordering {
 	// Don't use the provided ordering from the inputs in case they were trimmed
 	// to remove constant columns. Call remapProvided to remove columns that are
 	// now unnecessary (e.g. because the set op is guaranteed to produce at most

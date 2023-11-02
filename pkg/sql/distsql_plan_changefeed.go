@@ -22,6 +22,7 @@ import (
 	"github.com/cockroachdb/cockroach/pkg/sql/execinfra"
 	"github.com/cockroachdb/cockroach/pkg/sql/flowinfra"
 	"github.com/cockroachdb/cockroach/pkg/sql/opt/cat"
+	"github.com/cockroachdb/cockroach/pkg/sql/opt/memo"
 	"github.com/cockroachdb/cockroach/pkg/sql/parser/statements"
 	"github.com/cockroachdb/cockroach/pkg/sql/pgwire/pgcode"
 	"github.com/cockroachdb/cockroach/pkg/sql/pgwire/pgerror"
@@ -110,17 +111,25 @@ func PlanCDCExpression(
 	opc.catalog = cdcCat
 	opc.optimizer.Init(ctx, p.EvalContext(), opc.catalog)
 
-	memo, err := opc.buildExecMemo(ctx)
+	mem, err := opc.buildExecMemo(ctx)
 	if err != nil {
 		return cdcPlan, err
 	}
 	if log.V(2) {
-		log.Infof(ctx, "Optimized CDC expression: %s", memo.RootExpr().String())
+		fmtCtx := memo.MakeExprFmtCtx(
+			context.Background(),
+			memo.ExprFmtHideQualifications,
+			false, /* redactableValues */
+			mem,
+			opc.catalog,
+		)
+		fmtCtx.FormatExpr(mem.RootExpr())
+		log.Infof(ctx, "Optimized CDC expression: %s", fmtCtx.Buffer.String())
 	}
 
 	const allowAutoCommit = false
 	if err := opc.runExecBuilder(
-		ctx, &p.curPlan, &p.stmt, newExecFactory(ctx, p), memo, p.EvalContext(), allowAutoCommit,
+		ctx, &p.curPlan, &p.stmt, newExecFactory(ctx, p), mem, p.EvalContext(), allowAutoCommit,
 	); err != nil {
 		return cdcPlan, err
 	}

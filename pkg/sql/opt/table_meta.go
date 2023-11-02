@@ -606,6 +606,9 @@ func (tm *TableMeta) GetDatabaseSurvivalGoal(
 // given table. If the table has no such annotation, TableAnnotation returns
 // nil.
 func (md *Metadata) TableAnnotation(tabID TableID, annID TableAnnID) interface{} {
+	if md == nil {
+		panic(errors.AssertionFailedf("WHOOPS"))
+	}
 	return md.tables[tabID.index()].anns[annID]
 }
 

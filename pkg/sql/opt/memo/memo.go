@@ -587,6 +587,7 @@ func (l *LiteralValuesExpr) Len() int {
 // GetLookupJoinLookupTableDistribution returns the Distribution of a lookup
 // table in a lookup join if that distribution can be statically determined.
 var GetLookupJoinLookupTableDistribution func(
+	md *opt.Metadata,
 	lookupJoin *LookupJoinExpr,
 	required *physical.Required,
 	optimizer interface{},
