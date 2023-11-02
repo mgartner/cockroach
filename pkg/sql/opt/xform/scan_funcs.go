@@ -511,7 +511,7 @@ func (c *CustomFuncs) IsRegionalByRowTableScanOrSelect(input memo.RelExpr) bool 
 	if !ok {
 		return false
 	}
-	table := scanExpr.Memo().Metadata().Table(scanExpr.Table)
+	table := c.e.mem.Metadata().Table(scanExpr.Table)
 	return table.IsRegionalByRow()
 }
 
@@ -530,9 +530,10 @@ func (c *CustomFuncs) IsSelectFromRemoteTableRowsOnly(input memo.RelExpr) bool {
 	if c.e.evalCtx.BoundedStaleness() {
 		return false
 	}
-	table := scanExpr.Memo().Metadata().Table(scanExpr.Table)
+	md := c.e.mem.Metadata()
+	table := md.Table(scanExpr.Table)
 	if table.IsRegionalByRow() {
-		tabMeta := c.e.mem.Metadata().TableMeta(scanExpr.Table)
+		tabMeta := md.TableMeta(scanExpr.Table)
 		index := table.Index(scanExpr.Index)
 		ps := tabMeta.IndexPartitionLocality(scanExpr.Index)
 		if ps.Empty() {

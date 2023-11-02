@@ -1970,6 +1970,7 @@ func (b *Builder) buildSort(sort *memo.SortExpr) (execPlan, error) {
 }
 
 func (b *Builder) enforceScanWithHomeRegion(skipID cat.StableID) error {
+	md := b.mem.Metadata()
 	homeRegion := ""
 	firstTable := ""
 	gatewayRegion, foundLocalRegion := b.evalCtx.Locality.Find("region")
@@ -1996,7 +1997,6 @@ func (b *Builder) enforceScanWithHomeRegion(skipID cat.StableID) error {
 		}
 	}
 	if len(moreThanOneRegionScans) > 0 {
-		md := moreThanOneRegionScans[0].Memo().Metadata()
 		tabMeta := md.TableMeta(moreThanOneRegionScans[0].Table)
 		if len(moreThanOneRegionScans) == 1 {
 			return b.filterSuggestionError(tabMeta, moreThanOneRegionScans[0].Index, nil /* table2Meta */, 0 /* indexOrdinal2 */)
@@ -2015,7 +2015,7 @@ func (b *Builder) enforceScanWithHomeRegion(skipID cat.StableID) error {
 			sqlerrors.EnforceHomeRegionFurtherInfo)
 	}
 	for i, scan := range b.builtScans {
-		inputTableMeta := scan.Memo().Metadata().TableMeta(scan.Table)
+		inputTableMeta := md.TableMeta(scan.Table)
 		inputTable := inputTableMeta.Table
 		// Mutation DML errors out with additional information via a call to
 		// `filterSuggestionError`, handled by the caller, so skip the target of
@@ -2054,7 +2054,7 @@ func (b *Builder) enforceScanWithHomeRegion(skipID cat.StableID) error {
 			var inputIndexOrdinal2 cat.IndexOrdinal
 			if len(b.builtScans) > 1 && i == 0 {
 				scan2 := b.builtScans[1]
-				inputTableMeta2 = scan2.Memo().Metadata().TableMeta(scan2.Table)
+				inputTableMeta2 = md.TableMeta(scan2.Table)
 				inputIndexOrdinal2 = scan2.Index
 			}
 			return b.filterSuggestionError(inputTableMeta, inputIndexOrdinal, inputTableMeta2, inputIndexOrdinal2)
@@ -2273,13 +2273,14 @@ func (b *Builder) filterSuggestionError(
 }
 
 func (b *Builder) handleRemoteLookupJoinError(join *memo.LookupJoinExpr) (err error) {
+	md := b.mem.Metadata()
 	if join.ChildOfLocalityOptimizedSearch {
 		// If this join is a child of a locality-optimized search operation, it
 		// should not be statically errored out. It could dynamically error out if
 		// the query can't be answered by executing the first branch of the LOS.
 		return nil
 	}
-	lookupTableMeta := join.Memo().Metadata().TableMeta(join.Table)
+	lookupTableMeta := md.TableMeta(join.Table)
 	lookupTable := lookupTableMeta.Table
 
 	var input opt.Expr
@@ -2310,7 +2311,7 @@ func (b *Builder) handleRemoteLookupJoinError(join *memo.LookupJoinExpr) (err er
 	var inputIndexOrdinal cat.IndexOrdinal
 	switch t := input.(type) {
 	case *memo.ScanExpr:
-		inputTableMeta = join.Memo().Metadata().TableMeta(t.Table)
+		inputTableMeta = md.TableMeta(t.Table)
 		inputTable = inputTableMeta.Table
 		inputTableName = string(inputTable.Name())
 		inputIndexOrdinal = t.Index
@@ -2342,7 +2343,7 @@ func (b *Builder) handleRemoteLookupJoinError(join *memo.LookupJoinExpr) (err er
 				}
 			} else if join.LookupColsAreTableKey &&
 				len(join.LookupExpr) > 0 {
-				if filterIdx, ok := join.GetConstPrefixFilter(join.Memo().Metadata()); ok {
+				if filterIdx, ok := join.GetConstPrefixFilter(md); ok {
 					firstIndexColEqExpr := join.LookupJoinPrivate.LookupExpr[filterIdx].Condition
 					if firstIndexColEqExpr.Op() == opt.EqOp {
 						if regionName, ok := distribution.GetDEnumAsStringFromConstantExpr(firstIndexColEqExpr.Child(1)); ok {
@@ -2567,7 +2568,8 @@ func (b *Builder) buildLookupJoin(join *memo.LookupJoinExpr) (execPlan, error) {
 }
 
 func (b *Builder) handleRemoteInvertedJoinError(join *memo.InvertedJoinExpr) (err error) {
-	lookupTableMeta := join.Memo().Metadata().TableMeta(join.Table)
+	md := b.mem.Metadata()
+	lookupTableMeta := md.TableMeta(join.Table)
 	lookupTable := lookupTableMeta.Table
 
 	var input opt.Expr
@@ -2585,7 +2587,7 @@ func (b *Builder) handleRemoteInvertedJoinError(join *memo.InvertedJoinExpr) (er
 	var inputIndexOrdinal cat.IndexOrdinal
 	switch t := input.(type) {
 	case *memo.ScanExpr:
-		inputTableMeta = join.Memo().Metadata().TableMeta(t.Table)
+		inputTableMeta = md.TableMeta(t.Table)
 		inputTable = inputTableMeta.Table
 		inputTableName = string(inputTable.Name())
 		inputIndexOrdinal = t.Index
