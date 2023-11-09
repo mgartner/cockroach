@@ -114,10 +114,13 @@ func (bt Phase) String() string {
 }
 
 type benchQuery struct {
-	name    string
-	query   string
-	args    []interface{}
-	cleanup string
+	name  string
+	query string
+	args  []interface{}
+	// endToEndArgs contains an alternative set of arguments that are compatible
+	// with BenchmarkEndToEnd. If it is nil, BenchmarkEndToEnd will use args.
+	endToEndArgs []interface{}
+	cleanup      string
 }
 
 func init() {
@@ -412,9 +415,13 @@ func BenchmarkEndToEnd(b *testing.B) {
 
 	for _, query := range queriesToTest(b) {
 		b.Run(query.name, func(b *testing.B) {
+			args := query.args
+			if query.endToEndArgs != nil {
+				args = query.endToEndArgs
+			}
 			b.Run("Simple", func(b *testing.B) {
 				for i := 0; i < b.N; i++ {
-					sr.Exec(b, query.query, query.args...)
+					sr.Exec(b, query.query, args...)
 					if query.cleanup != "" {
 						sr.Exec(b, query.cleanup)
 					}
@@ -426,7 +433,7 @@ func BenchmarkEndToEnd(b *testing.B) {
 					b.Fatalf("%v", err)
 				}
 				for i := 0; i < b.N; i++ {
-					res, err := prepared.Exec(query.args...)
+					res, err := prepared.Exec(args...)
 					if err != nil {
 						b.Fatalf("%v", err)
 					}

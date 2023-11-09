@@ -212,6 +212,25 @@ var queries = [...]benchQuery{
 		args: []interface{}{1, 2, 3},
 	},
 
+	// Queries on the orders table are meant to mimic real-world queries on a table
+	// with a quite a few columns and indexes. Statistics have been injected
+	// to closely match a production scenario.
+	{
+		name: "orders-a",
+		query: `
+			SELECT
+				id, order_no, order_description,
+				part_no, part_make_id, part_make, part_model_id, part_model,
+				quantity, customer_id, rep_id, date_fulfilled,
+				data_a, data_b, data_c, data_d, data_e, data_f, data_g, data_h,
+				data_i, data_j, data_k, data_l, data_m, data_o
+			FROM orders
+			WHERE part_no = $1 AND quantity > $2 AND date_fulfilled >= $3
+		`,
+		args:         []interface{}{626, 20, "'2025-03-01 01:00:00+00'"},
+		endToEndArgs: []interface{}{626, 20, "2025-03-01 01:00:00+00"},
+	},
+
 	{
 		name:  "single-col-histogram-range",
 		query: "SELECT * FROM single_col_histogram WHERE k >= $1",
