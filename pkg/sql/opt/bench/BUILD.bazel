@@ -13,8 +13,9 @@ go_test(
     size = "medium",
     srcs = [
         "bench_test.go",
-        "fixtures_test.go",
         "fk_test.go",
+        "queries_test.go",
+        "schemas_test.go",
         "uniq_test.go",
     ],
     embed = [":bench"],
