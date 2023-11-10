@@ -215,6 +215,11 @@ func (sp *Span) StartsAfter(keyCtx *KeyContext, other *Span) bool {
 	return sp.start.Compare(keyCtx, other.end, sp.startExt(), other.endExt()) >= 0
 }
 
+// StartsAfterDatumAtOffset TODO
+func (sp *Span) StartsAfterSuffixSpan(keyCtx *KeyContext, other SuffixSpan) bool {
+	return sp.start.CompareToSuffixKey(keyCtx, other.end, sp.startExt(), other.endExt()) >= 0
+}
+
 // StartsStrictlyAfter returns true if this span is greater than the given span and
 // does not overlap or touch it. In other words, this span's start boundary is
 // strictly greater than the given span's end boundary.

@@ -11,6 +11,7 @@ go_library(
         "locality.go",
         "span.go",
         "spans.go",
+        "suffix_span.go",
         "testutils.go",
     ],
     importpath = "github.com/cockroachdb/cockroach/pkg/sql/opt/constraint",

@@ -234,7 +234,7 @@ func (h *Histogram) filter(
 	getSpan func(int) *constraint.Span,
 	desc bool,
 	colOffset, exactPrefix int,
-	prefix []tree.Datum,
+	// prefix []tree.Datum,
 	columns constraint.Columns,
 ) *Histogram {
 	bucketCount := h.bucketCount()
@@ -260,10 +260,10 @@ func (h *Histogram) filter(
 	keyCtx := constraint.KeyContext{EvalCtx: h.evalCtx, Columns: columns}
 
 	// Find the first span that may overlap with the histogram.
-	firstBucket := makeSpanFromBucket(&iter, prefix)
+	firstBucket := makeSuffixSpanFromBucket(&iter, colOffset)
 	for spanIndex < spanCount {
 		span := getSpan(spanIndex)
-		if firstBucket.StartsAfter(&keyCtx, span) {
+		if firstBucket.StartsAfterSpan(&keyCtx, span) {
 			spanIndex++
 			continue
 		}
@@ -277,11 +277,11 @@ func (h *Histogram) filter(
 	span := getSpan(spanIndex)
 	bucIndex := sort.Search(bucketCount, func(i int) bool {
 		iter.setIdx(i)
-		bucket := makeSpanFromBucket(&iter, prefix)
+		bucket := makeSuffixSpanFromBucket(&iter, colOffset)
 		if desc {
-			return span.StartsAfter(&keyCtx, &bucket)
+			return span.StartsAfterSuffixSpan(&keyCtx, bucket)
 		}
-		return !span.StartsAfter(&keyCtx, &bucket)
+		return !span.StartsAfterSuffixSpan(&keyCtx, bucket)
 	})
 	if desc {
 		bucIndex--
@@ -307,16 +307,16 @@ func (h *Histogram) filter(
 
 		// Convert the bucket to a span in order to take advantage of the
 		// constraint library.
-		left := makeSpanFromBucket(&iter, prefix)
+		left := makeSuffixSpanFromBucket(&iter, colOffset)
 		right := getSpan(spanIndex)
 
-		if left.StartsAfter(&keyCtx, right) {
+		if left.StartsAfterSpan(&keyCtx, right) {
 			spanIndex++
 			continue
 		}
 
 		filteredSpan := left
-		if !filteredSpan.TryIntersectWith(&keyCtx, right) {
+		if !filteredSpan.TryIntersectWithSpan(&keyCtx, right) {
 			filtered.addEmptyBucket(iter.b.UpperBound, desc)
 			if ok := iter.next(); !ok {
 				break
@@ -325,7 +325,7 @@ func (h *Histogram) filter(
 		}
 
 		filteredBucket := iter.b
-		if filteredSpan.Compare(&keyCtx, &left) != 0 {
+		if filteredSpan.Compare(&keyCtx, left) != 0 {
 			// The bucket was cut off in the middle. Get the resulting filtered
 			// bucket.
 			//
@@ -336,26 +336,26 @@ func (h *Histogram) filter(
 			// inclusive one to make it easier to work with. Note that this
 			// conversion is best-effort; not all datums support Next or Prev
 			// which allow exclusive ranges to be converted to inclusive ones.
-			cmpStarts := filteredSpan.CompareStarts(&keyCtx, &left)
+			cmpStarts := filteredSpan.CompareStarts(&keyCtx, left)
 			filteredSpan.PreferInclusive(&keyCtx)
-			filteredBucket = getFilteredBucket(&iter, &keyCtx, &filteredSpan, colOffset)
+			filteredBucket = getFilteredBucket(&iter, &keyCtx, filteredSpan, colOffset)
 			if !desc && cmpStarts != 0 {
 				// We need to add an empty bucket before the new bucket.
-				ub := h.getPrevUpperBound(filteredSpan.StartKey(), filteredSpan.StartBoundary(), colOffset)
+				ub := h.getPrevUpperBound(filteredSpan.StartKey(), filteredSpan.StartBoundary())
 				filtered.addEmptyBucket(ub, desc)
 			}
 		}
 		filtered.addBucket(filteredBucket, desc)
 
-		if desc && filteredSpan.CompareEnds(&keyCtx, &left) != 0 {
+		if desc && filteredSpan.CompareEnds(&keyCtx, left) != 0 {
 			// We need to add an empty bucket after the new bucket.
-			ub := h.getPrevUpperBound(filteredSpan.EndKey(), filteredSpan.EndBoundary(), colOffset)
+			ub := h.getPrevUpperBound(filteredSpan.EndKey(), filteredSpan.EndBoundary())
 			filtered.addEmptyBucket(ub, desc)
 		}
 
 		// Skip past whichever span ends first, or skip past both if they have
 		// the same endpoint.
-		cmp := left.CompareEnds(&keyCtx, right)
+		cmp := left.CompareEndsWithSpan(&keyCtx, right)
 		if cmp <= 0 {
 			if ok := iter.next(); !ok {
 				break
@@ -375,8 +375,8 @@ func (h *Histogram) filter(
 			filtered.addEmptyBucket(iter.inclusiveLowerBound(), desc)
 		} else if lastBucket := filtered.buckets[len(filtered.buckets)-1]; lastBucket.NumRange != 0 {
 			iter.setIdx(0)
-			span := makeSpanFromBucket(&iter, prefix)
-			ub := h.getPrevUpperBound(span.EndKey(), span.EndBoundary(), colOffset)
+			span := makeSuffixSpanFromBucket(&iter, colOffset)
+			ub := h.getPrevUpperBound(span.EndKey(), span.EndBoundary())
 			filtered.addEmptyBucket(ub, desc)
 		}
 
@@ -398,13 +398,14 @@ func (h *Histogram) Filter(c *constraint.Constraint) *Histogram {
 	if !ok {
 		panic(errors.AssertionFailedf("column mismatch"))
 	}
-	prefix := make([]tree.Datum, colOffset)
-	for i := range prefix {
-		prefix[i] = c.Spans.Get(0).StartKey().Value(i)
-	}
+	// prefix := make([]tree.Datum, colOffset)
+	// for i := range prefix {
+	// 	prefix[i] = c.Spans.Get(0).StartKey().Value(i)
+	// }
 	desc := c.Columns.Get(colOffset).Descending()
 
-	return h.filter(c.Spans.Count(), c.Spans.Get, desc, colOffset, exactPrefix, prefix, c.Columns)
+	// return h.filter(c.Spans.Count(), c.Spans.Get, desc, colOffset, exactPrefix, prefix, c.Columns)
+	return h.filter(c.Spans.Count(), c.Spans.Get, desc, colOffset, exactPrefix, c.Columns)
 }
 
 // InvertedFilter filters the histogram according to the given inverted
@@ -420,7 +421,7 @@ func (h *Histogram) InvertedFilter(spans inverted.Spans) *Histogram {
 		false, /* desc */
 		0,     /* exactPrefix */
 		0,     /* colOffset */
-		nil,   /* prefix */
+		// nil,   /* prefix */
 		columns,
 	)
 }
@@ -447,9 +448,9 @@ func (h *Histogram) getNextLowerBound(currentUpperBound tree.Datum) tree.Datum {
 }
 
 func (h *Histogram) getPrevUpperBound(
-	currentLowerBound constraint.Key, boundary constraint.SpanBoundary, colOffset int,
+	currentLowerBound constraint.SuffixKey, boundary constraint.SpanBoundary,
 ) tree.Datum {
-	prevUpperBound := currentLowerBound.Value(colOffset)
+	prevUpperBound := currentLowerBound.Value()
 	if boundary == constraint.IncludeBoundary {
 		if prev, ok := prevUpperBound.Prev(h.evalCtx); ok {
 			prevUpperBound = prev
@@ -624,9 +625,10 @@ func (hi *histogramIter) inclusiveUpperBound() tree.Datum {
 	return hi.ub
 }
 
-func makeSpanFromBucket(iter *histogramIter, prefix []tree.Datum) (span constraint.Span) {
+func makeSuffixSpanFromBucket(iter *histogramIter, colOffset int) (span constraint.SuffixSpan) {
 	start, startBoundary := iter.lowerBound()
 	end, endBoundary := iter.upperBound()
+	// TODO: Check the boundaries first.
 	if start.Compare(iter.h.evalCtx, end) == 0 &&
 		(startBoundary == constraint.IncludeBoundary || endBoundary == constraint.IncludeBoundary) {
 		// If the start and ends are equal and one of the boundaries is
@@ -634,13 +636,12 @@ func makeSpanFromBucket(iter *histogramIter, prefix []tree.Datum) (span constrai
 		startBoundary = constraint.IncludeBoundary
 		endBoundary = constraint.IncludeBoundary
 	}
-	span.Init(
-		constraint.MakeCompositeKey(append(prefix[:len(prefix):len(prefix)], start)...),
+	return constraint.MakeSuffixSpan(
+		constraint.MakeSuffixKey(start, colOffset),
 		startBoundary,
-		constraint.MakeCompositeKey(append(prefix[:len(prefix):len(prefix)], end)...),
+		constraint.MakeSuffixKey(end, colOffset),
 		endBoundary,
 	)
-	return span
 }
 
 // getFilteredBucket filters the histogram bucket according to the given span,
@@ -675,10 +676,13 @@ func makeSpanFromBucket(iter *histogramIter, prefix []tree.Datum) (span constrai
 // the size of NumRange if the bucket is cut off in the middle. In this case,
 // we use the heuristic that NumRange is reduced by half.
 func getFilteredBucket(
-	iter *histogramIter, keyCtx *constraint.KeyContext, filteredSpan *constraint.Span, colOffset int,
+	iter *histogramIter,
+	keyCtx *constraint.KeyContext,
+	filteredSpan constraint.SuffixSpan,
+	colOffset int,
 ) *cat.HistogramBucket {
-	spanLowerBound := filteredSpan.StartKey().Value(colOffset)
-	spanUpperBound := filteredSpan.EndKey().Value(colOffset)
+	spanLowerBound := filteredSpan.StartKey().Value()
+	spanUpperBound := filteredSpan.EndKey().Value()
 	bucketLowerBound := iter.inclusiveLowerBound()
 	bucketUpperBound := iter.inclusiveUpperBound()
 	b := iter.b
@@ -691,6 +695,8 @@ func getFilteredBucket(
 		contained = cmpSpanStartBucketStart <= 0 && cmpSpanEndBucketEnd >= 0
 	}
 	if !contained {
+		fmt.Printf("%d: %s, %s\n", cmpSpanStartBucketStart, spanLowerBound, bucketLowerBound)
+		fmt.Printf("%d: %s, %s\n", cmpSpanEndBucketEnd, spanUpperBound, bucketUpperBound)
 		panic(errors.AssertionFailedf("span must be fully contained in the bucket"))
 	}
 
@@ -706,18 +712,20 @@ func getFilteredBucket(
 
 	// Determine whether this span includes the original upper bound of the
 	// bucket.
-	var keyLength, cmp int
+	// var keyLength, cmp int
+	var cmp int
 	var keyBoundaryInclusive bool
 	if !iter.desc {
-		keyLength = filteredSpan.EndKey().Length()
+		// keyLength = filteredSpan.EndKey().Length()
 		keyBoundaryInclusive = filteredSpan.EndBoundary() == constraint.IncludeBoundary
 		cmp = cmpSpanEndBucketEnd
 	} else {
-		keyLength = filteredSpan.StartKey().Length()
+		// keyLength = filteredSpan.StartKey().Length()
 		keyBoundaryInclusive = filteredSpan.StartBoundary() == constraint.IncludeBoundary
 		cmp = cmpSpanStartBucketStart
 	}
-	includesOriginalUpperBound := cmp == 0 && ((colOffset < keyLength-1) || keyBoundaryInclusive)
+	// includesOriginalUpperBound := cmp == 0 && ((colOffset < keyLength-1) || keyBoundaryInclusive)
+	includesOriginalUpperBound := cmp == 0 && keyBoundaryInclusive
 
 	// Calculate the new value for numEq.
 	var numEq float64

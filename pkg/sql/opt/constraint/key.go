@@ -142,6 +142,48 @@ func (k Key) Compare(keyCtx *KeyContext, l Key, kext, lext KeyExtension) int {
 	return kext.ToCmp()
 }
 
+func (k Key) CompareToSuffixKey(keyCtx *KeyContext, l SuffixKey, kext, lext KeyExtension) int {
+	klen := k.Length()
+	llen := l.index + 1
+	// Assume the prefix values up to the index-th value match.
+	// for i := 0; i < klen && i < llen; i++ {
+	// 	if cmp := keyCtx.Compare(i, k.Value(i), l.Value(i)); cmp != 0 {
+	// 		return cmp
+	// 	}
+	// }
+
+	if klen < llen {
+		// k matches a prefix of l:
+		//   k = /1
+		//   l = /1/2
+		// Which of these is "smaller" depends on whether k is extended with
+		// -inf or with +inf:
+		//   k (ExtendLow)  = /1/Low  < /1/2  ->  k is smaller (-1)
+		//   k (ExtendHigh) = /1/High > /1/2  ->  k is bigger  (1)
+		return kext.ToCmp()
+	}
+
+	// TODO
+	if cmp := keyCtx.Compare(l.index, k.Value(l.index), l.val); cmp != 0 {
+		return cmp
+	}
+
+	if klen > llen {
+		// Inverse case of above.
+		return -lext.ToCmp()
+	}
+
+	// Equal keys:
+	//   k (ExtendLow)  vs. l (ExtendLow)   ->  equal   (0)
+	//   k (ExtendLow)  vs. l (ExtendHigh)  ->  smaller (-1)
+	//   k (ExtendHigh) vs. l (ExtendLow)   ->  bigger  (1)
+	//   k (ExtendHigh) vs. l (ExtendHigh)  ->  equal   (0)
+	if kext == lext {
+		return 0
+	}
+	return kext.ToCmp()
+}
+
 // Concat creates a new composite key by extending this key's values with the
 // values of the given key. The new key's length is len(k) + len(l).
 func (k Key) Concat(l Key) Key {
