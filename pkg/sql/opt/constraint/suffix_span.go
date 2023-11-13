@@ -99,16 +99,19 @@ func (sp *SuffixSpan) StartsAfterSpan(keyCtx *KeyContext, other *Span) bool {
 }
 
 // TryIntersectWithSpan finds the overlap between this span and the given span.
-// This span is updated to only cover the range that is common to both spans.
-// If there is no overlap, then this span will not be updated, and
-// TryIntersectWith will return false.
-func (sp *SuffixSpan) TryIntersectWithSpan(keyCtx *KeyContext, other *Span) bool {
+// This span is updated to only cover the range that is common to both spans. If
+// there is no overlap, then this span will not be updated, and
+// TryIntersectWithSpan will return intersects=false. If the span is not updated,
+// TryIntersectWithSpan will return mutated=false.
+func (sp *SuffixSpan) TryIntersectWithSpan(
+	keyCtx *KeyContext, other *Span,
+) (intersects, mutated bool) {
 	cmpStarts := sp.CompareStartsWithSpan(keyCtx, other)
 	if cmpStarts > 0 {
 		// If this span's start boundary is >= the other span's end boundary,
 		// then intersection is empty.
 		if sp.start.CompareToKey(keyCtx, other.end, sp.startExt(), other.endExt()) >= 0 {
-			return false
+			return false, false
 		}
 	}
 
@@ -117,7 +120,7 @@ func (sp *SuffixSpan) TryIntersectWithSpan(keyCtx *KeyContext, other *Span) bool
 		// If this span's end boundary is <= the other span's start boundary,
 		// then intersection is empty.
 		if sp.end.CompareToKey(keyCtx, other.start, sp.endExt(), other.startExt()) <= 0 {
-			return false
+			return false, false
 		}
 	}
 
@@ -132,6 +135,7 @@ func (sp *SuffixSpan) TryIntersectWithSpan(keyCtx *KeyContext, other *Span) bool
 		if isLastVal := other.start.Length() == idx+1; !isLastVal {
 			sp.startBoundary = IncludeBoundary
 		}
+		mutated = true
 	}
 	if cmpEnds > 0 {
 		sp.end = MakeSuffixKey(other.end.Value(idx), idx)
@@ -142,8 +146,9 @@ func (sp *SuffixSpan) TryIntersectWithSpan(keyCtx *KeyContext, other *Span) bool
 		if isLastVal := other.end.Length() == idx+1; !isLastVal {
 			sp.endBoundary = IncludeBoundary
 		}
+		mutated = true
 	}
-	return true
+	return true, mutated
 }
 
 // PreferInclusive tries to convert exclusive keys to inclusive keys. This is

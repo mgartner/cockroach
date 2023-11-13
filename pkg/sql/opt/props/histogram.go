@@ -316,7 +316,8 @@ func (h *Histogram) filter(
 		}
 
 		filteredSpan := left
-		if !filteredSpan.TryIntersectWithSpan(&keyCtx, right) {
+		intersects, mutated := filteredSpan.TryIntersectWithSpan(&keyCtx, right)
+		if !intersects {
 			filtered.addEmptyBucket(iter.b.UpperBound, desc)
 			if ok := iter.next(); !ok {
 				break
@@ -325,7 +326,7 @@ func (h *Histogram) filter(
 		}
 
 		filteredBucket := iter.b
-		if filteredSpan.Compare(&keyCtx, left) != 0 {
+		if mutated {
 			// The bucket was cut off in the middle. Get the resulting filtered
 			// bucket.
 			//
@@ -629,8 +630,8 @@ func makeSuffixSpanFromBucket(iter *histogramIter, colOffset int) (span constrai
 	start, startBoundary := iter.lowerBound()
 	end, endBoundary := iter.upperBound()
 	// TODO: Check the boundaries first.
-	if start.Compare(iter.h.evalCtx, end) == 0 &&
-		(startBoundary == constraint.IncludeBoundary || endBoundary == constraint.IncludeBoundary) {
+	if (startBoundary == constraint.IncludeBoundary || endBoundary == constraint.IncludeBoundary) &&
+		start.Compare(iter.h.evalCtx, end) == 0 {
 		// If the start and ends are equal and one of the boundaries is
 		// inclusive, the other boundary should be inclusive.
 		startBoundary = constraint.IncludeBoundary
