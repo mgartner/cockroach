@@ -3676,7 +3676,7 @@ project
       │    │    ├── key columns: [6 1] = [6 1]
       │    │    ├── lookup columns are key
       │    │    ├── immutable
-      │    │    ├── stats: [rows=0.8773444, distinct(1)=0.877344, null(1)=0, distinct(2)=0.877344, null(2)=0, distinct(3)=0.877344, null(3)=0, distinct(4)=0.877344, null(4)=0, distinct(5)=0.877344, null(5)=0, distinct(6)=0.877344, null(6)=0, distinct(16)=0.877344, null(16)=0, distinct(17)=0.877344, null(17)=0, distinct(18)=0.877344, null(18)=0, distinct(19)=0.877344, null(19)=0, distinct(20)=0.877344, null(20)=0, distinct(21)=0.877344, null(21)=0]
+      │    │    ├── stats: [rows=0.8773444, distinct(1)=0.877344, null(1)=0, distinct(5)=0.877344, null(5)=0, distinct(6)=0.877344, null(6)=0, distinct(16)=0.877344, null(16)=0, distinct(20)=0.877344, null(20)=0, distinct(21)=0.877344, null(21)=0]
       │    │    ├── cost: 76.288235
       │    │    ├── key: (16)
       │    │    ├── fd: ()-->(2,5,6,17,20,21), (1)-->(3,4), (16)-->(18,19), (1)==(16), (16)==(1), (5)==(20), (20)==(5), (6)==(21), (21)==(6)
@@ -3717,4 +3717,3 @@ project
       │         ├── x.id2:12 = '68088706-02c6-47d1-b993-a421cd761f2b' [outer=(12), constraints=(/12: [/'68088706-02c6-47d1-b993-a421cd761f2b' - /'68088706-02c6-47d1-b993-a421cd761f2b']; tight), fd=()-->(12)]
       │         └── x.crdb_region:13 = 'ap-southeast-2' [outer=(13), immutable, constraints=(/13: [/'ap-southeast-2' - /'ap-southeast-2']; tight), fd=()-->(13)]
       └── filters (true)
-
