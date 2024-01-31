@@ -499,6 +499,7 @@ func (e *distSQLSpecExecFactory) constructAggregators(
 	aggregations []exec.AggInfo,
 	reqOrdering exec.OutputOrdering,
 	isScalar bool,
+	estimatedRowCount uint64,
 ) (exec.Node, error) {
 	physPlan, plan := getPhysPlan(input)
 	// planAggregators() itself decides whether to distribute the aggregation.
@@ -545,6 +546,7 @@ func (e *distSQLSpecExecFactory) constructAggregators(
 			groupColOrdering:     groupColOrdering,
 			inputMergeOrdering:   physPlan.MergeOrdering,
 			reqOrdering:          ReqOrdering(reqOrdering),
+			estimatedRowCount:    estimatedRowCount,
 		},
 	); err != nil {
 		return nil, err
@@ -560,6 +562,7 @@ func (e *distSQLSpecExecFactory) ConstructGroupBy(
 	aggregations []exec.AggInfo,
 	reqOrdering exec.OutputOrdering,
 	groupingOrderType exec.GroupingOrderType,
+	estimatedRowCount uint64,
 ) (exec.Node, error) {
 	return e.constructAggregators(
 		input,
@@ -568,6 +571,7 @@ func (e *distSQLSpecExecFactory) ConstructGroupBy(
 		aggregations,
 		reqOrdering,
 		false, /* isScalar */
+		estimatedRowCount,
 	)
 }
 
@@ -581,6 +585,7 @@ func (e *distSQLSpecExecFactory) ConstructScalarGroupBy(
 		aggregations,
 		exec.OutputOrdering{}, /* reqOrdering */
 		true,                  /* isScalar */
+		1,                     /* estimatedRowCount */
 	)
 }
 
