@@ -1648,7 +1648,8 @@ func NewColOperator(
 							// Min and max window functions have specialized implementations
 							// when the frame can shrink and has a default exclusion clause.
 							aggFnsAlloc, _, toClose, err = colexecagg.NewAggregateFuncsAlloc(
-								ctx, &aggArgs, aggregations, 1 /* allocSize */, colexecagg.WindowAggKind,
+								ctx, &aggArgs, aggregations, 1, /* initialAllocSize */
+								1 /* maxAllocSize */, colexecagg.WindowAggKind,
 							)
 							if err != nil {
 								colexecerror.InternalError(err)
