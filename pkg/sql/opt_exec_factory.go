@@ -224,7 +224,7 @@ func (ef *execFactory) ConstructFilter(
 		source: src,
 	}
 	f.ivarHelper = tree.MakeIndexedVarHelper(f, len(src.columns))
-	f.filter = f.ivarHelper.Rebind(filter)
+	f.filter = f.ivarHelper.RebindTyped(filter)
 	if f.filter == nil {
 		// Filter statically evaluates to true. Just return the input plan.
 		return n, nil
@@ -381,7 +381,7 @@ func (ef *execFactory) ConstructRender(
 	var rb renderBuilder
 	rb.init(n, reqOrdering)
 	for i, expr := range exprs {
-		exprs[i] = rb.r.ivarHelper.Rebind(expr)
+		exprs[i] = rb.r.ivarHelper.RebindTyped(expr)
 	}
 	rb.setOutput(exprs, columns)
 	return rb.res, nil
@@ -414,7 +414,7 @@ func (ef *execFactory) ConstructHashJoin(
 	pred.leftEqKey = leftEqColsAreKey
 	pred.rightEqKey = rightEqColsAreKey
 
-	pred.onCond = pred.iVarHelper.Rebind(extraOnCond)
+	pred.onCond = pred.iVarHelper.RebindTyped(extraOnCond)
 
 	return p.makeJoinNode(leftSrc, rightSrc, pred), nil
 }
@@ -429,7 +429,7 @@ func (ef *execFactory) ConstructApplyJoin(
 ) (exec.Node, error) {
 	leftSrc := asDataSource(left)
 	pred := makePredicate(joinType, leftSrc.columns, rightColumns)
-	pred.onCond = pred.iVarHelper.Rebind(onCond)
+	pred.onCond = pred.iVarHelper.RebindTyped(onCond)
 	return newApplyJoinNode(joinType, leftSrc, rightColumns, pred, planRightSideFn)
 }
 
@@ -447,7 +447,7 @@ func (ef *execFactory) ConstructMergeJoin(
 	leftSrc := asDataSource(left)
 	rightSrc := asDataSource(right)
 	pred := makePredicate(joinType, leftSrc.columns, rightSrc.columns)
-	pred.onCond = pred.iVarHelper.Rebind(onCond)
+	pred.onCond = pred.iVarHelper.RebindTyped(onCond)
 	node := p.makeJoinNode(leftSrc, rightSrc, pred)
 	pred.leftEqKey = leftEqColsAreKey
 	pred.rightEqKey = rightEqColsAreKey
@@ -753,13 +753,13 @@ func (ef *execFactory) ConstructLookupJoin(
 	}
 	pred := makePredicate(joinType, planColumns(input.(planNode)), planColumns(tableScan))
 	if lookupExpr != nil {
-		n.lookupExpr = pred.iVarHelper.Rebind(lookupExpr)
+		n.lookupExpr = pred.iVarHelper.RebindTyped(lookupExpr)
 	}
 	if remoteLookupExpr != nil {
-		n.remoteLookupExpr = pred.iVarHelper.Rebind(remoteLookupExpr)
+		n.remoteLookupExpr = pred.iVarHelper.RebindTyped(remoteLookupExpr)
 	}
 	if onCond != nil && onCond != tree.DBoolTrue {
-		n.onCond = pred.iVarHelper.Rebind(onCond)
+		n.onCond = pred.iVarHelper.RebindTyped(onCond)
 	}
 	n.columns = pred.cols
 	if isFirstJoinInPairedJoiner {
@@ -825,7 +825,7 @@ func (ef *execFactory) constructVirtualTableLookupJoin(
 		return nil, errors.AssertionFailedf("unexpected join type for virtual lookup join: %s", joinType.String())
 	}
 	pred := makePredicate(joinType, inputCols, projectedVtableCols)
-	pred.onCond = pred.iVarHelper.Rebind(onCond)
+	pred.onCond = pred.iVarHelper.RebindTyped(onCond)
 	n := &vTableLookupJoinNode{
 		input:             input.(planNode),
 		joinType:          joinType,
