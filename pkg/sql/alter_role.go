@@ -416,7 +416,7 @@ func (p *planner) processSetOrResetClause(
 		expr = paramparse.UnresolvedNameToStrVal(expr)
 
 		typedValue, err := p.analyzeExpr(
-			ctx, expr, nil, tree.IndexedVarHelper{}, types.String, false, "ALTER ROLE ... SET ",
+			ctx, expr, tree.IndexedVarHelper{}, types.String, false, "ALTER ROLE ... SET ",
 		)
 		if err != nil {
 			return unknown, "", sessionVar{}, nil, wrapSetVarError(err, varName, expr.String())
