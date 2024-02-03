@@ -220,7 +220,7 @@ func checkDistAggregationInfo(
 	// First run a flow that aggregates all the rows without any local stages.
 	nonDistFinalOutputTypes := finalOutputTypes
 	if info.FinalRendering != nil {
-		h := tree.MakeTypesOnlyIndexedVarHelper(finalOutputTypes)
+		h := tree.MakeIndexedVarHelperWithTypes(finalOutputTypes)
 		renderExpr, err := info.FinalRendering(&h, varIdxs)
 		if err != nil {
 			t.Fatal(err)
@@ -324,7 +324,7 @@ func checkDistAggregationInfo(
 	}
 
 	if info.FinalRendering != nil {
-		h := tree.MakeTypesOnlyIndexedVarHelper(finalOutputTypes)
+		h := tree.MakeIndexedVarHelperWithTypes(finalOutputTypes)
 		renderExpr, err := info.FinalRendering(&h, varIdxs)
 		if err != nil {
 			t.Fatal(err)
