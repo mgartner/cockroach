@@ -4194,6 +4194,7 @@ func createProjectSetSpec(
 	}
 	var ef physicalplan.ExprFactory
 	ef.Init(ctx, planCtx, indexVarMap)
+	// TODO(mgartner): Consider using ef.IndexedVarsHint here.
 	for i, expr := range n.exprs {
 		var err error
 		spec.Exprs[i], err = ef.Make(expr)
