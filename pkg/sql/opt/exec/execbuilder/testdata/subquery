@@ -138,8 +138,8 @@ vectorized: true
 │   │ exec mode: one row
 │   │
 │   └── • render
-│       │ columns: (column16)
-│       │ render column16: true
+│       │ columns: (column17)
+│       │ render column17: true
 │       │
 │       └── • limit
 │           │ columns: (a, c)
@@ -340,7 +340,7 @@ vectorized: true
 • hash join (semi)
 │ columns: (x, y)
 │ estimated row count: 1,000 (missing stats)
-│ equality: (x) = (column9)
+│ equality: (x) = (column10)
 │ left cols are key
 │
 ├── • scan
@@ -350,8 +350,8 @@ vectorized: true
 │     spans: FULL SCAN
 │
 └── • render
-    │ columns: (column9)
-    │ render column9: x - 1
+    │ columns: (column10)
+    │ render column10: x - 1
     │
     └── • scan
           columns: (x)
@@ -396,7 +396,7 @@ vectorized: true
 • hash join (anti)
 │ columns: (x, z)
 │ estimated row count: 0 (missing stats)
-│ equality: (x) = (column9)
+│ equality: (x) = (column10)
 │ left cols are key
 │
 ├── • scan
@@ -406,8 +406,8 @@ vectorized: true
 │     spans: FULL SCAN
 │
 └── • render
-    │ columns: (column9)
-    │ render column9: x - 1
+    │ columns: (column10)
+    │ render column10: x - 1
     │
     └── • scan
           columns: (x)
@@ -606,7 +606,7 @@ SELECT * FROM ab WHERE (a, b) IN (SELECT x+1, y+1 FROM xy)] OFFSET 2;
 • hash join (semi)
 │ columns: (a, b)
 │ estimated row count: 1,000 (missing stats)
-│ equality: (a, b) = (column14, column15)
+│ equality: (a, b) = (column15, column16)
 │
 ├── • scan
 │     columns: (a, b)
@@ -615,9 +615,9 @@ SELECT * FROM ab WHERE (a, b) IN (SELECT x+1, y+1 FROM xy)] OFFSET 2;
 │     spans: FULL SCAN
 │
 └── • render
-    │ columns: (column15, column14)
-    │ render column15: y + 1
-    │ render column14: x + 1
+    │ columns: (column16, column15)
+    │ render column16: y + 1
+    │ render column15: x + 1
     │
     └── • scan
           columns: (x, y)

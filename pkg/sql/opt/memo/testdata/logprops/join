@@ -1711,9 +1711,9 @@ SELECT (SELECT m FROM
 ) FROM uv
 ----
 with &1
- ├── columns: m:29(int)
+ ├── columns: m:30(int)
  ├── volatile, mutations
- ├── prune: (29)
+ ├── prune: (30)
  ├── project
  │    ├── columns: uv.u:6(int!null) uv.v:7(int!null)
  │    ├── cardinality: [1 - 1]
@@ -1747,11 +1747,11 @@ with &1
  │                   ├── const: 2 [type=int]
  │                   └── function: unique_rowid [type=int]
  └── project
-      ├── columns: m:29(int)
-      ├── prune: (29)
+      ├── columns: m:30(int)
+      ├── prune: (30)
       ├── scan uv
       └── projections
-           └── subquery [as=m:29, type=int, subquery]
+           └── subquery [as=m:30, type=int, subquery]
                 └── values
                      ├── columns: mn.m:21(int!null)
                      ├── cardinality: [0 - 0]
@@ -1766,11 +1766,11 @@ FROM uv
 WHERE NOT EXISTS(SELECT uv.u);
 ----
 values
- ├── columns: "?column?":7(unknown!null)
+ ├── columns: "?column?":8(unknown!null)
  ├── cardinality: [0 - 0]
  ├── key: ()
- ├── fd: ()-->(7)
- └── prune: (7)
+ ├── fd: ()-->(8)
+ └── prune: (8)
 
 # Regression test #43651: outer join with empty key.
 opt
