@@ -63,7 +63,9 @@ func validate(t *testing.T, m colOrdMap, oracle map[opt.ColumnID]int) {
 		if ord, ok := m.Get(col); !ok || ord != oracleOrd {
 			t.Errorf("expected map to contain %d:%d", col, oracleOrd)
 		}
-		maxOracleOrd = max(maxOracleOrd, oracleOrd)
+		if oracleOrd > maxOracleOrd {
+			maxOracleOrd = oracleOrd
+		}
 	}
 
 	if m.MaxOrd() != maxOracleOrd {

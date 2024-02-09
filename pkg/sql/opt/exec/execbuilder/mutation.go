@@ -31,10 +31,10 @@ import (
 
 func (b *Builder) buildMutationInput(
 	mutExpr, inputExpr memo.RelExpr, colList opt.ColList, p *memo.MutationPrivate,
-) (_ execPlan, outputCols opt.ColMap, err error) {
+) (_ execPlan, outputCols colOrdMap, err error) {
 	shouldApplyImplicitLocking, err := b.shouldApplyImplicitLockingToMutationInput(mutExpr)
 	if err != nil {
-		return execPlan{}, opt.ColMap{}, err
+		return execPlan{}, colOrdMap{}, err
 	}
 	if shouldApplyImplicitLocking {
 		// Re-entrance is not possible because mutations are never nested.
@@ -44,7 +44,7 @@ func (b *Builder) buildMutationInput(
 
 	input, inputCols, err := b.buildRelational(inputExpr)
 	if err != nil {
-		return execPlan{}, opt.ColMap{}, err
+		return execPlan{}, colOrdMap{}, err
 	}
 
 	// TODO(mgartner/radu): This can incorrectly append columns in a FK cascade
@@ -63,14 +63,14 @@ func (b *Builder) buildMutationInput(
 
 	input, inputCols, err = b.ensureColumns(input, inputCols, inputExpr, colList, inputExpr.ProvidedPhysical().Ordering)
 	if err != nil {
-		return execPlan{}, opt.ColMap{}, err
+		return execPlan{}, colOrdMap{}, err
 	}
 
 	if p.WithID != 0 {
 		label := fmt.Sprintf("buffer %d", p.WithID)
 		bufferNode, err := b.factory.ConstructBuffer(input.root, label)
 		if err != nil {
-			return execPlan{}, opt.ColMap{}, err
+			return execPlan{}, colOrdMap{}, err
 		}
 
 		b.addBuiltWithExpr(p.WithID, inputCols, bufferNode)
@@ -79,7 +79,7 @@ func (b *Builder) buildMutationInput(
 	return input, inputCols, nil
 }
 
-func (b *Builder) buildInsert(ins *memo.InsertExpr) (_ execPlan, outputCols opt.ColMap, err error) {
+func (b *Builder) buildInsert(ins *memo.InsertExpr) (_ execPlan, outputCols colOrdMap, err error) {
 	if ep, cols, ok, err := b.tryBuildFastPathInsert(ins); err != nil || ok {
 		return ep, cols, err
 	}
@@ -91,7 +91,7 @@ func (b *Builder) buildInsert(ins *memo.InsertExpr) (_ execPlan, outputCols opt.
 	colList = appendColsWhenPresent(colList, ins.PartialIndexPutCols)
 	input, _, err := b.buildMutationInput(ins, ins.Input, colList, &ins.MutationPrivate)
 	if err != nil {
-		return execPlan{}, opt.ColMap{}, err
+		return execPlan{}, colOrdMap{}, err
 	}
 
 	// Construct the Insert node.
@@ -111,20 +111,20 @@ func (b *Builder) buildInsert(ins *memo.InsertExpr) (_ execPlan, outputCols opt.
 			len(ins.FKChecks) == 0 && len(ins.FKCascades) == 0,
 	)
 	if err != nil {
-		return execPlan{}, opt.ColMap{}, err
+		return execPlan{}, colOrdMap{}, err
 	}
 	// Construct the output column map.
 	ep := execPlan{root: node}
 	if ins.NeedResults() {
-		outputCols = mutationOutputColMap(ins)
+		outputCols = b.mutationOutputColMap(ins)
 	}
 
 	if err := b.buildUniqueChecks(ins.UniqueChecks); err != nil {
-		return execPlan{}, opt.ColMap{}, err
+		return execPlan{}, colOrdMap{}, err
 	}
 
 	if err := b.buildFKChecks(ins.FKChecks); err != nil {
-		return execPlan{}, opt.ColMap{}, err
+		return execPlan{}, colOrdMap{}, err
 	}
 
 	return ep, outputCols, nil
@@ -134,7 +134,7 @@ func (b *Builder) buildInsert(ins *memo.InsertExpr) (_ execPlan, outputCols opt.
 // checking all required conditions. See exec.Factory.ConstructInsertFastPath.
 func (b *Builder) tryBuildFastPathInsert(
 	ins *memo.InsertExpr,
-) (_ execPlan, outputCols opt.ColMap, ok bool, _ error) {
+) (_ execPlan, outputCols colOrdMap, ok bool, _ error) {
 	// Conditions from ConstructFastPathInsert:
 	//
 	//  - there are no other mutations in the statement, and the output of the
@@ -143,7 +143,7 @@ func (b *Builder) tryBuildFastPathInsert(
 	//
 	// This condition was taken into account in build().
 	if !b.allowInsertFastPath {
-		return execPlan{}, opt.ColMap{}, false, nil
+		return execPlan{}, colOrdMap{}, false, nil
 	}
 
 	//  - the input is Values with at most mutations.MaxBatchSize, and there are no
@@ -156,13 +156,13 @@ func (b *Builder) tryBuildFastPathInsert(
 		values.ChildCount() > mutations.MaxBatchSize(false /* forceProductionMaxBatchSize */) ||
 		values.Relational().HasSubquery ||
 		values.Relational().HasUDF {
-		return execPlan{}, opt.ColMap{}, false, nil
+		return execPlan{}, colOrdMap{}, false, nil
 	}
 
 	// We cannot use the fast path if any uniqueness checks are needed.
 	// TODO(rytaft): try to relax this restriction (see #58047).
 	if len(ins.UniqueChecks) > 0 {
-		return execPlan{}, opt.ColMap{}, false, nil
+		return execPlan{}, colOrdMap{}, false, nil
 	}
 
 	md := b.mem.Metadata()
@@ -175,19 +175,19 @@ func (b *Builder) tryBuildFastPathInsert(
 		c := &ins.FKChecks[i]
 		if md.Table(c.ReferencedTable).ID() == md.Table(ins.Table).ID() {
 			// Self-referencing FK.
-			return execPlan{}, opt.ColMap{}, false, nil
+			return execPlan{}, colOrdMap{}, false, nil
 		}
 		fk := tab.OutboundForeignKey(c.FKOrdinal)
 		lookupJoin, isLookupJoin := c.Check.(*memo.LookupJoinExpr)
 		if !isLookupJoin || lookupJoin.JoinType != opt.AntiJoinOp {
 			// Not a lookup anti-join.
-			return execPlan{}, opt.ColMap{}, false, nil
+			return execPlan{}, colOrdMap{}, false, nil
 		}
 		// TODO(rytaft): see if we can remove the requirement that LookupExpr is
 		// empty.
 		if len(lookupJoin.On) > 0 || len(lookupJoin.LookupExpr) > 0 ||
 			len(lookupJoin.KeyCols) != fk.ColumnCount() {
-			return execPlan{}, opt.ColMap{}, false, nil
+			return execPlan{}, colOrdMap{}, false, nil
 		}
 		inputExpr := lookupJoin.Input
 		// Ignore any select (used to deal with NULLs).
@@ -196,10 +196,10 @@ func (b *Builder) tryBuildFastPathInsert(
 		}
 		withScan, isWithScan := inputExpr.(*memo.WithScanExpr)
 		if !isWithScan {
-			return execPlan{}, opt.ColMap{}, false, nil
+			return execPlan{}, colOrdMap{}, false, nil
 		}
 		if withScan.With != ins.WithID {
-			return execPlan{}, opt.ColMap{}, false, nil
+			return execPlan{}, colOrdMap{}, false, nil
 		}
 
 		out := &fkChecks[i]
@@ -209,12 +209,12 @@ func (b *Builder) tryBuildFastPathInsert(
 			// column in the mutation input.
 			withColOrd, ok := withScan.OutCols.Find(keyCol)
 			if !ok {
-				return execPlan{}, opt.ColMap{}, false, errors.AssertionFailedf("cannot find column %d", keyCol)
+				return execPlan{}, colOrdMap{}, false, errors.AssertionFailedf("cannot find column %d", keyCol)
 			}
 			inputCol := withScan.InCols[withColOrd]
 			inputColOrd, ok := ins.InsertCols.Find(inputCol)
 			if !ok {
-				return execPlan{}, opt.ColMap{}, false, errors.AssertionFailedf("cannot find column %d", inputCol)
+				return execPlan{}, colOrdMap{}, false, errors.AssertionFailedf("cannot find column %d", inputCol)
 			}
 			out.InsertCols[i] = exec.TableColumnOrdinal(inputColOrd)
 		}
@@ -252,12 +252,12 @@ func (b *Builder) tryBuildFastPathInsert(
 	colList = appendColsWhenPresent(colList, ins.PartialIndexPutCols)
 	rows, err := b.buildValuesRows(values)
 	if err != nil {
-		return execPlan{}, opt.ColMap{}, false, err
+		return execPlan{}, colOrdMap{}, false, err
 	}
 	// We may need to rearrange the columns.
 	rows, err = rearrangeColumns(values.Cols, rows, colList)
 	if err != nil {
-		return execPlan{}, opt.ColMap{}, false, err
+		return execPlan{}, colOrdMap{}, false, err
 	}
 
 	// Construct the InsertFastPath node.
@@ -274,12 +274,12 @@ func (b *Builder) tryBuildFastPathInsert(
 		b.allowAutoCommit,
 	)
 	if err != nil {
-		return execPlan{}, opt.ColMap{}, false, err
+		return execPlan{}, colOrdMap{}, false, err
 	}
 	// Construct the output column map.
 	ep := execPlan{root: node}
 	if ins.NeedResults() {
-		outputCols = mutationOutputColMap(ins)
+		outputCols = b.mutationOutputColMap(ins)
 	}
 	return ep, outputCols, true, nil
 }
@@ -314,7 +314,7 @@ func rearrangeColumns(
 	return outRows, nil
 }
 
-func (b *Builder) buildUpdate(upd *memo.UpdateExpr) (_ execPlan, outputCols opt.ColMap, err error) {
+func (b *Builder) buildUpdate(upd *memo.UpdateExpr) (_ execPlan, outputCols colOrdMap, err error) {
 	// Currently, the execution engine requires one input column for each fetch
 	// and update expression, so use ensureColumns to map and reorder columns so
 	// that they correspond to target table columns. For example:
@@ -344,7 +344,7 @@ func (b *Builder) buildUpdate(upd *memo.UpdateExpr) (_ execPlan, outputCols opt.
 
 	input, _, err := b.buildMutationInput(upd, upd.Input, colList, &upd.MutationPrivate)
 	if err != nil {
-		return execPlan{}, opt.ColMap{}, err
+		return execPlan{}, colOrdMap{}, err
 	}
 
 	// Construct the Update node.
@@ -376,30 +376,30 @@ func (b *Builder) buildUpdate(upd *memo.UpdateExpr) (_ execPlan, outputCols opt.
 			len(upd.FKChecks) == 0 && len(upd.FKCascades) == 0,
 	)
 	if err != nil {
-		return execPlan{}, opt.ColMap{}, err
+		return execPlan{}, colOrdMap{}, err
 	}
 
 	if err := b.buildUniqueChecks(upd.UniqueChecks); err != nil {
-		return execPlan{}, opt.ColMap{}, err
+		return execPlan{}, colOrdMap{}, err
 	}
 
 	if err := b.buildFKChecks(upd.FKChecks); err != nil {
-		return execPlan{}, opt.ColMap{}, err
+		return execPlan{}, colOrdMap{}, err
 	}
 
 	if err := b.buildFKCascades(upd.WithID, upd.FKCascades); err != nil {
-		return execPlan{}, opt.ColMap{}, err
+		return execPlan{}, colOrdMap{}, err
 	}
 
 	// Construct the output column map.
 	ep := execPlan{root: node}
 	if upd.NeedResults() {
-		outputCols = mutationOutputColMap(upd)
+		outputCols = b.mutationOutputColMap(upd)
 	}
 	return ep, outputCols, nil
 }
 
-func (b *Builder) buildUpsert(ups *memo.UpsertExpr) (_ execPlan, outputCols opt.ColMap, err error) {
+func (b *Builder) buildUpsert(ups *memo.UpsertExpr) (_ execPlan, outputCols colOrdMap, err error) {
 	// Currently, the execution engine requires one input column for each insert,
 	// fetch, and update expression, so use ensureColumns to map and reorder
 	// columns so that they correspond to target table columns. For example:
@@ -433,7 +433,7 @@ func (b *Builder) buildUpsert(ups *memo.UpsertExpr) (_ execPlan, outputCols opt.
 
 	input, inputCols, err := b.buildMutationInput(ups, ups.Input, colList, &ups.MutationPrivate)
 	if err != nil {
-		return execPlan{}, opt.ColMap{}, err
+		return execPlan{}, colOrdMap{}, err
 	}
 
 	// Construct the Upsert node.
@@ -443,7 +443,7 @@ func (b *Builder) buildUpsert(ups *memo.UpsertExpr) (_ execPlan, outputCols opt.
 	if ups.CanaryCol != 0 {
 		canaryCol, err = getNodeColumnOrdinal(inputCols, ups.CanaryCol)
 		if err != nil {
-			return execPlan{}, opt.ColMap{}, err
+			return execPlan{}, colOrdMap{}, err
 		}
 	}
 	insertColOrds := ordinalSetFromColList(ups.InsertCols)
@@ -466,19 +466,19 @@ func (b *Builder) buildUpsert(ups *memo.UpsertExpr) (_ execPlan, outputCols opt.
 			len(ups.FKChecks) == 0 && len(ups.FKCascades) == 0,
 	)
 	if err != nil {
-		return execPlan{}, opt.ColMap{}, err
+		return execPlan{}, colOrdMap{}, err
 	}
 
 	if err := b.buildUniqueChecks(ups.UniqueChecks); err != nil {
-		return execPlan{}, opt.ColMap{}, err
+		return execPlan{}, colOrdMap{}, err
 	}
 
 	if err := b.buildFKChecks(ups.FKChecks); err != nil {
-		return execPlan{}, opt.ColMap{}, err
+		return execPlan{}, colOrdMap{}, err
 	}
 
 	if err := b.buildFKCascades(ups.WithID, ups.FKCascades); err != nil {
-		return execPlan{}, opt.ColMap{}, err
+		return execPlan{}, colOrdMap{}, err
 	}
 
 	// If UPSERT returns rows, they contain all non-mutation columns from the
@@ -487,15 +487,15 @@ func (b *Builder) buildUpsert(ups *memo.UpsertExpr) (_ execPlan, outputCols opt.
 	// result of the UPSERT operation for that row.
 	ep := execPlan{root: node}
 	if ups.NeedResults() {
-		outputCols = mutationOutputColMap(ups)
+		outputCols = b.mutationOutputColMap(ups)
 	}
 	return ep, outputCols, nil
 }
 
-func (b *Builder) buildDelete(del *memo.DeleteExpr) (_ execPlan, outputCols opt.ColMap, err error) {
+func (b *Builder) buildDelete(del *memo.DeleteExpr) (_ execPlan, outputCols colOrdMap, err error) {
 	// Check for the fast-path delete case that can use a range delete.
 	if ep, ok, err := b.tryBuildDeleteRange(del); err != nil || ok {
-		return ep, opt.ColMap{}, err
+		return ep, colOrdMap{}, err
 	}
 
 	// Ensure that order of input columns matches order of target table columns.
@@ -514,7 +514,7 @@ func (b *Builder) buildDelete(del *memo.DeleteExpr) (_ execPlan, outputCols opt.
 
 	input, _, err := b.buildMutationInput(del, del.Input, colList, &del.MutationPrivate)
 	if err != nil {
-		return execPlan{}, opt.ColMap{}, err
+		return execPlan{}, colOrdMap{}, err
 	}
 	// Construct the Delete node.
 	md := b.mem.Metadata()
@@ -540,21 +540,21 @@ func (b *Builder) buildDelete(del *memo.DeleteExpr) (_ execPlan, outputCols opt.
 		b.allowAutoCommit && len(del.FKChecks) == 0 && len(del.FKCascades) == 0,
 	)
 	if err != nil {
-		return execPlan{}, opt.ColMap{}, err
+		return execPlan{}, colOrdMap{}, err
 	}
 
 	if err := b.buildFKChecks(del.FKChecks); err != nil {
-		return execPlan{}, opt.ColMap{}, err
+		return execPlan{}, colOrdMap{}, err
 	}
 
 	if err := b.buildFKCascades(del.WithID, del.FKCascades); err != nil {
-		return execPlan{}, opt.ColMap{}, err
+		return execPlan{}, colOrdMap{}, err
 	}
 
 	// Construct the output column map.
 	ep := execPlan{root: node}
 	if del.NeedResults() {
-		outputCols = mutationOutputColMap(del)
+		outputCols = b.mutationOutputColMap(del)
 	}
 
 	return ep, outputCols, nil
@@ -676,18 +676,18 @@ func ordinalSetFromColList(colList opt.OptionalColList) intsets.Fast {
 // mutationOutputColMap constructs a ColMap for the execPlan that maps from the
 // opt.ColumnID of each output column to the ordinal position of that column in
 // the result.
-func mutationOutputColMap(mutation memo.RelExpr) opt.ColMap {
+func (b *Builder) mutationOutputColMap(mutation memo.RelExpr) colOrdMap {
 	private := mutation.Private().(*memo.MutationPrivate)
 	tab := mutation.Memo().Metadata().Table(private.Table)
 	outCols := mutation.Relational().OutputCols
 
-	var colMap opt.ColMap
+	colMap := b.colOrdsAlloc.Alloc()
 	ord := 0
 	for i, n := 0, tab.ColumnCount(); i < n; i++ {
 		colID := private.Table.ColumnID(i)
 		// System columns should not be included in mutations.
 		if outCols.Contains(colID) && tab.Column(i).Kind() != cat.System {
-			colMap.Set(int(colID), ord)
+			colMap.Set(colID, ord)
 			ord++
 		}
 	}
@@ -696,7 +696,7 @@ func mutationOutputColMap(mutation memo.RelExpr) opt.ColMap {
 	// columns it allowed to pass through.
 	for _, colID := range private.PassthroughCols {
 		if colID != 0 {
-			colMap.Set(int(colID), ord)
+			colMap.Set(colID, ord)
 			ord++
 		}
 	}
