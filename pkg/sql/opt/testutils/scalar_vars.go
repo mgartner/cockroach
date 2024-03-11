@@ -12,11 +12,13 @@ package testutils
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/cockroachdb/cockroach/pkg/sql/opt"
 	"github.com/cockroachdb/cockroach/pkg/sql/parser"
 	"github.com/cockroachdb/cockroach/pkg/sql/sem/tree"
+	"github.com/cockroachdb/cockroach/pkg/sql/types"
 	"github.com/cockroachdb/errors"
 )
 
@@ -88,4 +90,34 @@ func (sv *ScalarVars) NotNullCols() opt.ColSet {
 // ComputedCols returns a map of computed column expressions.
 func (sv *ScalarVars) ComputedCols() map[opt.ColumnID]tree.Expr {
 	return sv.computedCols
+}
+
+func Types(typs []string) ([]*types.T, error) {
+	var sb strings.Builder
+	sb.WriteString("CREATE TABLE foo (")
+	for i := range typs {
+		if i > 0 {
+			sb.WriteString(", ")
+		}
+		sb.WriteString("col")
+		sb.WriteString(strconv.Itoa(i))
+		sb.WriteByte(' ')
+		sb.WriteString(typs[i])
+	}
+	sb.WriteByte(')')
+	stmt, err := parser.ParseOne(sb.String())
+	if err != nil {
+		return nil, errors.Wrapf(err, "invalid types definition %v", typs)
+	}
+	ct := stmt.AST.(*tree.CreateTable)
+	ts := make([]*types.T, 0, len(typs))
+	for _, d := range ct.Defs {
+		cd, ok := d.(*tree.ColumnTableDef)
+		if !ok {
+			return nil, errors.Newf("invalid vars definition %v", typs)
+		}
+		typ := tree.MustBeStaticallyKnownType(cd.Type)
+		ts = append(ts, typ)
+	}
+	return ts, nil
 }

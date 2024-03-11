@@ -9,6 +9,7 @@ go_library(
         "key.go",
         "key_extension.go",
         "locality.go",
+        "pconstraint.go",
         "span.go",
         "spans.go",
         "testutils.go",

@@ -602,7 +602,7 @@ func (c *indexConstraintCtx) makeSpansForTupleIn(
 	//  - we use all columns in the tuple, i.e. len(tuplePos) = lhs.ChildCount().
 	//  - the columns are in the right order, i.e. tuplePos[i] = i.
 	//  - the columns have the same directions
-	// Note that SortAndMerge exits quickly if the ordering is already correct.
+	// Note that SortAndMerge exits quickly if the ordParameterizedBuilderering is already correct.
 	spans.SortAndMerge(keyCtx)
 	out.Init(keyCtx, &spans)
 	// The spans are "tight" unless we used just a prefix.

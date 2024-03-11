@@ -35,12 +35,19 @@ import (
 	"github.com/cockroachdb/datadriven"
 )
 
-// The test files support only one command:
+// The test files support two commands:
 //
 //   - index-constraints [arg | arg=val | arg=(val1,val2, ...)]...
 //
 //     Takes a scalar expression, builds a memo for it, and computes index
-//     constraints. Arguments:
+//     constraints.
+//
+//   - parameterized [arg | arg=val | arg=(val1,val2, ...)]...
+//
+//     Takes a scalar expression, builds a memo for it, and computes
+//     parameterized index constraints.
+//
+// Arguments:
 //
 //   - vars=(<column> <type> [not null], ...)
 //
@@ -57,6 +64,10 @@ import (
 //   - semtree-normalize
 //
 //     Run TypedExpr normalization before building the memo.
+//
+//   - placeholders=(<type>, ...)
+//
+//     Type information about the placeholders.
 func TestIndexConstraints(t *testing.T) {
 	defer leaktest.AfterTest(t)()
 
@@ -93,27 +104,41 @@ func TestIndexConstraints(t *testing.T) {
 				case "nonormalize":
 					f.DisableOptimizations()
 
+				case "placeholders":
+					types, err := testutils.Types(arg.Vals)
+					if err != nil {
+						d.Fatalf(t, "%v", err)
+					}
+					semaCtx.Placeholders.Types = types
+
 				default:
 					d.Fatalf(t, "unknown argument: %s", key)
 				}
 			}
 
 			switch d.Cmd {
-			case "index-constraints":
-				// Allow specifying optional filters using the "optional:" delimiter.
-				var filters, optionalFilters memo.FiltersExpr
-				if idx := strings.Index(d.Input, "optional:"); idx >= 0 {
-					optional := d.Input[idx+len("optional:"):]
-					optionalFilters, err = buildFilters(optional, &semaCtx, &evalCtx, &f)
-					if err != nil {
-						d.Fatalf(t, "%v", err)
-					}
-					d.Input = d.Input[:idx]
-				}
-				if filters, err = buildFilters(d.Input, &semaCtx, &evalCtx, &f); err != nil {
+			case "index-constraints", "parameterized":
+			default:
+				d.Fatalf(t, "unsupported command: %s", d.Cmd)
+				return ""
+			}
+
+			// Allow specifying optional filters using the "optional:" delimiter.
+			var filters, optionalFilters memo.FiltersExpr
+			if idx := strings.Index(d.Input, "optional:"); idx >= 0 {
+				optional := d.Input[idx+len("optional:"):]
+				optionalFilters, err = buildFilters(optional, &semaCtx, &evalCtx, &f)
+				if err != nil {
 					d.Fatalf(t, "%v", err)
 				}
+				d.Input = d.Input[:idx]
+			}
+			if filters, err = buildFilters(d.Input, &semaCtx, &evalCtx, &f); err != nil {
+				d.Fatalf(t, "%v", err)
+			}
 
+			switch d.Cmd {
+			case "index-constraints":
 				var computedCols map[opt.ColumnID]opt.ScalarExpr
 				var colsInComputedColsExpressions opt.ColSet
 				if sv.ComputedCols() != nil {
@@ -165,10 +190,41 @@ func TestIndexConstraints(t *testing.T) {
 				}
 				return buf.String()
 
-			default:
-				d.Fatalf(t, "unsupported command: %s", d.Cmd)
-				return ""
+			case "parameterized":
+				result, ok := idxconstraint.BuildParameterized(
+					filters, optionalFilters, sv.NotNullCols(), indexCols, &evalCtx, &f,
+				)
+				if !ok {
+					return ""
+				}
+				var buf bytes.Buffer
+				for i := 0; i < result.Spans().Count(); i++ {
+					fmt.Fprintf(&buf, "%s\n", result.Spans().Get(i))
+				}
+				// TODO
+				// remainingFilter := ic.RemainingFilters()
+				// if !remainingFilter.IsTrue() {
+				// 	execBld := execbuilder.New(
+				// 		context.Background(), nil /* execFactory */, nil /* optimizer */, f.Memo(), nil, /* catalog */
+				// 		&remainingFilter, &semaCtx, &evalCtx, false, /* allowAutoCommit */
+				// 		false, /* isANSIDML */
+				// 	)
+				// 	expr, err := execBld.BuildScalar()
+				// 	if err != nil {
+				// 		return fmt.Sprintf("error: %v\n", err)
+				// 	}
+				// 	fmtCtx := tree.NewFmtCtx(
+				// 		tree.FmtSimple,
+				// 		tree.FmtIndexedVarFormat(func(ctx *tree.FmtCtx, idx int) {
+				// 			ctx.WriteString(md.ColumnMeta(opt.ColumnID(idx + 1)).Alias)
+				// 		}),
+				// 	)
+				// 	expr.Format(fmtCtx)
+				// 	fmt.Fprintf(&buf, "Remaining filter: %s\n", fmtCtx.String())
+				// }
+				return buf.String()
 			}
+			return ""
 		})
 	})
 }
@@ -314,6 +370,7 @@ func buildFilters(
 		return memo.FiltersExpr{}, err
 	}
 	b := optbuilder.NewScalar(context.Background(), semaCtx, evalCtx, f)
+	b.KeepPlaceholders = true
 	root, err := b.Build(expr)
 	if err != nil {
 		return memo.FiltersExpr{}, err

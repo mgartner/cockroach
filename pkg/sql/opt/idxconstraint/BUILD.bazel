@@ -2,7 +2,10 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "idxconstraint",
-    srcs = ["index_constraints.go"],
+    srcs = [
+        "index_constraints.go",
+        "parameterized.go",
+    ],
     importpath = "github.com/cockroachdb/cockroach/pkg/sql/opt/idxconstraint",
     visibility = ["//visibility:public"],
     deps = [
@@ -22,10 +25,13 @@ go_library(
 go_test(
     name = "idxconstraint_test",
     size = "small",
-    srcs = ["index_constraints_test.go"],
+    srcs = [
+        "index_constraints_test.go",
+        "parameterized_test.go",
+    ],
     data = glob(["testdata/**"]),
+    embed = [":idxconstraint"],
     deps = [
-        ":idxconstraint",
         "//pkg/settings/cluster",
         "//pkg/sql/opt",
         "//pkg/sql/opt/exec/execbuilder",
