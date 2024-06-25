@@ -103,15 +103,36 @@ func (j JoinType) IsLeftAntiOrExceptAll() bool {
 	return j == LeftAntiJoin || j == ExceptAllJoin
 }
 
-// MakeOutputTypes computes the output types for this join type.
-func (j JoinType) MakeOutputTypes(left, right []*types.T) []*types.T {
-	numOutputTypes := 0
+// NumOutputCols returns the number of columns that this join type will output,
+// given the number of columns on the left and right sides of the join.
+func (j JoinType) NumOutputCols(left, right int, continuationCol bool) int {
+	n := 0
 	if j.ShouldIncludeLeftColsInOutput() {
-		numOutputTypes += len(left)
+		n += left
 	}
 	if j.ShouldIncludeRightColsInOutput() {
-		numOutputTypes += len(right)
+		n += right
 	}
+	if continuationCol {
+		// Add 1 to account for the continuation column.
+		n++
+	}
+	return n
+}
+
+// MakeOutputTypes computes the output types for this join type.
+func (j JoinType) MakeOutputTypes(left, right []*types.T) []*types.T {
+	return j.makeOutputTypes(left, right, false /* continuationCol */)
+}
+
+// MakeOutputTypesWithContinuationColumn computes the output types for this join
+// type and includes a continuation column that is used for paired joiners.
+func (j JoinType) MakeOutputTypesWithContinuationColumn(left, right []*types.T) []*types.T {
+	return j.makeOutputTypes(left, right, true /* continuationCol */)
+}
+
+func (j JoinType) makeOutputTypes(left, right []*types.T, continuationCol bool) []*types.T {
+	numOutputTypes := j.NumOutputCols(len(left), len(right), continuationCol)
 	outputTypes := make([]*types.T, 0, numOutputTypes)
 	if j.ShouldIncludeLeftColsInOutput() {
 		outputTypes = append(outputTypes, left...)
