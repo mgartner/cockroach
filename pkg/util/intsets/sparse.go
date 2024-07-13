@@ -10,6 +10,8 @@
 
 package intsets
 
+import "unsafe"
+
 // Sparse is a set of integers. It is not thread-safe. It must be copied with
 // the Copy method.
 //
@@ -44,21 +46,23 @@ const (
 	// MinInt is the minimum integer that can be stored in a set.
 	MinInt = -MaxInt - 1
 
-	smallCutoffMask = smallCutoff - 1
+	bitmapSize = 128
+	bitMask    = bitmapSize - 1
 )
 
-func init() {
-	if smallCutoff == 0 || (smallCutoff&smallCutoffMask) != 0 {
-		panic("smallCutoff must be a power of two; see offset and bit")
-	}
-}
+var (
+	// bitmapSize must match the size of block.bits.
+	_ [0]struct{} = [unsafe.Sizeof(block{}.bits)*8 - bitmapSize]struct{}{}
+	// bitmapSize must be a power of two; see the offset and bit functions.
+	_ [0]struct{} = [bitmapSize & bitMask]struct{}{}
+)
 
 // offset returns the block offset for the given integer.
 // Note: Bitwise AND NOT only works here because smallCutoff is a power of two.
 //
 //gcassert:inline
 func offset(i int) int {
-	return i &^ smallCutoffMask
+	return i &^ bitMask
 }
 
 // bit returns the bit within a block that should be set for the given integer.
@@ -66,7 +70,7 @@ func offset(i int) int {
 //
 //gcassert:inline
 func bit(i int) int {
-	return i & smallCutoffMask
+	return i & bitMask
 }
 
 // empty returns true if the block is empty, i.e., none of its bits have been

@@ -12,10 +12,6 @@ package intsets
 
 import "math/bits"
 
-// smallCutoff is the size of the small bitmap.
-// Note: this can be set to a smaller value, e.g. for testing.
-const smallCutoff = 128
-
 // bitmap implements a bitmap of size smallCutoff.
 type bitmap struct {
 	// We don't use an array because that makes Go always keep the struct on the

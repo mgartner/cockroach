@@ -34,6 +34,9 @@ type Fast struct {
 	s *Sparse
 }
 
+// smallCutoff is the size of the small bitmap in bits.
+const smallCutoff = 128
+
 // MakeFast returns a set initialized with the given values.
 func MakeFast(vals ...int) Fast {
 	var res Fast

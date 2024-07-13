@@ -18,6 +18,7 @@ import (
 	"encoding/binary"
 	"io"
 	"math/bits"
+	"unsafe"
 
 	"github.com/cockroachdb/errors"
 )
@@ -32,6 +33,14 @@ type Fast struct {
 	// the range [0, smallCutoff).
 	large *Sparse
 }
+
+// smallCutoff is the size of the small bitmap.
+const smallCutoff = 128
+
+var (
+	// bitmapSize must match the size of Fast.small.
+	_ [0]struct{} = [unsafe.Sizeof(Fast{}.small)*8 - smallCutoff]struct{}{}
+)
 
 // MakeFast returns a set initialized with the given values.
 func MakeFast(vals ...int) Fast {
