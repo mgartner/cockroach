@@ -36,7 +36,7 @@ type Sparse struct {
 // with offset=o contains an integer o+b if the b-th bit of the bitmap is set.
 type block struct {
 	offset int
-	bits   bitmap
+	bits   bitmap128
 	next   *block
 }
 
@@ -46,6 +46,7 @@ const (
 	// MinInt is the minimum integer that can be stored in a set.
 	MinInt = -MaxInt - 1
 
+	// bitmapSize is the size of a block's bitmap in bits.
 	bitmapSize = 128
 	bitMask    = bitmapSize - 1
 )
@@ -78,7 +79,7 @@ func bit(i int) int {
 //
 //gcassert:inline
 func (s block) empty() bool {
-	return s.bits == bitmap{}
+	return s.bits == bitmap128{}
 }
 
 // insertBlock inserts a block after prev and returns it. If prev is nil, a

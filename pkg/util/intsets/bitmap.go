@@ -12,14 +12,14 @@ package intsets
 
 import "math/bits"
 
-// bitmap implements a bitmap of size smallCutoff.
-type bitmap struct {
+// bitmap128 implements a bitmap of size 128.
+type bitmap128 struct {
 	// We don't use an array because that makes Go always keep the struct on the
 	// stack (see https://github.com/golang/go/issues/24416).
 	lo, hi uint64
 }
 
-func (v bitmap) IsSet(i int) bool {
+func (v bitmap128) IsSet(i int) bool {
 	w := v.lo
 	if i >= 64 {
 		w = v.hi
@@ -27,7 +27,7 @@ func (v bitmap) IsSet(i int) bool {
 	return w&(1<<uint64(i&63)) != 0
 }
 
-func (v *bitmap) Set(i int) {
+func (v *bitmap128) Set(i int) {
 	if i < 64 {
 		v.lo |= (1 << uint64(i))
 	} else {
@@ -35,7 +35,7 @@ func (v *bitmap) Set(i int) {
 	}
 }
 
-func (v *bitmap) Unset(i int) {
+func (v *bitmap128) Unset(i int) {
 	if i < 64 {
 		v.lo &= ^(1 << uint64(i))
 	} else {
@@ -43,7 +43,7 @@ func (v *bitmap) Unset(i int) {
 	}
 }
 
-func (v *bitmap) SetRange(from, to int) {
+func (v *bitmap128) SetRange(from, to int) {
 	mask := func(from, to int) uint64 {
 		return (1<<(to-from+1) - 1) << from
 	}
@@ -58,34 +58,34 @@ func (v *bitmap) SetRange(from, to int) {
 	}
 }
 
-func (v *bitmap) UnionWith(other bitmap) {
+func (v *bitmap128) UnionWith(other bitmap128) {
 	v.lo |= other.lo
 	v.hi |= other.hi
 }
 
-func (v *bitmap) IntersectionWith(other bitmap) {
+func (v *bitmap128) IntersectionWith(other bitmap128) {
 	v.lo &= other.lo
 	v.hi &= other.hi
 }
 
-func (v bitmap) Intersects(other bitmap) bool {
+func (v bitmap128) Intersects(other bitmap128) bool {
 	return ((v.lo & other.lo) | (v.hi & other.hi)) != 0
 }
 
-func (v *bitmap) DifferenceWith(other bitmap) {
+func (v *bitmap128) DifferenceWith(other bitmap128) {
 	v.lo &^= other.lo
 	v.hi &^= other.hi
 }
 
-func (v bitmap) SubsetOf(other bitmap) bool {
+func (v bitmap128) SubsetOf(other bitmap128) bool {
 	return (v.lo&other.lo == v.lo) && (v.hi&other.hi == v.hi)
 }
 
-func (v bitmap) OnesCount() int {
+func (v bitmap128) OnesCount() int {
 	return bits.OnesCount64(v.lo) + bits.OnesCount64(v.hi)
 }
 
-func (v bitmap) Next(startVal int) (nextVal int, ok bool) {
+func (v bitmap128) Next(startVal int) (nextVal int, ok bool) {
 	if startVal < 64 {
 		if ntz := bits.TrailingZeros64(v.lo >> uint64(startVal)); ntz < 64 {
 			// Found next element in the low word.

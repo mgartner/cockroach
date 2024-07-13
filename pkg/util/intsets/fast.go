@@ -28,13 +28,13 @@ import (
 // thread-safe.
 type Fast struct {
 	// small is a bitmap that stores values in the range [0, smallCutoff).
-	small bitmap
+	small bitmap128
 	// large is only allocated if values are added to the set that are not in
 	// the range [0, smallCutoff).
 	large *Sparse
 }
 
-// smallCutoff is the size of the small bitmap.
+// smallCutoff is the size of the small bitmap in bits.
 const smallCutoff = 128
 
 var (
@@ -115,7 +115,7 @@ func (s Fast) Contains(i int) bool {
 
 // Empty returns true if the set is empty.
 func (s Fast) Empty() bool {
-	return s.small == bitmap{} && (s.large == nil || s.large.Empty())
+	return s.small == bitmap128{} && (s.large == nil || s.large.Empty())
 }
 
 // Len returns the number of the elements in the set.
