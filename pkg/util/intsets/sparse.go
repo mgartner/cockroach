@@ -17,12 +17,12 @@ import "unsafe"
 //
 // Sparse is implemented as a linked list of blocks, each containing an offset
 // and a bitmap. A block with offset=o contains an integer o+b if the b-th bit
-// of the bitmap is set. Block offsets are always divisible by smallCutoff.
+// of the bitmap is set. Block offsets are always divisible by bitmapSize.
 //
-// For example, here is a diagram of the set {0, 1, 128, 129, 512}, where
+// For example, here is a diagram of the set {0, 1, 256, 257, 1024}, where
 // each block is denoted by {offset, bitmap}:
 //
-//	{0, ..011} ---> {128, ..011} ---> {512, ..001}
+//	{0, ..011} ---> {256, ..011} ---> {1024, ..001}
 //
 // Sparse is inspired by golang.org/x/tools/container/intsets. Sparse implements
 // a smaller API, providing only the methods required by Fast. The omission of a
@@ -36,7 +36,7 @@ type Sparse struct {
 // with offset=o contains an integer o+b if the b-th bit of the bitmap is set.
 type block struct {
 	offset int
-	bits   bitmap128
+	bits   bitmap256
 	next   *block
 }
 
@@ -47,7 +47,7 @@ const (
 	MinInt = -MaxInt - 1
 
 	// bitmapSize is the size of a block's bitmap in bits.
-	bitmapSize = 128
+	bitmapSize = 256
 	bitMask    = bitmapSize - 1
 )
 
@@ -59,7 +59,7 @@ var (
 )
 
 // offset returns the block offset for the given integer.
-// Note: Bitwise AND NOT only works here because smallCutoff is a power of two.
+// Note: Bitwise AND NOT only works here because bitmapSize is a power of two.
 //
 //gcassert:inline
 func offset(i int) int {
@@ -67,7 +67,7 @@ func offset(i int) int {
 }
 
 // bit returns the bit within a block that should be set for the given integer.
-// Note: Bitwise AND only works here because smallCutoff is a power of two.
+// Note: Bitwise AND only works here because bitmapSize is a power of two.
 //
 //gcassert:inline
 func bit(i int) int {
@@ -79,7 +79,7 @@ func bit(i int) int {
 //
 //gcassert:inline
 func (s block) empty() bool {
-	return s.bits == bitmap128{}
+	return s.bits == bitmap256{}
 }
 
 // insertBlock inserts a block after prev and returns it. If prev is nil, a

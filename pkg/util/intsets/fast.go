@@ -38,7 +38,7 @@ type Fast struct {
 const smallCutoff = 128
 
 var (
-	// bitmapSize must match the size of Fast.small.
+	// smallCutoff must match the size of Fast.small.
 	_ [0]struct{} = [unsafe.Sizeof(Fast{}.small)*8 - smallCutoff]struct{}{}
 )
 

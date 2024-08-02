@@ -26,8 +26,8 @@ const (
 )
 
 func TestSparse(t *testing.T) {
-	for _, minVal := range []int{-100_000, -smallCutoff * 10, -smallCutoff, 0, smallCutoff, smallCutoff * 10} {
-		for _, maxVal := range []int{1, smallCutoff, smallCutoff * 10, 100_000} {
+	for _, minVal := range []int{-100_000, -bitmapSize * 10, -bitmapSize, 0, bitmapSize, bitmapSize * 10} {
+		for _, maxVal := range []int{1, bitmapSize, bitmapSize * 10, 100_000} {
 			if maxVal <= minVal {
 				continue
 			}
@@ -71,8 +71,8 @@ func TestSparse(t *testing.T) {
 }
 
 func TestSparseSetOps(t *testing.T) {
-	for _, minVal := range []int{-100_000, -smallCutoff * 10, -smallCutoff, 0, smallCutoff, smallCutoff * 10} {
-		for _, maxVal := range []int{1, smallCutoff, smallCutoff * 10, 100_000} {
+	for _, minVal := range []int{-100_000, -bitmapSize * 10, -bitmapSize, 0, bitmapSize, bitmapSize * 10} {
+		for _, maxVal := range []int{1, bitmapSize, bitmapSize * 10, 100_000} {
 			if maxVal <= minVal {
 				continue
 			}

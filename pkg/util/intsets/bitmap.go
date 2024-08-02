@@ -99,3 +99,128 @@ func (v bitmap128) Next(startVal int) (nextVal int, ok bool) {
 	}
 	return -1, false
 }
+
+// bitmap256 implements a bitmap of size 256.
+type bitmap256 struct {
+	_0, _1, _2, _3 uint64
+}
+
+func (v bitmap256) IsSet(i int) bool {
+	w := v._0
+	if i >= 192 {
+		w = v._3
+	} else if i >= 128 {
+		w = v._2
+	} else if i >= 64 {
+		w = v._1
+	}
+	return w&(1<<uint64(i&63)) != 0
+}
+
+func (v *bitmap256) Set(i int) {
+	if i >= 192 {
+		v._3 |= (1 << uint64(i&63))
+	} else if i >= 128 {
+		v._2 |= (1 << uint64(i&63))
+	} else if i >= 64 {
+		v._1 |= (1 << uint64(i&63))
+	} else {
+		v._0 |= (1 << uint64(i))
+	}
+}
+
+func (v *bitmap256) Unset(i int) {
+	if i >= 192 {
+		v._3 &= ^(1 << uint64(i&63))
+	} else if i >= 128 {
+		v._2 &= ^(1 << uint64(i&63))
+	} else if i >= 64 {
+		v._1 &= ^(1 << uint64(i&63))
+	} else {
+		v._0 &= ^(1 << uint64(i))
+	}
+}
+
+func (v *bitmap256) UnionWith(other bitmap256) {
+	v._0 |= other._0
+	v._1 |= other._1
+	v._2 |= other._2
+	v._3 |= other._3
+}
+
+func (v *bitmap256) IntersectionWith(other bitmap256) {
+	v._0 &= other._0
+	v._1 &= other._1
+	v._2 &= other._2
+	v._3 &= other._3
+}
+
+func (v bitmap256) Intersects(other bitmap256) bool {
+	var res uint64
+	res |= (v._0 & other._0)
+	res |= (v._1 & other._1)
+	res |= (v._2 & other._2)
+	res |= (v._3 & other._3)
+	return res != 0
+}
+
+func (v *bitmap256) DifferenceWith(other bitmap256) {
+	v._0 &^= other._0
+	v._1 &^= other._1
+	v._2 &^= other._2
+	v._3 &^= other._3
+}
+
+func (v bitmap256) SubsetOf(other bitmap256) bool {
+	// This pattern compiles to a set of branchless instructions.
+	i := 0
+	if v._0&other._0 != v._0 {
+		i = 1
+	}
+	if v._1&other._1 != v._1 {
+		i = 1
+	}
+	if v._2&other._2 != v._2 {
+		i = 1
+	}
+	if v._3&other._3 != v._3 {
+		i = 1
+	}
+	return i == 0
+}
+
+func (v bitmap256) OnesCount() int {
+	return bits.OnesCount64(v._0) +
+		bits.OnesCount64(v._1) +
+		bits.OnesCount64(v._2) +
+		bits.OnesCount64(v._3)
+}
+
+func (v bitmap256) Next(startVal int) (nextVal int, ok bool) {
+	if startVal < 64 {
+		if ntz := bits.TrailingZeros64(v._0 >> uint64(startVal)); ntz < 64 {
+			// Found next element in the 0th word.
+			return startVal + ntz, true
+		}
+		startVal = 64
+	}
+	if startVal < 128 {
+		if ntz := bits.TrailingZeros64(v._1 >> uint64(startVal&63)); ntz < 64 {
+			// Found next element in the 1st word.
+			return startVal + ntz, true
+		}
+		startVal = 128
+	}
+	if startVal < 192 {
+		if ntz := bits.TrailingZeros64(v._2 >> uint64(startVal&63)); ntz < 64 {
+			// Found next element in the 2nd word.
+			return startVal + ntz, true
+		}
+		startVal = 192
+	}
+	// Check the 3rd word.
+	if ntz := bits.TrailingZeros64(v._3 >> uint64(startVal&63)); ntz < 64 {
+		return startVal + ntz, true
+	}
+	return -1, false
+}
