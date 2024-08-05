@@ -10,7 +10,10 @@
 
 package intsets
 
-import "math/bits"
+import (
+	"math/bits"
+	"unsafe"
+)
 
 // bitmap128 implements a bitmap of size 128.
 type bitmap128 struct {
@@ -106,39 +109,18 @@ type bitmap256 struct {
 }
 
 func (v bitmap256) IsSet(i int) bool {
-	w := v._0
-	if i >= 192 {
-		w = v._3
-	} else if i >= 128 {
-		w = v._2
-	} else if i >= 64 {
-		w = v._1
-	}
-	return w&(1<<uint64(i&63)) != 0
+	elem := (*uint64)(unsafe.Add(unsafe.Pointer(&v), 8*(i>>6)))
+	return (*elem)&(1<<uint64(i&63)) != 0
 }
 
 func (v *bitmap256) Set(i int) {
-	if i >= 192 {
-		v._3 |= (1 << uint64(i&63))
-	} else if i >= 128 {
-		v._2 |= (1 << uint64(i&63))
-	} else if i >= 64 {
-		v._1 |= (1 << uint64(i&63))
-	} else {
-		v._0 |= (1 << uint64(i))
-	}
+	elem := (*uint64)(unsafe.Add(unsafe.Pointer(v), 8*(i>>6)))
+	*elem |= (1 << uint64(i&63))
 }
 
 func (v *bitmap256) Unset(i int) {
-	if i >= 192 {
-		v._3 &= ^(1 << uint64(i&63))
-	} else if i >= 128 {
-		v._2 &= ^(1 << uint64(i&63))
-	} else if i >= 64 {
-		v._1 &= ^(1 << uint64(i&63))
-	} else {
-		v._0 &= ^(1 << uint64(i))
-	}
+	elem := (*uint64)(unsafe.Add(unsafe.Pointer(v), 8*(i>>6)))
+	*elem &= ^(1 << uint64(i&63))
 }
 
 func (v *bitmap256) UnionWith(other bitmap256) {
