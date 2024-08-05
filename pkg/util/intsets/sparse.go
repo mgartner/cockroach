@@ -72,6 +72,8 @@ func offset(i int) int {
 //
 //gcassert:inline
 func bit(i int) int {
+	// TODO(mgartner): When this uses modulo, it may save a few instructions to
+	// return a bitmask for the bitmap instead of an integer.
 	return i & bitMask
 }
 
