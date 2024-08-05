@@ -35,10 +35,10 @@ type Sparse struct {
 // block is a node in a singly-linked list with an offset and a bitmap. A block
 // with offset=o contains an integer o+b if the b-th bit of the bitmap is set.
 type block struct {
-	offset  int
-	next    *block
-	bits    bitmap256
-	padding [64 - unsafe.Sizeof(bitmap256{}) - 8 - 8]byte
+	offset int
+	bits   bitmap256
+	next   *block
+	// padding [64 - unsafe.Sizeof(bitmap256{}) - 8 - 8]byte
 }
 
 const (
