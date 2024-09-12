@@ -63,7 +63,7 @@ type OnReorderRuleParam struct {
 // the base relations of the left and right inputs of the join, the set of all
 // base relations currently being considered, the base relations referenced by
 // the join's ON condition, and the type of join.
-type OnAddJoinFunc func(left, right, all, joinRefs, selectRefs []memo.RelExpr, op opt.Operator)
+type OnAddJoinFunc func(left, right, all, joinRefs, selectRefs []memo.RelExpr, op opt.Operator, ub float64)
 
 // JoinOrderBuilder is used to add valid orderings of a given join tree to the
 // memo during exploration.
@@ -852,6 +852,39 @@ func (jb *JoinOrderBuilder) checkAppliedEdges(s1, s2 vertexSet, appliedEdges edg
 func (jb *JoinOrderBuilder) addCandidatePlan(
 	op opt.Operator, s1, s2 vertexSet, joinEdges, selectEdges edgeSet,
 ) {
+	// For each attribute in the join.... Do something, I don't really know.
+	first := true
+	var ub float64
+	var lastMF float64
+	var cols opt.ColSet
+	stop := joinEdges.Len() > 1
+	_ = stop
+	for i, ok := joinEdges.Next(0); ok; i, ok = joinEdges.Next(i + 1) {
+		e := &jb.edges[i]
+		if leftMF, rightMF, leftRowCount, rightRowCount, leftCols, rightCols, ok := e.calcMF(jb); ok {
+			if first {
+				ub = math.Min(leftRowCount/leftMF, rightRowCount/rightMF) * leftMF * rightMF
+				lastMF = leftMF * rightMF
+				cols.UnionWith(leftCols)
+				cols.UnionWith(rightCols)
+				first = false
+			} else {
+				var newMF, newRowCount float64
+				if !cols.Intersects(leftCols) {
+					newMF = leftMF
+					newRowCount = leftRowCount
+					cols.UnionWith(leftCols)
+				} else {
+					newMF = rightMF
+					newRowCount = rightRowCount
+					cols.UnionWith(rightCols)
+				}
+				ub = math.Min(ub/lastMF, newRowCount/newMF) * lastMF * newMF
+				lastMF = lastMF * newMF
+			}
+		}
+	}
+
 	union := s1.union(s2)
 	jb.candidatePlans[union] = append(
 		jb.candidatePlans[union],
@@ -861,6 +894,7 @@ func (jb *JoinOrderBuilder) addCandidatePlan(
 			right: s2,
 			on:    joinEdges,
 			sel:   selectEdges,
+			ub:    ub,
 		},
 	)
 }
@@ -943,7 +977,7 @@ func (jb *JoinOrderBuilder) buildCandidatePlans(relations vertexSet) memo.RelExp
 			}
 			if jb.onAddJoinFunc != nil {
 				// Hook for testing purposes.
-				jb.callOnAddJoinFunc(plan.left, plan.right, joinFilters, selectFilters, plan.typ)
+				jb.callOnAddJoinFunc(plan.left, plan.right, joinFilters, selectFilters, plan.typ, plan.ub)
 			}
 		}
 		if commute(plan.typ) {
@@ -957,7 +991,7 @@ func (jb *JoinOrderBuilder) buildCandidatePlans(relations vertexSet) memo.RelExp
 			jb.addToGroup(plan.typ, right, left, joinFilters, selectFilters, memoGroup)
 			if jb.onAddJoinFunc != nil {
 				// Hook for testing purposes.
-				jb.callOnAddJoinFunc(plan.right, plan.left, joinFilters, selectFilters, plan.typ)
+				jb.callOnAddJoinFunc(plan.right, plan.left, joinFilters, selectFilters, plan.typ, plan.ub)
 			}
 		}
 	}
@@ -1218,7 +1252,7 @@ func (jb *JoinOrderBuilder) callOnReorderFunc(join memo.RelExpr) {
 // callOnAddJoinFunc calls the onAddJoinFunc callback function. Panics if the
 // function is nil.
 func (jb *JoinOrderBuilder) callOnAddJoinFunc(
-	s1, s2 vertexSet, joinFilters, selectFilters memo.FiltersExpr, op opt.Operator,
+	s1, s2 vertexSet, joinFilters, selectFilters memo.FiltersExpr, op opt.Operator, ub float64,
 ) {
 	jb.onAddJoinFunc(
 		jb.getRelationSlice(s1),
@@ -1227,6 +1261,7 @@ func (jb *JoinOrderBuilder) callOnAddJoinFunc(
 		jb.getRelationSlice(jb.getRelations(jb.getFreeVars(joinFilters))),
 		jb.getRelationSlice(jb.getRelations(jb.getFreeVars(selectFilters))),
 		op,
+		ub,
 	)
 }
 
@@ -1615,6 +1650,68 @@ func (e *edge) checkRules(s1, s2 vertexSet) bool {
 	return true
 }
 
+func (e *edge) calcMF(
+	jb *JoinOrderBuilder,
+) (
+	leftMF, rightMF, leftRowCount, rightRowCount float64,
+	leftCols, rightCols opt.ColSet,
+	ok bool,
+) {
+	// Handle only single equality filters for now.
+	if len(e.filters) != 1 {
+		return 0, 0, 0, 0, opt.ColSet{}, opt.ColSet{}, false
+	}
+
+	// TODO: Consider using func deps here instead.
+	eq, ok := e.filters[0].Condition.(*memo.EqExpr)
+	if !ok {
+		return 0, 0, 0, 0, opt.ColSet{}, opt.ColSet{}, false
+	}
+	left, ok := eq.Left.(*memo.VariableExpr)
+	if !ok {
+		return 0, 0, 0, 0, opt.ColSet{}, opt.ColSet{}, false
+	}
+	right, ok := eq.Right.(*memo.VariableExpr)
+	if !ok {
+		return 0, 0, 0, 0, opt.ColSet{}, opt.ColSet{}, false
+	}
+
+	// TODO(mgartner): What about the recursive case?
+	// var leftMF, rightMF float64
+	// var leftRows, rightRows float64
+	leftSet, rightSet := false, false
+	for idx, ok := e.tes.next(0); ok; idx, ok = e.tes.next(idx + 1) {
+		relProps := jb.vertexes[idx].Relational()
+		if relProps.OutputCols.Contains(left.Col) {
+			// TODO: There's a problem here when the base relation is a Select
+			// because the col stat may have a nil histogram. For example, if
+			// the Select has a filter a=1 and the edge filter is b=c, there
+			// will be no histogram for b.
+			colStat, ok := relProps.Statistics().ColStats.LookupSingleton(left.Col)
+			if ok && colStat.Histogram != nil {
+				leftMF = colStat.Histogram.MaxFrequency()
+				leftRowCount = relProps.Statistics().RowCount
+				leftCols = relProps.OutputCols
+				leftSet = true
+			}
+		}
+		if relProps.OutputCols.Contains(right.Col) {
+			colStat, ok := relProps.Statistics().ColStats.LookupSingleton(right.Col)
+			if ok && colStat.Histogram != nil {
+				rightMF = colStat.Histogram.MaxFrequency()
+				rightRowCount = relProps.Statistics().RowCount
+				rightCols = relProps.OutputCols
+				rightSet = true
+			}
+		}
+		if leftSet && rightSet {
+			break
+		}
+	}
+
+	return leftMF, rightMF, leftRowCount, rightRowCount, leftCols, rightCols, leftSet && rightSet
+}
+
 // commute returns true if the given join operator type is commutable.
 func commute(op opt.Operator) bool {
 	return op == opt.InnerJoinOp || op == opt.FullJoinOp
@@ -1867,6 +1964,7 @@ type candidatePlan struct {
 	typ         opt.Operator
 	left, right vertexSet
 	on, sel     edgeSet
+	ub          float64
 }
 
 type edgeSet = intsets.Fast
