@@ -43,7 +43,7 @@
 # be serviced by an inverted index.
 [GenerateInvertedIndexScans, Explore]
 (Select
-    (Scan
+    $input:(Scan
         $scanPrivate:* &
             (IsCanonicalScan $scanPrivate) &
             (HasInvertedIndexes $scanPrivate)
@@ -51,7 +51,7 @@
     $filters:*
 )
 =>
-(GenerateInvertedIndexScans $scanPrivate $filters)
+(GenerateInvertedIndexScans $input $scanPrivate $filters)
 
 # GenerateTrigramSimilarityInvertedIndexScans generates scans on inverted
 # trigram indexes that are constrained by similarity filters (e.g.,
