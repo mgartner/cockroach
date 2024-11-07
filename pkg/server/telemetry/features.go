@@ -8,14 +8,10 @@ package telemetry
 import (
 	"fmt"
 	"math"
-	"strings"
 	"sync/atomic"
 
-	"github.com/cockroachdb/cockroach/pkg/sql/pgwire/pgcode"
-	"github.com/cockroachdb/cockroach/pkg/sql/pgwire/pgerror"
 	"github.com/cockroachdb/cockroach/pkg/util/metric"
 	"github.com/cockroachdb/cockroach/pkg/util/syncutil"
-	"github.com/cockroachdb/errors"
 )
 
 // Bucket10 buckets a number by order of magnitude base 10, eg 637 -> 100.
@@ -61,7 +57,7 @@ type Counter *int32
 
 // Inc increments the counter.
 func Inc(c Counter) {
-	atomic.AddInt32(c, 1)
+	//atomic.AddInt32(c, 1)
 }
 
 // Read reads the current value of the counter.
@@ -119,8 +115,8 @@ func NewCounterWithMetric(metadata metric.Metadata) CounterWithMetric {
 
 // Inc increments both counters.
 func (c CounterWithMetric) Inc() {
-	Inc(c.telemetry)
-	c.metric.Inc(1)
+	// Inc(c.telemetry)
+	// c.metric.Inc(1)
 }
 
 // Count returns the value of the metric, not the telemetry. Note that the
@@ -236,31 +232,31 @@ const ValidationTelemetryKeyPrefix = "sql.schema.validation_errors."
 // error, the count for that feature or the internal error's shortened
 // stack trace.
 func RecordError(err error) {
-	if err == nil {
-		return
-	}
-
-	code := pgerror.GetPGCode(err)
-	Count("errorcodes." + code.String())
-
-	tkeys := errors.GetTelemetryKeys(err)
-	if len(tkeys) > 0 {
-		var prefix string
-		switch code {
-		case pgcode.FeatureNotSupported:
-			prefix = "unimplemented."
-		case pgcode.Internal:
-			prefix = "internalerror."
-		default:
-			prefix = "othererror." + code.String() + "."
-		}
-		for _, tk := range tkeys {
-			prefixedTelemetryKey := prefix + tk
-			if strings.HasPrefix(tk, ValidationTelemetryKeyPrefix) {
-				// Descriptor validation errors already have their own prefixing scheme.
-				prefixedTelemetryKey = tk
-			}
-			Count(prefixedTelemetryKey)
-		}
-	}
+	// if err == nil {
+	// 	return
+	// }
+	//
+	// code := pgerror.GetPGCode(err)
+	// Count("errorcodes." + code.String())
+	//
+	// tkeys := errors.GetTelemetryKeys(err)
+	// if len(tkeys) > 0 {
+	// 	var prefix string
+	// 	switch code {
+	// 	case pgcode.FeatureNotSupported:
+	// 		prefix = "unimplemented."
+	// 	case pgcode.Internal:
+	// 		prefix = "internalerror."
+	// 	default:
+	// 		prefix = "othererror." + code.String() + "."
+	// 	}
+	// 	for _, tk := range tkeys {
+	// 		prefixedTelemetryKey := prefix + tk
+	// 		if strings.HasPrefix(tk, ValidationTelemetryKeyPrefix) {
+	// 			// Descriptor validation errors already have their own prefixing scheme.
+	// 			prefixedTelemetryKey = tk
+	// 		}
+	// 		Count(prefixedTelemetryKey)
+	// 	}
+	// }
 }
