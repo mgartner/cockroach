@@ -101,19 +101,23 @@ func writeTextUUID(b *writeBuffer, v uuid.UUID) {
 	b.write(s)
 }
 
+// spaces is used for padding CHAR(N) datums.
+var spaces = bytes.Repeat([]byte{' '}, system.CacheLineSize)
+
 func writeTextString(b *writeBuffer, s string, t *types.T) {
-	if paddingNeeded([]byte(s), t) {
-		b.writePaddedData([]byte(s), t)
-	} else {
-		b.writeLengthPrefixedString(s)
+	pad := 0
+	if t.Oid() == oid.T_bpchar && len(s) < int(t.Width()) {
+		// Pad spaces on the right of the byte slice to make it of length
+		// specified in the type t.
+		pad = int(t.Width()) - len(s)
 	}
-}
-
-func paddingNeeded(v []byte, t *types.T) bool {
-	blankPaddedCharType := t.Oid() == oid.T_bpchar
-	paddingNeeded := len(v) < int(t.Width())
-
-	return blankPaddedCharType && paddingNeeded
+	b.putInt32(int32(len(s) + pad))
+	b.writeString(s)
+	for pad > 0 {
+		n := min(pad, len(spaces))
+		b.write(spaces[:n])
+		pad -= n
+	}
 }
 
 func writeTextTimestamp(b *writeBuffer, v time.Time) {
@@ -528,20 +532,24 @@ func writeBinaryDecimal(b *writeBuffer, v *apd.Decimal) {
 	}
 }
 
-// spaces is used for padding CHAR(N) datums.
-var spaces = bytes.Repeat([]byte{' '}, system.CacheLineSize)
-
 func writeBinaryBytes(b *writeBuffer, v []byte, t *types.T) {
 	if t.Oid() == oid.T_char && len(v) == 0 {
 		// Match Postgres and always explicitly include a null byte if we have
 		// an empty string for the "char" type in the binary format.
 		v = []byte{0}
 	}
-
-	if paddingNeeded(v, t) {
-		b.writePaddedData(v, t)
-	} else {
-		b.writeLengthPrefixedByteSlice(v, int32(len(v)))
+	pad := 0
+	if t.Oid() == oid.T_bpchar && len(v) < int(t.Width()) {
+		// Pad spaces on the right of the byte slice to make it of length
+		// specified in the type t.
+		pad = int(t.Width()) - len(v)
+	}
+	b.putInt32(int32(len(v) + pad))
+	b.write(v)
+	for pad > 0 {
+		n := min(pad, len(spaces))
+		b.write(spaces[:n])
+		pad -= n
 	}
 }
 
@@ -551,11 +559,18 @@ func writeBinaryString(b *writeBuffer, s string, t *types.T) {
 		// an empty string for the "char" type in the binary format.
 		s = string([]byte{0})
 	}
-
-	if paddingNeeded([]byte(s), t) {
-		b.writePaddedData([]byte(s), t)
-	} else {
-		b.writeLengthPrefixedString(s)
+	pad := 0
+	if t.Oid() == oid.T_bpchar && len(s) < int(t.Width()) {
+		// Pad spaces on the right of the byte slice to make it of length
+		// specified in the type t.
+		pad = int(t.Width()) - len(s)
+	}
+	b.putInt32(int32(len(s) + pad))
+	b.writeString(s)
+	for pad > 0 {
+		n := min(pad, len(spaces))
+		b.write(spaces[:n])
+		pad -= n
 	}
 }
 
