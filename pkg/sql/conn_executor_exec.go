@@ -113,7 +113,7 @@ func (ex *connExecutor) execStmt(
 	// Run observer statements in a separate code path; their execution does not
 	// depend on the current transaction state.
 	if _, ok := ast.(tree.ObserverStatement); ok {
-		ex.statsCollector.Reset(ex.applicationStats, ex.phaseTimes)
+		ex.statsCollector.Reset(ex.applicationStats)
 		err := ex.runObserverStatement(ctx, ast, res)
 		// Note that regardless of res.Err(), these observer statements don't
 		// generate error events; transactions are always allowed to continue.
@@ -470,7 +470,7 @@ func (ex *connExecutor) execStmtInOpenState(
 	// https://github.com/cockroachdb/cockroach/issues/99625
 	p := &ex.planner
 	stmtTS := ex.server.cfg.Clock.PhysicalTime()
-	ex.statsCollector.Reset(ex.applicationStats, ex.phaseTimes)
+	ex.statsCollector.Reset(ex.applicationStats)
 	ex.resetPlanner(ctx, p, ex.state.mu.txn, stmtTS)
 	p.sessionDataMutatorIterator.paramStatusUpdater = res
 	p.noticeSender = res
@@ -654,7 +654,7 @@ func (ex *connExecutor) execStmtInOpenState(
 
 	if ex.executorType != executorTypeInternal && ex.sessionData().TransactionTimeout > 0 && !ex.implicitTxn() {
 		timerDuration :=
-			ex.sessionData().TransactionTimeout - timeutil.Since(ex.phaseTimes.GetSessionPhaseTime(sessionphase.SessionTransactionStarted))
+			ex.sessionData().TransactionTimeout - timeutil.Since(ex.statsCollector.PhaseTimes.GetSessionPhaseTime(sessionphase.SessionTransactionStarted))
 
 		// If the timer already expired, but the transaction is not yet aborted,
 		// we should error immediately without executing. If the timer
@@ -684,7 +684,7 @@ func (ex *connExecutor) execStmtInOpenState(
 	// not to block the `SET statement_timeout` command itself.
 	if ex.sessionData().StmtTimeout > 0 && ast.StatementTag() != "SET" {
 		timerDuration :=
-			ex.sessionData().StmtTimeout - timeutil.Since(ex.phaseTimes.GetSessionPhaseTime(sessionphase.SessionQueryReceived))
+			ex.sessionData().StmtTimeout - timeutil.Since(ex.statsCollector.PhaseTimes.GetSessionPhaseTime(sessionphase.SessionQueryReceived))
 		// There's no need to proceed with execution if the timer has already expired.
 		if timerDuration < 0 {
 			queryTimedOut = true
@@ -796,7 +796,7 @@ func (ex *connExecutor) execStmtInOpenState(
 			ex.state.mu.stmtCount,
 			bulkJobId,
 			resErr,
-			ex.statsCollector.PhaseTimes().GetSessionPhaseTime(sessionphase.SessionQueryReceived),
+			ex.statsCollector.PhaseTimes.GetSessionPhaseTime(sessionphase.SessionQueryReceived),
 			&ex.extraTxnState.hasAdminRoleCache,
 			ex.server.TelemetryLoggingMetrics,
 			ex.implicitTxn(),
@@ -1191,7 +1191,7 @@ func (ex *connExecutor) execStmtInOpenState(
 	}
 
 	if stmtThresholdSpan != nil {
-		stmtDur := timeutil.Since(ex.phaseTimes.GetSessionPhaseTime(sessionphase.SessionQueryReceived))
+		stmtDur := timeutil.Since(ex.statsCollector.PhaseTimes.GetSessionPhaseTime(sessionphase.SessionQueryReceived))
 		if needRecording := stmtDur >= stmtTraceThreshold; needRecording {
 			rec := stmtThresholdSpan.FinishAndGetRecording(tracingpb.RecordingVerbose)
 			// NB: This recording does not include the commit for implicit
@@ -1484,8 +1484,8 @@ func (ex *connExecutor) resetTransactionOnSchemaChangeRetry(ctx context.Context)
 func (ex *connExecutor) commitSQLTransaction(
 	ctx context.Context, ast tree.Statement, commitFn func(context.Context) error,
 ) (fsm.Event, fsm.EventPayload) {
-	ex.extraTxnState.idleLatency += ex.statsCollector.PhaseTimes().
-		GetIdleLatency(ex.statsCollector.PreviousPhaseTimes())
+	ex.extraTxnState.idleLatency += ex.statsCollector.PhaseTimes.
+		GetIdleLatency(ex.statsCollector.PreviousPhaseTimes)
 	if ex.sessionData().InjectRetryErrorsOnCommitEnabled && ast.StatementTag() == "COMMIT" {
 		if ex.state.injectedTxnRetryCounter < numTxnRetryErrors {
 			retryErr := ex.state.mu.txn.GenerateForcedRetryableErr(
@@ -1494,7 +1494,7 @@ func (ex *connExecutor) commitSQLTransaction(
 			return ex.makeErrEvent(retryErr, ast)
 		}
 	}
-	ex.phaseTimes.SetSessionPhaseTime(sessionphase.SessionStartTransactionCommit, timeutil.Now())
+	ex.statsCollector.PhaseTimes.SetSessionPhaseTime(sessionphase.SessionStartTransactionCommit, timeutil.Now())
 	if err := commitFn(ctx); err != nil {
 		// For certain retryable errors, we should turn them into client visible
 		// errors, since the client needs to retry now.
@@ -1505,7 +1505,7 @@ func (ex *connExecutor) commitSQLTransaction(
 		}
 		return ex.makeErrEvent(err, ast)
 	}
-	ex.phaseTimes.SetSessionPhaseTime(sessionphase.SessionEndTransactionCommit, timeutil.Now())
+	ex.statsCollector.PhaseTimes.SetSessionPhaseTime(sessionphase.SessionEndTransactionCommit, timeutil.Now())
 	if err := ex.reportSessionDataChanges(func() error {
 		ex.sessionDataStack.PopAll()
 		return nil
@@ -1817,7 +1817,7 @@ func (ex *connExecutor) dispatchToExecutionEngine(
 	ex.sessionTracing.TracePlanStart(ctx, stmt.AST.StatementTag())
 	// TODO(sql-sessions): fix the phase time for pausable portals.
 	// https://github.com/cockroachdb/cockroach/issues/99410
-	ex.statsCollector.PhaseTimes().SetSessionPhaseTime(sessionphase.PlannerStartLogicalPlan, timeutil.Now())
+	ex.statsCollector.PhaseTimes.SetSessionPhaseTime(sessionphase.PlannerStartLogicalPlan, timeutil.Now())
 
 	if execinfra.IncludeRUEstimateInExplainAnalyze.Get(ex.server.cfg.SV()) {
 		if server := ex.server.cfg.DistSQLSrv; server != nil {
@@ -1879,7 +1879,7 @@ func (ex *connExecutor) dispatchToExecutionEngine(
 
 	// TODO(sql-sessions): fix the phase time for pausable portals.
 	// https://github.com/cockroachdb/cockroach/issues/99410
-	ex.statsCollector.PhaseTimes().SetSessionPhaseTime(sessionphase.PlannerEndLogicalPlan, timeutil.Now())
+	ex.statsCollector.PhaseTimes.SetSessionPhaseTime(sessionphase.PlannerEndLogicalPlan, timeutil.Now())
 	ex.sessionTracing.TracePlanEnd(ctx, err)
 
 	// Finally, process the planning error from above.
@@ -1937,7 +1937,7 @@ func (ex *connExecutor) dispatchToExecutionEngine(
 
 	// TODO(sql-sessions): fix the phase time for pausable portals.
 	// https://github.com/cockroachdb/cockroach/issues/99410
-	ex.statsCollector.PhaseTimes().SetSessionPhaseTime(sessionphase.PlannerStartExecStmt, timeutil.Now())
+	ex.statsCollector.PhaseTimes.SetSessionPhaseTime(sessionphase.PlannerStartExecStmt, timeutil.Now())
 
 	progAtomic, err := func() (*uint64, error) {
 		ex.mu.Lock()
@@ -2002,7 +2002,7 @@ func (ex *connExecutor) dispatchToExecutionEngine(
 	ex.sessionTracing.TraceExecEnd(ctx, res.Err(), res.RowsAffected())
 	// TODO(sql-sessions): fix the phase time for pausable portals.
 	// https://github.com/cockroachdb/cockroach/issues/99410
-	ex.statsCollector.PhaseTimes().SetSessionPhaseTime(sessionphase.PlannerEndExecStmt, timeutil.Now())
+	ex.statsCollector.PhaseTimes.SetSessionPhaseTime(sessionphase.PlannerEndExecStmt, timeutil.Now())
 
 	ex.extraTxnState.rowsRead += stats.rowsRead
 	ex.extraTxnState.bytesRead += stats.bytesRead
@@ -2477,7 +2477,7 @@ func (ex *connExecutor) beginTransactionTimestampsAndReadMode(
 		}
 		return rwMode, now, nil, nil
 	}
-	ex.statsCollector.Reset(ex.applicationStats, ex.phaseTimes)
+	ex.statsCollector.Reset(ex.applicationStats)
 	asOf, err := p.EvalAsOfTimestamp(ctx, asOfClause)
 	if err != nil {
 		return 0, time.Time{}, nil, err
@@ -2538,7 +2538,7 @@ func (ex *connExecutor) execStmtInNoTxnState(
 			0, /* stmtCount */
 			0, /* bulkJobId */
 			execErr,
-			ex.phaseTimes.GetSessionPhaseTime(sessionphase.SessionQueryReceived),
+			ex.statsCollector.PhaseTimes.GetSessionPhaseTime(sessionphase.SessionQueryReceived),
 			&ex.extraTxnState.hasAdminRoleCache,
 			ex.server.TelemetryLoggingMetrics,
 			ex.implicitTxn(),
@@ -2942,14 +2942,14 @@ func (ex *connExecutor) runShowCompletions(
 
 // showQueryStatsFns maps column names as requested by the SQL clients
 // to timing retrieval functions from the execution phase times.
-var showQueryStatsFns = map[tree.Name]func(*sessionphase.Times) time.Duration{
-	"parse_latency": func(phaseTimes *sessionphase.Times) time.Duration { return phaseTimes.GetParsingLatency() },
-	"plan_latency":  func(phaseTimes *sessionphase.Times) time.Duration { return phaseTimes.GetPlanningLatency() },
-	"exec_latency":  func(phaseTimes *sessionphase.Times) time.Duration { return phaseTimes.GetRunLatency() },
+var showQueryStatsFns = map[tree.Name]func(sessionphase.Times) time.Duration{
+	"parse_latency": func(phaseTimes sessionphase.Times) time.Duration { return phaseTimes.GetParsingLatency() },
+	"plan_latency":  func(phaseTimes sessionphase.Times) time.Duration { return phaseTimes.GetPlanningLatency() },
+	"exec_latency":  func(phaseTimes sessionphase.Times) time.Duration { return phaseTimes.GetRunLatency() },
 	// Since the last query has already finished, it is safe to retrieve its
 	// total service latency.
-	"service_latency":          func(phaseTimes *sessionphase.Times) time.Duration { return phaseTimes.GetServiceLatencyTotal() },
-	"post_commit_jobs_latency": func(phaseTimes *sessionphase.Times) time.Duration { return phaseTimes.GetPostCommitJobsLatency() },
+	"service_latency":          func(phaseTimes sessionphase.Times) time.Duration { return phaseTimes.GetServiceLatencyTotal() },
+	"post_commit_jobs_latency": func(phaseTimes sessionphase.Times) time.Duration { return phaseTimes.GetPostCommitJobsLatency() },
 }
 
 func (ex *connExecutor) runShowLastQueryStatistics(
@@ -2962,7 +2962,7 @@ func (ex *connExecutor) runShowLastQueryStatistics(
 	}
 	res.SetColumns(ctx, resColumns)
 
-	phaseTimes := ex.statsCollector.PreviousPhaseTimes()
+	phaseTimes := ex.statsCollector.PreviousPhaseTimes
 
 	// Now convert the durations to the string representation of intervals.
 	// We do the conversion server-side using a fixed format, so that
@@ -3068,7 +3068,7 @@ func (ex *connExecutor) addActiveQuery(
 	_, hidden := stmt.AST.(tree.HiddenFromShowQueries)
 	qm := &queryMeta{
 		txnID:         ex.state.mu.txn.ID(),
-		start:         ex.phaseTimes.GetSessionPhaseTime(sessionphase.SessionQueryReceived),
+		start:         ex.statsCollector.PhaseTimes.GetSessionPhaseTime(sessionphase.SessionQueryReceived),
 		stmt:          stmt,
 		placeholders:  placeholders,
 		phase:         preparing,
@@ -3157,7 +3157,7 @@ func (ex *connExecutor) onTxnFinish(ctx context.Context, ev txnEvent, txnErr err
 		ex.extraTxnState.shouldExecuteOnTxnFinish = false
 		txnStart := ex.extraTxnState.txnFinishClosure.txnStartTime
 		implicit := ex.extraTxnState.txnFinishClosure.implicit
-		ex.phaseTimes.SetSessionPhaseTime(sessionphase.SessionEndExecTransaction, timeutil.Now())
+		ex.statsCollector.PhaseTimes.SetSessionPhaseTime(sessionphase.SessionEndExecTransaction, timeutil.Now())
 		transactionFingerprintID :=
 			appstatspb.TransactionFingerprintID(ex.extraTxnState.transactionStatementsHash.Sum())
 
@@ -3200,7 +3200,7 @@ func (ex *connExecutor) onTxnFinish(ctx context.Context, ev txnEvent, txnErr err
 
 func (ex *connExecutor) onTxnRestart(ctx context.Context) {
 	if ex.extraTxnState.shouldExecuteOnTxnRestart {
-		ex.phaseTimes.SetSessionPhaseTime(sessionphase.SessionMostRecentStartExecTransaction, timeutil.Now())
+		ex.statsCollector.PhaseTimes.SetSessionPhaseTime(sessionphase.SessionMostRecentStartExecTransaction, timeutil.Now())
 		ex.extraTxnState.transactionStatementFingerprintIDs = nil
 		ex.extraTxnState.transactionStatementsHash = util.MakeFNV64()
 		ex.extraTxnState.numRows = 0
@@ -3232,10 +3232,10 @@ func (ex *connExecutor) recordTransactionStart(txnID uuid.UUID) {
 	txnStart := ex.state.mu.txnStart
 	ex.state.mu.RUnlock()
 
-	ex.phaseTimes.SetSessionPhaseTime(sessionphase.SessionTransactionStarted, txnStart)
-	ex.phaseTimes.SetSessionPhaseTime(sessionphase.SessionFirstStartExecTransaction, timeutil.Now())
-	ex.phaseTimes.SetSessionPhaseTime(sessionphase.SessionMostRecentStartExecTransaction,
-		ex.phaseTimes.GetSessionPhaseTime(sessionphase.SessionFirstStartExecTransaction))
+	ex.statsCollector.PhaseTimes.SetSessionPhaseTime(sessionphase.SessionTransactionStarted, txnStart)
+	ex.statsCollector.PhaseTimes.SetSessionPhaseTime(sessionphase.SessionFirstStartExecTransaction, timeutil.Now())
+	ex.statsCollector.PhaseTimes.SetSessionPhaseTime(sessionphase.SessionMostRecentStartExecTransaction,
+		ex.statsCollector.PhaseTimes.GetSessionPhaseTime(sessionphase.SessionFirstStartExecTransaction))
 	ex.extraTxnState.transactionStatementsHash = util.MakeFNV64()
 	ex.extraTxnState.transactionStatementFingerprintIDs = nil
 	ex.extraTxnState.numRows = 0
@@ -3316,9 +3316,9 @@ func (ex *connExecutor) recordTransactionFinish(
 		return nil
 	}
 
-	txnServiceLat := ex.phaseTimes.GetTransactionServiceLatency()
-	txnRetryLat := ex.phaseTimes.GetTransactionRetryLatency()
-	commitLat := ex.phaseTimes.GetCommitLatency()
+	txnServiceLat := ex.statsCollector.PhaseTimes.GetTransactionServiceLatency()
+	txnRetryLat := ex.statsCollector.PhaseTimes.GetTransactionRetryLatency()
+	commitLat := ex.statsCollector.PhaseTimes.GetCommitLatency()
 
 	recordedTxnStats := sqlstats.RecordedTxnStats{
 		SessionID:               ex.planner.extendedEvalCtx.SessionID,
@@ -3352,7 +3352,7 @@ func (ex *connExecutor) recordTransactionFinish(
 
 	if ex.server.cfg.TestingKnobs.OnRecordTxnFinish != nil {
 		ex.server.cfg.TestingKnobs.OnRecordTxnFinish(
-			ex.executorType == executorTypeInternal, ex.phaseTimes, ex.planner.stmt.SQL, recordedTxnStats,
+			ex.executorType == executorTypeInternal, ex.statsCollector.PhaseTimes, ex.planner.stmt.SQL, recordedTxnStats,
 		)
 	}
 

@@ -84,7 +84,7 @@ func TestPlanToTreeAndPlanToString(t *testing.T) {
 				ob := ih.emitExplainAnalyzePlanToOutputBuilder(
 					ctx,
 					explain.Flags{Verbose: true, ShowTypes: true},
-					sessionphase.NewTimes(),
+					sessionphase.Times{},
 					&execstats.QueryLevelStats{},
 				)
 				return ob.BuildString()

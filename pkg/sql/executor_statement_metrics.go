@@ -118,10 +118,10 @@ func (ex *connExecutor) recordStatementSummary(
 	stmtErr error,
 	stats topLevelQueryStats,
 ) appstatspb.StmtFingerprintID {
-	phaseTimes := ex.statsCollector.PhaseTimes()
+	phaseTimes := ex.statsCollector.PhaseTimes
 
 	// Collect the statistics.
-	idleLatRaw := phaseTimes.GetIdleLatency(ex.statsCollector.PreviousPhaseTimes())
+	idleLatRaw := phaseTimes.GetIdleLatency(ex.statsCollector.PreviousPhaseTimes)
 	idleLatSec := idleLatRaw.Seconds()
 	runLatRaw := phaseTimes.GetRunLatency()
 	runLatSec := runLatRaw.Seconds()

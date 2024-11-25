@@ -635,7 +635,7 @@ func (ih *instrumentationHelper) Finish(
 		ie := p.extendedEvalCtx.ExecCfg.InternalDB.Executor(
 			isql.WithSessionData(p.SessionData()),
 		)
-		phaseTimes := statsCollector.PhaseTimes()
+		phaseTimes := statsCollector.PhaseTimes
 		execLatency := phaseTimes.GetServiceLatencyNoOverhead()
 		// Note that we want to remove the request from the local registry
 		// _before_ inserting the bundle to prevent rare test flakes (#106284).
@@ -746,7 +746,7 @@ func (ih *instrumentationHelper) Finish(
 		if ih.outputMode == explainAnalyzeDistSQLOutput {
 			flows = p.curPlan.distSQLFlowInfos
 		}
-		return ih.setExplainAnalyzeResult(ctx, res, statsCollector.PhaseTimes(), queryLevelStats, flows, trace)
+		return ih.setExplainAnalyzeResult(ctx, res, statsCollector.PhaseTimes, queryLevelStats, flows, trace)
 
 	default:
 		return nil
@@ -843,7 +843,7 @@ func (ih *instrumentationHelper) PlanForStats(ctx context.Context) *appstatspb.E
 func (ih *instrumentationHelper) emitExplainAnalyzePlanToOutputBuilder(
 	ctx context.Context,
 	flags explain.Flags,
-	phaseTimes *sessionphase.Times,
+	phaseTimes sessionphase.Times,
 	queryStats *execstats.QueryLevelStats,
 ) *explain.OutputBuilder {
 	ob := explain.NewOutputBuilder(flags)
@@ -921,7 +921,7 @@ func (ih *instrumentationHelper) emitExplainAnalyzePlanToOutputBuilder(
 func (ih *instrumentationHelper) setExplainAnalyzeResult(
 	ctx context.Context,
 	res RestrictedCommandResult,
-	phaseTimes *sessionphase.Times,
+	phaseTimes sessionphase.Times,
 	queryLevelStats *execstats.QueryLevelStats,
 	distSQLFlowInfos []flowInfo,
 	trace tracingpb.Recording,

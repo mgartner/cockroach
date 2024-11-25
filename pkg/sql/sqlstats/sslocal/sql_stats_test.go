@@ -461,7 +461,6 @@ func TestExplicitTxnFingerprintAccounting(t *testing.T) {
 		st,
 		appStats,
 		insightsProvider.Writer(),
-		sessionphase.NewTimes(),
 		sqlStats.GetCounters(),
 		false, /* underOuterTxn */
 		nil,   /* knobs */
@@ -588,7 +587,6 @@ func TestAssociatingStmtStatsWithTxnFingerprint(t *testing.T) {
 			st,
 			appStats,
 			insightsProvider.Writer(),
-			sessionphase.NewTimes(),
 			sqlStats.GetCounters(),
 			false, /* underOuterTxn */
 			nil,   /* knobs */
@@ -718,13 +716,12 @@ func TestTransactionServiceLatencyOnExtendedProtocol(t *testing.T) {
 
 		query        string
 		placeholders []interface{}
-		phaseTimes   *sessionphase.Times
+		phaseTimes   sessionphase.Times
 	}
 
 	tc := &testData{
 		query:        "SELECT $1::INT8",
 		placeholders: []interface{}{1},
-		phaseTimes:   nil,
 	}
 
 	g := ctxgroup.WithContext(ctx)
@@ -745,7 +742,7 @@ func TestTransactionServiceLatencyOnExtendedProtocol(t *testing.T) {
 			tc.Lock()
 			defer tc.Unlock()
 			if !isInternal && tc.query == stmt && finishedExecute.Load() {
-				tc.phaseTimes = phaseTimes.Clone()
+				tc.phaseTimes = sessionphase.Times{}
 				g.GoCtx(func(ctx context.Context) error {
 					waitTxnFinish <- struct{}{}
 					return nil

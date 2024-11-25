@@ -318,10 +318,10 @@ func (p *planner) maybeLogStatementInternal(
 			txnID = p.txn.ID().String()
 		}
 
-		phaseTimes := statsCollector.PhaseTimes()
+		phaseTimes := statsCollector.PhaseTimes
 
 		// Collect the statistics.
-		idleLatRaw := phaseTimes.GetIdleLatency(statsCollector.PreviousPhaseTimes())
+		idleLatRaw := phaseTimes.GetIdleLatency(statsCollector.PreviousPhaseTimes)
 		idleLatNanos := idleLatRaw.Nanoseconds()
 		runLatRaw := phaseTimes.GetRunLatency()
 		runLatNanos := runLatRaw.Nanoseconds()

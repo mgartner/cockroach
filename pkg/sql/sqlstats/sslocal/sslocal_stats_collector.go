@@ -44,11 +44,11 @@ type StatsCollector struct {
 	insightsWriter *insights.ConcurrentBufferIngester
 
 	// phaseTimes tracks session-level phase times.
-	phaseTimes *sessionphase.Times
+	PhaseTimes sessionphase.Times
 
 	// previousPhaseTimes tracks the session-level phase times for the previous
 	// query. This enables the `SHOW LAST QUERY STATISTICS` observer statement.
-	previousPhaseTimes *sessionphase.Times
+	PreviousPhaseTimes sessionphase.Times
 
 	// sendInsights is true if we should send statement and transaction stats to
 	// the insights system for the current transaction. This value is reset for
@@ -77,7 +77,6 @@ func NewStatsCollector(
 	st *cluster.Settings,
 	appStats sqlstats.ApplicationStats,
 	insights *insights.ConcurrentBufferIngester,
-	phaseTime *sessionphase.Times,
 	uniqueServerCounts *ssmemstorage.SQLStatsAtomicCounters,
 	underOuterTxn bool,
 	knobs *sqlstats.TestingKnobs,
@@ -97,7 +96,6 @@ func NewStatsCollector(
 		flushTarget:                      appStats,
 		currentTransactionStatementStats: currentTransactionStatementStats,
 		insightsWriter:                   insights,
-		phaseTimes:                       phaseTime.Clone(),
 		uniqueServerCounts:               uniqueServerCounts,
 		st:                               st,
 		knobs:                            knobs,
@@ -113,26 +111,12 @@ func (s *StatsCollector) StatementFingerprintID() appstatspb.StmtFingerprintID {
 	return s.stmtFingerprintID
 }
 
-// PhaseTimes returns the sessionphase.Times that this StatsCollector is
-// currently tracking.
-func (s *StatsCollector) PhaseTimes() *sessionphase.Times {
-	return s.phaseTimes
-}
-
-// PreviousPhaseTimes returns the sessionphase.Times that this StatsCollector
-// was previously tracking before being Reset.
-func (s *StatsCollector) PreviousPhaseTimes() *sessionphase.Times {
-	return s.previousPhaseTimes
-}
-
 // Reset resets the StatsCollector with a new flushTarget and a new copy
 // of the sessionphase.Times.
-func (s *StatsCollector) Reset(appStats sqlstats.ApplicationStats, phaseTime *sessionphase.Times) {
-	previousPhaseTime := s.phaseTimes
+func (s *StatsCollector) Reset(appStats sqlstats.ApplicationStats) {
 	s.flushTarget = appStats
-
-	s.previousPhaseTimes = previousPhaseTime
-	s.phaseTimes = phaseTime.Clone()
+	s.PreviousPhaseTimes = s.PhaseTimes
+	s.PhaseTimes = sessionphase.Times{}
 	s.stmtFingerprintID = 0
 }
 

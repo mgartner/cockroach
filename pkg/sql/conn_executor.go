@@ -1092,7 +1092,6 @@ func (s *Server) newConnExecutor(
 		// ctxHolder will be reset at the start of run(). We only define
 		// it here so that an early call to close() doesn't panic.
 		ctxHolder:                 ctxHolder{connCtx: ctx, goroutineID: goid.Get()},
-		phaseTimes:                sessionphase.NewTimes(),
 		executorType:              executorType,
 		hasCreatedTemporarySchema: false,
 		stmtDiagnosticsRecorder:   s.cfg.StmtDiagnosticsRecorder,
@@ -1152,7 +1151,6 @@ func (s *Server) newConnExecutor(
 		s.cfg.Settings,
 		applicationStats,
 		writer,
-		ex.phaseTimes,
 		s.sqlStats.GetCounters(),
 		underOuterTxn,
 		s.cfg.SQLStatsTestingKnobs,
@@ -1162,7 +1160,7 @@ func (s *Server) newConnExecutor(
 		ex.applicationStats = ex.server.sqlStats.GetApplicationStats(newName)
 	}
 
-	ex.phaseTimes.SetSessionPhaseTime(sessionphase.SessionInit, timeutil.Now())
+	ex.statsCollector.PhaseTimes.SetSessionPhaseTime(sessionphase.SessionInit, timeutil.Now())
 
 	ex.extraTxnState.underOuterTxn = underOuterTxn
 	ex.extraTxnState.prepStmtsNamespace = prepStmtNamespace{
@@ -1707,11 +1705,6 @@ type connExecutor struct {
 	// safe to use when a statement is not being parallelized. It must be reset
 	// before using.
 	planner planner
-
-	// phaseTimes tracks session- and transaction-level phase times. It is
-	// copied-by-value when resetting statsCollector before executing each
-	// statement.
-	phaseTimes *sessionphase.Times
 
 	// rng contains random number generators for this session.
 	rng struct {
@@ -2309,9 +2302,9 @@ func (ex *connExecutor) execCmd() (retErr error) {
 	var res ResultBase
 	switch tcmd := cmd.(type) {
 	case ExecStmt:
-		ex.phaseTimes.SetSessionPhaseTime(sessionphase.SessionQueryReceived, tcmd.TimeReceived)
-		ex.phaseTimes.SetSessionPhaseTime(sessionphase.SessionStartParse, tcmd.ParseStart)
-		ex.phaseTimes.SetSessionPhaseTime(sessionphase.SessionEndParse, tcmd.ParseEnd)
+		ex.statsCollector.PhaseTimes.SetSessionPhaseTime(sessionphase.SessionQueryReceived, tcmd.TimeReceived)
+		ex.statsCollector.PhaseTimes.SetSessionPhaseTime(sessionphase.SessionStartParse, tcmd.ParseStart)
+		ex.statsCollector.PhaseTimes.SetSessionPhaseTime(sessionphase.SessionEndParse, tcmd.ParseEnd)
 
 		// We use a closure for the body of the execution so as to
 		// guarantee that the full service time is captured below.
@@ -2352,13 +2345,7 @@ func (ex *connExecutor) execCmd() (retErr error) {
 
 			return err
 		}()
-		// Note: we write to ex.statsCollector.PhaseTimes, instead of ex.phaseTimes,
-		// because:
-		// - stats use ex.statsCollector, not ex.phaseTimes.
-		// - ex.statsCollector merely contains a copy of the times, that
-		//   was created when the statement started executing (via the
-		//   Reset() method).
-		ex.statsCollector.PhaseTimes().SetSessionPhaseTime(sessionphase.SessionQueryServiced, timeutil.Now())
+		ex.statsCollector.PhaseTimes.SetSessionPhaseTime(sessionphase.SessionQueryServiced, timeutil.Now())
 		if err != nil {
 			return err
 		}
@@ -2366,13 +2353,13 @@ func (ex *connExecutor) execCmd() (retErr error) {
 	case ExecPortal:
 		// ExecPortal is handled like ExecStmt, except that the placeholder info
 		// is taken from the portal.
-		ex.phaseTimes.SetSessionPhaseTime(sessionphase.SessionQueryReceived, tcmd.TimeReceived)
+		ex.statsCollector.PhaseTimes.SetSessionPhaseTime(sessionphase.SessionQueryReceived, tcmd.TimeReceived)
 		// When parsing has been done earlier, via a separate parse
 		// message, it is not any more part of the statistics collected
 		// for this execution. In that case, we simply report that
 		// parsing took no time.
-		ex.phaseTimes.SetSessionPhaseTime(sessionphase.SessionStartParse, time.Time{})
-		ex.phaseTimes.SetSessionPhaseTime(sessionphase.SessionEndParse, time.Time{})
+		ex.statsCollector.PhaseTimes.SetSessionPhaseTime(sessionphase.SessionStartParse, time.Time{})
+		ex.statsCollector.PhaseTimes.SetSessionPhaseTime(sessionphase.SessionEndParse, time.Time{})
 		// We use a closure for the body of the execution so as to
 		// guarantee that the full service time is captured below.
 		err := func() error {
@@ -2454,15 +2441,9 @@ func (ex *connExecutor) execCmd() (retErr error) {
 			ev, payload, err = ex.execPortal(ctx, portal, portalName, stmtRes, pinfo, canAutoCommit)
 			return err
 		}()
-		// Note: we write to ex.statsCollector.phaseTimes, instead of ex.phaseTimes,
-		// because:
-		// - stats use ex.statsCollector, not ex.phasetimes.
-		// - ex.statsCollector merely contains a copy of the times, that
-		//   was created when the statement started executing (via the
-		//   reset() method).
 		// TODO(sql-sessions): fix the phase time for pausable portals.
 		// https://github.com/cockroachdb/cockroach/issues/99410
-		ex.statsCollector.PhaseTimes().SetSessionPhaseTime(sessionphase.SessionQueryServiced, timeutil.Now())
+		ex.statsCollector.PhaseTimes.SetSessionPhaseTime(sessionphase.SessionQueryServiced, timeutil.Now())
 		if err != nil {
 			return err
 		}
@@ -2520,38 +2501,26 @@ func (ex *connExecutor) execCmd() (retErr error) {
 			}()
 		}
 	case CopyIn:
-		ex.phaseTimes.SetSessionPhaseTime(sessionphase.SessionQueryReceived, tcmd.TimeReceived)
-		ex.phaseTimes.SetSessionPhaseTime(sessionphase.SessionStartParse, tcmd.ParseStart)
-		ex.phaseTimes.SetSessionPhaseTime(sessionphase.SessionEndParse, tcmd.ParseEnd)
+		ex.statsCollector.PhaseTimes.SetSessionPhaseTime(sessionphase.SessionQueryReceived, tcmd.TimeReceived)
+		ex.statsCollector.PhaseTimes.SetSessionPhaseTime(sessionphase.SessionStartParse, tcmd.ParseStart)
+		ex.statsCollector.PhaseTimes.SetSessionPhaseTime(sessionphase.SessionEndParse, tcmd.ParseEnd)
 
 		copyRes := ex.clientComm.CreateCopyInResult(tcmd, pos)
 		res = copyRes
 		stmtCtx := withStatement(ctx, tcmd.Stmt)
 		ev, payload = ex.execCopyIn(stmtCtx, tcmd, copyRes)
 
-		// Note: we write to ex.statsCollector.phaseTimes, instead of ex.phaseTimes,
-		// because:
-		// - stats use ex.statsCollector, not ex.phasetimes.
-		// - ex.statsCollector merely contains a copy of the times, that
-		//   was created when the statement started executing (via the
-		//   reset() method).
-		ex.statsCollector.PhaseTimes().SetSessionPhaseTime(sessionphase.SessionQueryServiced, timeutil.Now())
+		ex.statsCollector.PhaseTimes.SetSessionPhaseTime(sessionphase.SessionQueryServiced, timeutil.Now())
 	case CopyOut:
-		ex.phaseTimes.SetSessionPhaseTime(sessionphase.SessionQueryReceived, tcmd.TimeReceived)
-		ex.phaseTimes.SetSessionPhaseTime(sessionphase.SessionStartParse, tcmd.ParseStart)
-		ex.phaseTimes.SetSessionPhaseTime(sessionphase.SessionEndParse, tcmd.ParseEnd)
+		ex.statsCollector.PhaseTimes.SetSessionPhaseTime(sessionphase.SessionQueryReceived, tcmd.TimeReceived)
+		ex.statsCollector.PhaseTimes.SetSessionPhaseTime(sessionphase.SessionStartParse, tcmd.ParseStart)
+		ex.statsCollector.PhaseTimes.SetSessionPhaseTime(sessionphase.SessionEndParse, tcmd.ParseEnd)
 		copyRes := ex.clientComm.CreateCopyOutResult(tcmd, pos)
 		res = copyRes
 		stmtCtx := withStatement(ctx, tcmd.Stmt)
 		ev, payload = ex.execCopyOut(stmtCtx, tcmd, copyRes)
 
-		// Note: we write to ex.statsCollector.phaseTimes, instead of ex.phaseTimes,
-		// because:
-		// - stats use ex.statsCollector, not ex.phasetimes.
-		// - ex.statsCollector merely contains a copy of the times, that
-		//   was created when the statement started executing (via the
-		//   reset() method).
-		ex.statsCollector.PhaseTimes().SetSessionPhaseTime(sessionphase.SessionQueryServiced, timeutil.Now())
+		ex.statsCollector.PhaseTimes.SetSessionPhaseTime(sessionphase.SessionQueryServiced, timeutil.Now())
 	case DrainRequest:
 		// We received a drain request. We terminate immediately if we're not in a
 		// transaction. If we are in a transaction, we'll finish as soon as a Sync
@@ -2938,7 +2907,7 @@ func (ex *connExecutor) execCopyOut(
 			ex.state.mu.stmtCount,
 			0, /* bulkJobId */
 			copyErr,
-			ex.statsCollector.PhaseTimes().GetSessionPhaseTime(sessionphase.SessionQueryReceived),
+			ex.statsCollector.PhaseTimes.GetSessionPhaseTime(sessionphase.SessionQueryReceived),
 			&ex.extraTxnState.hasAdminRoleCache,
 			ex.server.TelemetryLoggingMetrics,
 			ex.implicitTxn(),
@@ -2947,7 +2916,7 @@ func (ex *connExecutor) execCopyOut(
 	}()
 
 	stmtTS := ex.server.cfg.Clock.PhysicalTime()
-	ex.statsCollector.Reset(ex.applicationStats, ex.phaseTimes)
+	ex.statsCollector.Reset(ex.applicationStats)
 	ex.resetPlanner(ctx, &ex.planner, ex.state.mu.txn, stmtTS)
 	ex.setCopyLoggingFields(cmd.ParsedStmt)
 
@@ -3020,7 +2989,7 @@ func (ex *connExecutor) execCopyOut(
 
 	if ex.sessionData().StmtTimeout > 0 {
 		timerDuration :=
-			ex.sessionData().StmtTimeout - timeutil.Since(ex.phaseTimes.GetSessionPhaseTime(sessionphase.SessionQueryReceived))
+			ex.sessionData().StmtTimeout - timeutil.Since(ex.statsCollector.PhaseTimes.GetSessionPhaseTime(sessionphase.SessionQueryReceived))
 		// There's no need to proceed with execution if the timer has already expired.
 		if timerDuration < 0 {
 			queryTimedOut = true
@@ -3037,7 +3006,7 @@ func (ex *connExecutor) execCopyOut(
 	}
 	if ex.sessionData().TransactionTimeout > 0 && !ex.implicitTxn() {
 		timerDuration :=
-			ex.sessionData().TransactionTimeout - timeutil.Since(ex.phaseTimes.GetSessionPhaseTime(sessionphase.SessionTransactionStarted))
+			ex.sessionData().TransactionTimeout - timeutil.Since(ex.statsCollector.PhaseTimes.GetSessionPhaseTime(sessionphase.SessionTransactionStarted))
 
 		// If the timer already expired, but the transaction is not yet aborted,
 		// we should error immediately without executing. If the timer
@@ -3155,7 +3124,7 @@ func (ex *connExecutor) execCopyIn(
 		stmtTimestamp: ex.server.cfg.Clock.PhysicalTime(),
 		initPlanner:   ex.initPlanner,
 		resetPlanner: func(ctx context.Context, p *planner, txn *kv.Txn, txnTS time.Time, stmtTS time.Time) {
-			ex.statsCollector.Reset(ex.applicationStats, ex.phaseTimes)
+			ex.statsCollector.Reset(ex.applicationStats)
 			ex.resetPlanner(ctx, p, txn, stmtTS)
 			ex.setCopyLoggingFields(cmd.ParsedStmt)
 		},
@@ -3186,7 +3155,7 @@ func (ex *connExecutor) execCopyIn(
 			numInsertedRows, ex.state.mu.stmtCount,
 			0, /* bulkJobId */
 			copyErr,
-			ex.statsCollector.PhaseTimes().GetSessionPhaseTime(sessionphase.SessionQueryReceived),
+			ex.statsCollector.PhaseTimes.GetSessionPhaseTime(sessionphase.SessionQueryReceived),
 			&ex.extraTxnState.hasAdminRoleCache,
 			ex.server.TelemetryLoggingMetrics,
 			ex.implicitTxn(),
@@ -3290,7 +3259,7 @@ func (ex *connExecutor) execCopyIn(
 
 	if ex.sessionData().StmtTimeout > 0 {
 		timerDuration :=
-			ex.sessionData().StmtTimeout - timeutil.Since(ex.phaseTimes.GetSessionPhaseTime(sessionphase.SessionQueryReceived))
+			ex.sessionData().StmtTimeout - timeutil.Since(ex.statsCollector.PhaseTimes.GetSessionPhaseTime(sessionphase.SessionQueryReceived))
 		// There's no need to proceed with execution if the timer has already expired.
 		if timerDuration < 0 {
 			queryTimedOut = true
@@ -3307,7 +3276,7 @@ func (ex *connExecutor) execCopyIn(
 	}
 	if ex.sessionData().TransactionTimeout > 0 && !ex.implicitTxn() {
 		timerDuration :=
-			ex.sessionData().TransactionTimeout - timeutil.Since(ex.phaseTimes.GetSessionPhaseTime(sessionphase.SessionTransactionStarted))
+			ex.sessionData().TransactionTimeout - timeutil.Since(ex.statsCollector.PhaseTimes.GetSessionPhaseTime(sessionphase.SessionTransactionStarted))
 
 		// If the timer already expired, but the transaction is not yet aborted,
 		// we should error immediately without executing. If the timer
@@ -4030,11 +3999,11 @@ func (ex *connExecutor) txnStateTransitionsApplyWrapper(
 		if err != nil {
 			return advanceInfo{}, err
 		}
-		ex.statsCollector.PhaseTimes().SetSessionPhaseTime(sessionphase.SessionStartPostCommitJob, timeutil.Now())
+		ex.statsCollector.PhaseTimes.SetSessionPhaseTime(sessionphase.SessionStartPostCommitJob, timeutil.Now())
 		if err := ex.waitForTxnJobs(); err != nil {
 			handleErr(err)
 		}
-		ex.statsCollector.PhaseTimes().SetSessionPhaseTime(sessionphase.SessionEndPostCommitJob, timeutil.Now())
+		ex.statsCollector.PhaseTimes.SetSessionPhaseTime(sessionphase.SessionEndPostCommitJob, timeutil.Now())
 		if err := ex.waitOneVersionForNewVersionDescriptorsWithoutJobs(descIDsInJobs); err != nil {
 			return advanceInfo{}, err
 		}
@@ -4077,7 +4046,7 @@ func (ex *connExecutor) waitForTxnJobs() error {
 	jobWaitCtx := ex.ctxHolder.ctx()
 	var queryTimedout atomic.Bool
 	if ex.sessionData().StmtTimeout > 0 {
-		timePassed := timeutil.Since(ex.phaseTimes.GetSessionPhaseTime(sessionphase.SessionQueryReceived))
+		timePassed := timeutil.Since(ex.statsCollector.PhaseTimes.GetSessionPhaseTime(sessionphase.SessionQueryReceived))
 		if timePassed > ex.sessionData().StmtTimeout {
 			queryTimedout.Store(true)
 		} else {
@@ -4354,7 +4323,7 @@ func (ex *connExecutor) serialize() serverpb.Session {
 		ClientAddress:   remoteStr,
 		ApplicationName: ex.applicationName.Load().(string),
 		// TODO(yuzefovich): this seems like not a concurrency safe call.
-		Start:             ex.phaseTimes.GetSessionPhaseTime(sessionphase.SessionInit).UTC(),
+		Start:             ex.statsCollector.PhaseTimes.GetSessionPhaseTime(sessionphase.SessionInit).UTC(),
 		ActiveQueries:     activeQueries,
 		ActiveTxn:         activeTxnInfo,
 		NumTxnsExecuted:   ex.extraTxnState.txnCounter.Load(),

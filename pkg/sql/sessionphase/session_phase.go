@@ -97,11 +97,6 @@ type Times struct {
 	times [SessionNumPhases]time.Time
 }
 
-// NewTimes create a new instance of the Times.
-func NewTimes() *Times {
-	return &Times{}
-}
-
 // SetSessionPhaseTime sets the time for a given SessionPhase.
 func (t *Times) SetSessionPhaseTime(sp SessionPhase, time time.Time) {
 	t.times[sp] = time
@@ -110,13 +105,6 @@ func (t *Times) SetSessionPhaseTime(sp SessionPhase, time time.Time) {
 // GetSessionPhaseTime retrieves the time for a given SessionPhase.
 func (t *Times) GetSessionPhaseTime(sp SessionPhase) time.Time {
 	return t.times[sp]
-}
-
-// Clone returns a copy of the current PhaseTimes.
-func (t *Times) Clone() *Times {
-	tCopy := &Times{}
-	*tCopy = *t
-	return tCopy
 }
 
 // GetServiceLatencyNoOverhead returns the latency of serving a query
@@ -208,15 +196,10 @@ func (t *Times) GetSessionAge() time.Duration {
 
 // GetIdleLatency deduces the rough amount of time spent waiting for the client
 // while the transaction is open. (For implicit transactions, this value is 0.)
-func (t *Times) GetIdleLatency(previous *Times) time.Duration {
+func (t *Times) GetIdleLatency(previous Times) time.Duration {
 	queryReceived := t.times[SessionQueryReceived]
-
-	previousQueryReceived := time.Time{}
-	previousQueryServiced := time.Time{}
-	if previous != nil {
-		previousQueryReceived = previous.times[SessionQueryReceived]
-		previousQueryServiced = previous.times[SessionQueryServiced]
-	}
+	previousQueryReceived := previous.times[SessionQueryReceived]
+	previousQueryServiced := previous.times[SessionQueryServiced]
 
 	// If we were received at the same time as the previous execution
 	// (i.e., as part of a compound statement), we didn't have to wait
