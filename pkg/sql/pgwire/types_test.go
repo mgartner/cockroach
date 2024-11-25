@@ -556,6 +556,18 @@ func benchmarkWriteColumnarInterval(b *testing.B, format pgwirebase.FormatCode) 
 	benchmarkWriteColumnar(b, getBatch(types.Interval), format)
 }
 
+func benchmarkWriteJSON(b *testing.B, format pgwirebase.FormatCode) {
+	j, err := tree.ParseDJSON(`{"a": 1, "b": "foo"}`)
+	if err != nil {
+		b.Fatal(err)
+	}
+	benchmarkWriteType(b, j, format)
+}
+
+func benchmarkWriteColumnarJSON(b *testing.B, format pgwirebase.FormatCode) {
+	benchmarkWriteColumnar(b, getBatch(types.Json), format)
+}
+
 func benchmarkWriteTuple(b *testing.B, format pgwirebase.FormatCode) {
 	i := tree.NewDInt(1234)
 	f := tree.NewDFloat(12.34)
@@ -726,6 +738,22 @@ func BenchmarkWriteTextInterval(b *testing.B) {
 }
 func BenchmarkWriteTextColumnarInterval(b *testing.B) {
 	benchmarkWriteColumnarInterval(b, pgwirebase.FormatText)
+}
+
+func BenchmarkWriteTextJSON(b *testing.B) {
+	benchmarkWriteJSON(b, pgwirebase.FormatText)
+}
+
+func BenchmarkWriteBinaryJSON(b *testing.B) {
+	benchmarkWriteJSON(b, pgwirebase.FormatBinary)
+}
+
+func BenchmarkWriteTextColumnarJSON(b *testing.B) {
+	benchmarkWriteColumnarJSON(b, pgwirebase.FormatText)
+}
+
+func BenchmarkWriteBinaryColumnarJSON(b *testing.B) {
+	benchmarkWriteColumnarJSON(b, pgwirebase.FormatBinary)
 }
 
 func BenchmarkWriteTextTuple(b *testing.B) {
