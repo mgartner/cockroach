@@ -101,8 +101,23 @@ func writeTextUUID(b *writeBuffer, v uuid.UUID) {
 	b.write(s)
 }
 
-func writeTextString(b *writeBuffer, v string, t *types.T) {
-	b.writeLengthPrefixedString(tree.ResolveBlankPaddedChar(v, t))
+// spaces is used for padding CHAR(N) datums.
+var spaces = bytes.Repeat([]byte{' '}, system.CacheLineSize)
+
+func writeTextString(b *writeBuffer, s string, t *types.T) {
+	pad := 0
+	if t.Oid() == oid.T_bpchar && len(s) < int(t.Width()) {
+		// Pad spaces on the right of the byte slice to make it of length
+		// specified in the type t.
+		pad = int(t.Width()) - len(s)
+	}
+	b.putInt32(int32(len(s) + pad))
+	b.writeString(s)
+	for pad > 0 {
+		n := min(pad, len(spaces))
+		b.write(spaces[:n])
+		pad -= n
+	}
 }
 
 func writeTextTimestamp(b *writeBuffer, v time.Time) {
@@ -517,9 +532,6 @@ func writeBinaryDecimal(b *writeBuffer, v *apd.Decimal) {
 	}
 }
 
-// spaces is used for padding CHAR(N) datums.
-var spaces = bytes.Repeat([]byte{' '}, system.CacheLineSize)
-
 func writeBinaryBytes(b *writeBuffer, v []byte, t *types.T) {
 	if t.Oid() == oid.T_char && len(v) == 0 {
 		// Match Postgres and always explicitly include a null byte if we have
@@ -541,14 +553,25 @@ func writeBinaryBytes(b *writeBuffer, v []byte, t *types.T) {
 	}
 }
 
-func writeBinaryString(b *writeBuffer, v string, t *types.T) {
-	s := tree.ResolveBlankPaddedChar(v, t)
+func writeBinaryString(b *writeBuffer, s string, t *types.T) {
 	if t.Oid() == oid.T_char && s == "" {
 		// Match Postgres and always explicitly include a null byte if we have
 		// an empty string for the "char" type in the binary format.
 		s = string([]byte{0})
 	}
-	b.writeLengthPrefixedString(s)
+	pad := 0
+	if t.Oid() == oid.T_bpchar && len(s) < int(t.Width()) {
+		// Pad spaces on the right of the byte slice to make it of length
+		// specified in the type t.
+		pad = int(t.Width()) - len(s)
+	}
+	b.putInt32(int32(len(s) + pad))
+	b.writeString(s)
+	for pad > 0 {
+		n := min(pad, len(spaces))
+		b.write(spaces[:n])
+		pad -= n
+	}
 }
 
 func writeBinaryTimestamp(b *writeBuffer, v time.Time) {
