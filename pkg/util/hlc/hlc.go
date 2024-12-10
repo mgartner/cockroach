@@ -15,6 +15,7 @@ import (
 	"github.com/cockroachdb/cockroach/pkg/sql/pgwire/pgcode"
 	"github.com/cockroachdb/cockroach/pkg/sql/pgwire/pgerror"
 	"github.com/cockroachdb/cockroach/pkg/util/syncutil"
+	"github.com/cockroachdb/cockroach/pkg/util/system"
 	"github.com/cockroachdb/cockroach/pkg/util/timeutil"
 	"github.com/cockroachdb/cockroach/pkg/util/tracing"
 	"github.com/cockroachdb/errors"
@@ -68,6 +69,10 @@ type Clock struct {
 	// clock jumps. If set to 1, then jumps will cause panic. If set to 0,
 	// the check is disabled. The field is accessed atomically.
 	forwardClockJumpCheckEnabled int32
+
+	// Padding to ensure that mu is on a separate cache line from
+	// lastPhysicalTime.
+	_ [system.CacheLineSize - 8 - 4 - 4]byte
 
 	mu struct {
 		syncutil.Mutex
