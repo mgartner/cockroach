@@ -1461,11 +1461,16 @@ func (cf *cFetcher) Release() {
 	}
 	colvecs := cf.machine.colvecs
 	colvecs.Reset()
+	batch := cf.machine.batch
+	if batch != nil {
+		batch.ResetInternalBatch()
+	}
 	*cf = cFetcher{scratch: cf.scratch}
 	cf.scratch.decoding = cf.scratch.decoding[:0]
 	cf.scratch.nextKVKey = cf.scratch.nextKVKey[:0]
 	cf.scratch.nextKVRawBytes = cf.scratch.nextKVRawBytes[:0]
 	cf.machine.colvecs = colvecs
+	cf.machine.batch = batch
 	cFetcherPool.Put(cf)
 }
 
