@@ -737,7 +737,7 @@ var varGen = map[string]sessionVar{
 			return nil
 		},
 		GlobalDefault: func(sv *settings.Values) string {
-			return strconv.FormatUint(1000, 10)
+			return strconv.FormatUint(0, 10)
 		},
 	},
 
