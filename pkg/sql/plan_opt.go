@@ -413,7 +413,7 @@ func (opc *optPlanningCtx) log(ctx context.Context, msg redact.SafeString) {
 	if log.VDepth(1, 1) {
 		log.InfofDepth(ctx, 1, "%s: %s", msg, opc.p.stmt)
 	} else {
-		log.Eventf(ctx, "%s", string(msg))
+		log.Eventf(ctx, "%s", msg)
 	}
 }
 
