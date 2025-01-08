@@ -20,6 +20,7 @@ import (
 	kv2 "github.com/cockroachdb/cockroach/pkg/kv"
 	"github.com/cockroachdb/cockroach/pkg/kv/kvpb"
 	"github.com/cockroachdb/cockroach/pkg/settings/cluster"
+	"github.com/cockroachdb/cockroach/pkg/sql/sqlstats"
 	"github.com/cockroachdb/cockroach/pkg/sql/stats"
 	"github.com/cockroachdb/cockroach/pkg/storage"
 	"github.com/cockroachdb/cockroach/pkg/testutils/serverutils"
@@ -42,6 +43,8 @@ type kvInterface interface {
 // disableBackgroundWork disables background work in the cluster settings to
 // make the benchmarks more predictable.
 func disableBackgroundWork(st *cluster.Settings) {
+	sqlstats.StmtStatsEnable.Override(context.Background(), &st.SV, false)
+	sqlstats.TxnStatsEnable.Override(context.Background(), &st.SV, false)
 	ts.TimeseriesStorageEnabled.Override(context.Background(), &st.SV, false)
 	stats.AutomaticStatisticsClusterMode.Override(context.Background(), &st.SV, false)
 }
