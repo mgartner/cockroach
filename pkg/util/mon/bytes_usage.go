@@ -11,6 +11,7 @@ import (
 	"io"
 	"math"
 	"strings"
+	"sync"
 	"unsafe"
 
 	"github.com/cockroachdb/cockroach/pkg/settings"
@@ -462,6 +463,12 @@ type Options struct {
 	LongLiving bool
 }
 
+var bytesMonitorAllocPool = sync.Pool{
+	New: func() interface{} {
+		return &BytesMonitor{}
+	},
+}
+
 // NewMonitor creates a new monitor.
 func NewMonitor(args Options) *BytesMonitor {
 	if args.Limit <= 0 {
@@ -470,7 +477,8 @@ func NewMonitor(args Options) *BytesMonitor {
 	if args.Increment <= 0 {
 		args.Increment = DefaultPoolAllocationSize
 	}
-	m := &BytesMonitor{
+	m := bytesMonitorAllocPool.Get().(*BytesMonitor)
+	*m = BytesMonitor{
 		name:               args.Name,
 		configLimit:        args.Limit,
 		limit:              args.Limit,
@@ -753,6 +761,9 @@ func (mm *BytesMonitor) doStop(ctx context.Context, check bool) {
 		// pointer to the parent monitor.
 		mm.reserved = &noReserved
 	}
+
+	// Return the monitor to the allocation pool.
+	bytesMonitorAllocPool.Put(mm)
 }
 
 // MaximumBytes returns the maximum number of bytes that were allocated by this
