@@ -279,6 +279,9 @@ func (s *sysbenchSQL) prepSchema(rng *rand.Rand) {
 		// Collect table statistics.
 		try(s.conn.Exec(s.ctx, fmt.Sprintf(sysbenchAnalyze, i)))
 	}
+
+	// Enable experimental DistSQL planning.
+	try(s.conn.Exec(s.ctx, `SET experimental_distsql_planning = 'on'`))
 }
 
 func (s *sysbenchSQL) prepConn() {
