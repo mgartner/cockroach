@@ -278,6 +278,9 @@ func (s *sysbenchSQL) prepSchema(rng *rand.Rand) {
 		// Collect table statistics.
 		try(s.conn.Exec(s.ctx, fmt.Sprintf(sysbenchAnalyze, i)))
 	}
+
+	// Disable vectorized execution.
+	try(s.conn.Exec(s.ctx, `SET vectorize=off`))
 }
 
 func (s *sysbenchSQL) prepConn() {
