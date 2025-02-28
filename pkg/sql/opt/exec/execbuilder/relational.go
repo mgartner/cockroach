@@ -51,7 +51,8 @@ import (
 )
 
 type execPlan struct {
-	root exec.Node
+	root  exec.Node
+	vmOps []vm.Op
 }
 
 // makeBuildScalarCtx returns a buildScalarCtx that can be used with expressions
@@ -1002,6 +1003,9 @@ func (b *Builder) buildPlaceholderScan(
 		return execPlan{}, colOrdMap{}, err
 	}
 
+	var res execPlan
+	res.root = root
+
 	// SELECT c FROM sbtest0 WHERE id = $1
 	//
 	// KEncPrefix        sbtest0 primary
@@ -1016,21 +1020,21 @@ func (b *Builder) buildPlaceholderScan(
 	// - no column families
 	// - 1 output column
 	//
-	placeholder := scan.Span[0].(*memo.PlaceholderExpr)
-	colID := scan.Cols.SingleColumn()
-	ord := scan.Table.ColumnOrdinal(colID)
-	stableColID := md.Table(scan.Table).Column(ord).ColID()
-	ops := []vm.Op{
-		{OpCode: vm.KEncPrefix, Table: uint32(tab.ID()), Index: uint32(idx.ID())},
-		{OpCode: vm.KEncExpr, Expr: placeholder.Value},
-		{OpCode: vm.Get},
-		{OpCode: vm.ExitIfValEmpty},
-		{OpCode: vm.VDec, ColID: descpb.ColumnID(stableColID)},
-		{OpCode: vm.Push},
+	if scan.Index == cat.PrimaryIndex && scan.Cols.Len() == 1 {
+		placeholder := scan.Span[0].(*memo.PlaceholderExpr)
+		colID := scan.Cols.SingleColumn()
+		ord := scan.Table.ColumnOrdinal(colID)
+		stableColID := md.Table(scan.Table).Column(ord).ColID()
+		res.vmOps = []vm.Op{
+			{OpCode: vm.KEncPrefix, Table: uint32(tab.ID()), Index: uint32(idx.ID())},
+			{OpCode: vm.KEncExpr, Expr: placeholder.Value},
+			{OpCode: vm.Get},
+			{OpCode: vm.ExitIfValEmpty},
+			{OpCode: vm.VDec, ColID: descpb.ColumnID(stableColID)},
+			{OpCode: vm.Push},
+		}
 	}
 
-	var res execPlan
-	res.root = root
 	return res, outputCols, nil
 }
 

@@ -19,6 +19,7 @@ import (
 	"github.com/cockroachdb/cockroach/pkg/sql/sem/eval"
 	"github.com/cockroachdb/cockroach/pkg/sql/sem/tree"
 	"github.com/cockroachdb/cockroach/pkg/sql/types"
+	"github.com/cockroachdb/cockroach/pkg/sql/vm"
 	"github.com/cockroachdb/cockroach/pkg/util/errorutil"
 	"github.com/cockroachdb/cockroach/pkg/util/metamorphic"
 	"github.com/cockroachdb/errors"
@@ -288,16 +289,17 @@ func (b *Builder) DisableTelemetry() {
 
 // Build constructs the execution node tree and returns its root node if no
 // error occurred.
-func (b *Builder) Build() (_ exec.Plan, err error) {
+func (b *Builder) Build() (_ exec.Plan, _ []vm.Op, err error) {
 	plan, _, err := b.build(b.e)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	rootRowCount := int64(b.e.(memo.RelExpr).Relational().Statistics().RowCountIfAvailable())
-	return b.factory.ConstructPlan(
+	p, err := b.factory.ConstructPlan(
 		plan.root, b.subqueries, b.cascades, b.triggers, b.checks, rootRowCount, b.flags,
 	)
+	return p, plan.vmOps, err
 }
 
 type functionLookupHelper func(context.Context, tree.UnresolvedRoutineName, tree.SearchPath) (*tree.ResolvedFunctionDefinition, error)

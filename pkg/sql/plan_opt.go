@@ -33,6 +33,7 @@ import (
 	"github.com/cockroachdb/cockroach/pkg/sql/sem/tree"
 	"github.com/cockroachdb/cockroach/pkg/sql/sessiondatapb"
 	"github.com/cockroachdb/cockroach/pkg/sql/sqltelemetry"
+	"github.com/cockroachdb/cockroach/pkg/sql/vm"
 	"github.com/cockroachdb/cockroach/pkg/util/errorutil"
 	"github.com/cockroachdb/cockroach/pkg/util/log"
 	"github.com/cockroachdb/cockroach/pkg/util/tracing"
@@ -904,6 +905,7 @@ func (opc *optPlanningCtx) runExecBuilder(
 		f = &opc.gf
 	}
 	var bld *execbuilder.Builder
+	var ops []vm.Op
 	if !planTop.instrumentation.ShouldBuildExplainPlan() {
 		bld = execbuilder.New(
 			ctx, f, &opc.optimizer, mem, opc.catalog, mem.RootExpr(),
@@ -912,7 +914,7 @@ func (opc *optPlanningCtx) runExecBuilder(
 		if disableTelemetryAndPlanGists {
 			bld.DisableTelemetry()
 		}
-		plan, err := bld.Build()
+		plan, _, err := bld.Build()
 		if err != nil {
 			return err
 		}
@@ -927,7 +929,7 @@ func (opc *optPlanningCtx) runExecBuilder(
 		if disableTelemetryAndPlanGists {
 			bld.DisableTelemetry()
 		}
-		plan, err := bld.Build()
+		plan, vmOps, err := bld.Build()
 		if err != nil {
 			return err
 		}

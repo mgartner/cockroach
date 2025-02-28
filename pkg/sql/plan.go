@@ -19,6 +19,7 @@ import (
 	"github.com/cockroachdb/cockroach/pkg/sql/sem/eval"
 	"github.com/cockroachdb/cockroach/pkg/sql/sem/tree"
 	"github.com/cockroachdb/cockroach/pkg/sql/sessiondata"
+	"github.com/cockroachdb/cockroach/pkg/sql/vm"
 	"github.com/cockroachdb/errors"
 )
 
@@ -326,6 +327,8 @@ type planTop struct {
 	stmt *Statement
 
 	planComponents
+
+	program []vm.Op
 
 	// mem/catalog retains the memo and catalog that were used to create the
 	// plan. Set unconditionally but used only by instrumentation (in order to
