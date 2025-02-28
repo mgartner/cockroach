@@ -169,6 +169,7 @@ const (
 )
 
 // Direction for ordering results.
+// TODO: Make this an uint8.
 type Direction int
 
 // Direction values.

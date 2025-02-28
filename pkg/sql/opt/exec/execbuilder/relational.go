@@ -39,6 +39,7 @@ import (
 	"github.com/cockroachdb/cockroach/pkg/sql/sqlerrors"
 	"github.com/cockroachdb/cockroach/pkg/sql/sqltelemetry"
 	"github.com/cockroachdb/cockroach/pkg/sql/types"
+	"github.com/cockroachdb/cockroach/pkg/sql/vm"
 	"github.com/cockroachdb/cockroach/pkg/util/buildutil"
 	"github.com/cockroachdb/cockroach/pkg/util/encoding"
 	"github.com/cockroachdb/cockroach/pkg/util/errorutil"
@@ -999,6 +1000,33 @@ func (b *Builder) buildPlaceholderScan(
 	)
 	if err != nil {
 		return execPlan{}, colOrdMap{}, err
+	}
+
+	// SELECT c FROM sbtest0 WHERE id = $1
+	//
+	// KEncPrefix        sbtest0 primary
+	// KEncExpr            $1
+	// Get
+	// ExitIfValEmpty
+	// VDec                 c
+	// Push
+	//
+	// TODO: Check a bunch of things:
+	// - primary key
+	// - no column families
+	// - 1 output column
+	//
+	placeholder := scan.Span[0].(*memo.PlaceholderExpr)
+	colID := scan.Cols.SingleColumn()
+	ord := scan.Table.ColumnOrdinal(colID)
+	stableColID := md.Table(scan.Table).Column(ord).ColID()
+	ops := []vm.Op{
+		{OpCode: vm.KEncPrefix, Table: uint32(tab.ID()), Index: uint32(idx.ID())},
+		{OpCode: vm.KEncExpr, Expr: placeholder.Value},
+		{OpCode: vm.Get},
+		{OpCode: vm.ExitIfValEmpty},
+		{OpCode: vm.VDec, ColID: descpb.ColumnID(stableColID)},
+		{OpCode: vm.Push},
 	}
 
 	var res execPlan
