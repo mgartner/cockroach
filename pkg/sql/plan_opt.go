@@ -273,7 +273,9 @@ func (p *planner) runExecBuild(
 	ctx context.Context, execMemo *memo.Memo, disableTelemetryAndPlanGists bool,
 ) error {
 	opc := &p.optPlanningCtx
-	if mode := p.SessionData().ExperimentalDistSQLPlanningMode; mode != sessiondatapb.ExperimentalDistSQLPlanningOff {
+	// TODO(mgartner): We might need a new setting here.
+	if mode := p.SessionData().ExperimentalDistSQLPlanningMode; mode != sessiondatapb.ExperimentalDistSQLPlanningOff &&
+		execMemo.IsPlaceholderFastPath() {
 		planningMode := distSQLDefaultPlanning
 		// If this transaction has modified or created any types, it is not safe to
 		// distribute due to limitations around leasing descriptors modified in the

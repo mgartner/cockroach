@@ -382,6 +382,13 @@ func (m *Memo) SetRoot(e RelExpr, phys *physical.Required) {
 	}
 }
 
+// IsPlaceholderFastPath returns true if the root expression is a
+// PlaceholderScanExpr.
+func (m *Memo) IsPlaceholderFastPath() bool {
+	_, ok := m.rootExpr.(*PlaceholderScanExpr)
+	return ok
+}
+
 // HasPlaceholders returns true if the memo contains at least one placeholder
 // operator.
 func (m *Memo) HasPlaceholders() bool {

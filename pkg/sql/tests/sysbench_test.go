@@ -344,6 +344,8 @@ func (s *sysbenchSQL) prepSchema(rng *rand.Rand) {
 		// Collect table statistics.
 		try(conn.Exec(s.ctx, fmt.Sprintf(sysbenchAnalyze, i)))
 	}
+
+	try(conn.Exec(s.ctx, `SET CLUSTER SETTING sql.defaults.experimental_distsql_planning = on`))
 }
 
 func (s *sysbenchSQLClient) prepConn() {
