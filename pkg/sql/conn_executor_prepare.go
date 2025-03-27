@@ -131,11 +131,17 @@ func (ex *connExecutor) addPreparedStmt(
 		return nil, err
 	}
 	ex.extraTxnState.prepStmtsNamespace.prepStmts[name] = prepared
-	ex.extraTxnState.prepStmtsNamespace.addLRUEntry(name, prepared.memAcc.Allocated())
 
-	// Check if we're over prepared_statements_cache_size.
 	cacheSize := ex.sessionData().PreparedStatementsCacheSize
 	if cacheSize != 0 {
+		// Only add statements to the LRU if there is a limit. This eliminates
+		// overhead of maintaining the LRU and resetting it in
+		// (*prepStmtNamespace).resetTo in the default case. This comes at the
+		// cost of not tracking prepared statements in the LRU when the setting
+		// is zero.
+		ex.extraTxnState.prepStmtsNamespace.addLRUEntry(name, prepared.memAcc.Allocated())
+
+		// Check if we're over prepared_statements_cache_size.
 		lru := ex.extraTxnState.prepStmtsNamespace.prepStmtsLRU
 		// While we're over the cache size, deallocate the LRU prepared statement.
 		for tail := lru[prepStmtsLRUTail]; tail.prev != prepStmtsLRUHead && tail.prev != name; tail = lru[prepStmtsLRUTail] {

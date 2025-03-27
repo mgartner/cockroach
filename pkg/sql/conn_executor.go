@@ -2033,6 +2033,10 @@ func (ns *prepStmtNamespace) touchLRUEntry(name string) {
 		// Already at the front of the list.
 		return
 	}
+	if _, ok := ns.prepStmtsLRU[name]; !ok {
+		// Not an error if the prepare statement is not in the LRU.
+		return
+	}
 	ns.delLRUEntry(name, 0)
 	ns.addLRUEntry(name, 0)
 }
