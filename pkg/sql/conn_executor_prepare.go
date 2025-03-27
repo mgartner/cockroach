@@ -20,7 +20,6 @@ import (
 	"github.com/cockroachdb/cockroach/pkg/util/fsm"
 	"github.com/cockroachdb/cockroach/pkg/util/humanizeutil"
 	"github.com/cockroachdb/cockroach/pkg/util/log"
-	"github.com/cockroachdb/cockroach/pkg/util/timeutil"
 	"github.com/cockroachdb/cockroach/pkg/util/tracing"
 	"github.com/cockroachdb/errors"
 	"github.com/cockroachdb/redact"
@@ -81,7 +80,7 @@ func (ex *connExecutor) execPrepare(
 		stmt,
 		parseCmd.TypeHints,
 		parseCmd.RawTypeHints,
-		PreparedStatementOriginWire,
+		prep.StatementOriginWire,
 	)
 	if err != nil {
 		return retErr(err)
@@ -90,7 +89,7 @@ func (ex *connExecutor) execPrepare(
 	return nil, nil
 }
 
-// addPreparedStmt creates a new PreparedStatement with the provided name using
+// addPreparedStmt creates a new prep.Statement with the provided name using
 // the given query. The new prepared statement is added to the connExecutor and
 // also returned. It is illegal to call this when a statement with that name
 // already exists (even for anonymous prepared statements).
@@ -104,8 +103,8 @@ func (ex *connExecutor) addPreparedStmt(
 	stmt Statement,
 	placeholderHints tree.PlaceholderTypes,
 	rawTypeHints []oid.Oid,
-	origin PreparedStatementOrigin,
-) (*PreparedStatement, error) {
+	origin prep.StatementOrigin,
+) (*prep.Statement, error) {
 	if _, ok := ex.extraTxnState.prepStmtsNamespace.prepStmts[name]; ok {
 		return nil, pgerror.Newf(
 			pgcode.DuplicatePreparedStatement,
@@ -120,14 +119,14 @@ func (ex *connExecutor) addPreparedStmt(
 	}
 
 	if len(prepared.TypeHints) > pgwirebase.MaxPreparedStatementArgs {
-		prepared.memAcc.Close(ctx)
+		prepared.MemAcc().Close(ctx)
 		return nil, pgwirebase.NewProtocolViolationErrorf(
 			"more than %d arguments to prepared statement: %d",
 			pgwirebase.MaxPreparedStatementArgs, len(prepared.TypeHints))
 	}
 
-	if err := prepared.memAcc.Grow(ctx, int64(len(name))); err != nil {
-		prepared.memAcc.Close(ctx)
+	if err := prepared.MemAcc().Grow(ctx, int64(len(name))); err != nil {
+		prepared.MemAcc().Close(ctx)
 		return nil, err
 	}
 	ex.extraTxnState.prepStmtsNamespace.prepStmts[name] = prepared
@@ -139,7 +138,7 @@ func (ex *connExecutor) addPreparedStmt(
 		// (*prepStmtNamespace).resetTo in the default case. This comes at the
 		// cost of not tracking prepared statements in the LRU when the setting
 		// is zero.
-		ex.extraTxnState.prepStmtsNamespace.addLRUEntry(name, prepared.memAcc.Allocated())
+		ex.extraTxnState.prepStmtsNamespace.addLRUEntry(name, prepared.MemAcc().Allocated())
 
 		// Check if we're over prepared_statements_cache_size.
 		lru := ex.extraTxnState.prepStmtsNamespace.prepStmtsLRU
@@ -183,20 +182,14 @@ func (ex *connExecutor) prepare(
 	stmt Statement,
 	placeholderHints tree.PlaceholderTypes,
 	rawTypeHints []oid.Oid,
-	origin PreparedStatementOrigin,
-) (_ *PreparedStatement, retErr error) {
+	origin prep.StatementOrigin,
+) (_ *prep.Statement, retErr error) {
 
-	prepared := &PreparedStatement{
-		memAcc:   ex.sessionPreparedMon.MakeBoundAccount(),
-		refCount: 1,
-
-		createdAt: timeutil.Now(),
-		origin:    origin,
-	}
+	prepared := prep.NewStatement(origin, ex.sessionPreparedMon.MakeBoundAccount())
 	defer func() {
 		// Make sure to close the memory account if an error is returned.
 		if retErr != nil {
-			prepared.memAcc.Close(ctx)
+			prepared.MemAcc().Close(ctx)
 		}
 	}()
 
@@ -221,7 +214,7 @@ func (ex *connExecutor) prepare(
 	var flags planFlags
 	prepare := func(ctx context.Context, txn *kv.Txn) (err error) {
 		p := &ex.planner
-		if origin == PreparedStatementOriginWire {
+		if origin == prep.StatementOriginWire {
 			// If the PREPARE command was issued as a SQL statement or through
 			// deserialize_session, then we have already reset the planner at the very
 			// beginning of the execution (in execStmtInOpenState). We might have also
@@ -288,7 +281,7 @@ func (ex *connExecutor) prepare(
 
 	// Use the existing transaction.
 	if err := prepare(ctx, ex.state.mu.txn); err != nil {
-		if origin != PreparedStatementOriginSessionMigration {
+		if origin != prep.StatementOriginSessionMigration {
 			return nil, err
 		} else {
 			f := tree.NewFmtCtx(tree.FmtMarkRedactionNode | tree.FmtOmitNameRedaction | tree.FmtSimple)
@@ -299,7 +292,7 @@ func (ex *connExecutor) prepare(
 	}
 
 	// Account for the memory used by this prepared statement.
-	if err := prepared.memAcc.Grow(ctx, prepared.MemoryEstimate()); err != nil {
+	if err := prepared.MemAcc().Grow(ctx, prepared.MemoryEstimate()); err != nil {
 		return nil, err
 	}
 	ex.updateOptCounters(flags)
@@ -313,7 +306,7 @@ func (ex *connExecutor) populatePrepared(
 	txn *kv.Txn,
 	placeholderHints tree.PlaceholderTypes,
 	p *planner,
-	origin PreparedStatementOrigin,
+	origin prep.StatementOrigin,
 ) (planFlags, error) {
 	if before := ex.server.cfg.TestingKnobs.BeforePrepare; before != nil {
 		if err := before(ctx, ex.planner.stmt.String(), txn); err != nil {
@@ -329,7 +322,7 @@ func (ex *connExecutor) populatePrepared(
 	// there is no way for the statement being prepared to be executed in this
 	// transaction, so there's no need to fix the timestamp, unlike how we must
 	// for pgwire- or SQL-level prepared statements.
-	if origin != PreparedStatementOriginSessionMigration {
+	if origin != prep.StatementOriginSessionMigration {
 		if err := ex.handleAOST(ctx, p.stmt.AST); err != nil {
 			return 0, err
 		}
@@ -355,7 +348,7 @@ func (ex *connExecutor) populatePrepared(
 func (ex *connExecutor) execBind(
 	ctx context.Context, bindCmd BindStmt,
 ) (fsm.Event, fsm.EventPayload) {
-	var ps *PreparedStatement
+	var ps *prep.Statement
 	retErr := func(err error) (fsm.Event, fsm.EventPayload) {
 		if bindCmd.PreparedStatementName != "" {
 			err = errors.WithDetailf(err, "statement name %q", bindCmd.PreparedStatementName)
@@ -565,7 +558,7 @@ func (ex *connExecutor) execBind(
 func (ex *connExecutor) addPortal(
 	ctx context.Context,
 	portalName string,
-	stmt *PreparedStatement,
+	stmt *prep.Statement,
 	qargs tree.QueryArguments,
 	outFormats []pgwirebase.FormatCode,
 ) error {
@@ -601,8 +594,8 @@ func (ex *connExecutor) deletePreparedStmt(ctx context.Context, name string) {
 	if !ok {
 		return
 	}
-	alloc := ps.memAcc.Allocated()
-	ps.decRef(ctx)
+	alloc := ps.MemAcc().Allocated()
+	ps.DecRef(ctx)
 	delete(ex.extraTxnState.prepStmtsNamespace.prepStmts, name)
 	ex.extraTxnState.prepStmtsNamespace.delLRUEntry(name, alloc)
 }
