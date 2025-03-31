@@ -3466,7 +3466,7 @@ func (ex *connExecutor) commitPrepStmtNamespace(ctx context.Context) error {
 	)
 }
 
-// commitPrepStmtNamespace deallocates everything in prepStmtsNamespace that's
+// rewindPrepStmtNamespace deallocates everything in prepStmtsNamespace that's
 // not part of prepStmtsNamespaceAtTxnRewindPos.
 func (ex *connExecutor) rewindPrepStmtNamespace(ctx context.Context) error {
 	return ex.extraTxnState.prepStmtsNamespace.resetTo(
