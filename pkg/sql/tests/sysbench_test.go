@@ -371,6 +371,9 @@ func (s *sysbenchSQLClient) prepConn() {
 		s.stmt.delete[i] = try(s.conn.Prepare(s.ctx, deleteName, deleteSQL)).Name
 		s.stmt.insert[i] = try(s.conn.Prepare(s.ctx, insertName, insertSQL)).Name
 	}
+
+	// Disable vectorized execution.
+	_ = try(s.conn.Exec(s.ctx, "SET vectorize=off"))
 }
 
 // sysbenchKV is KV-based implementation of sysbenchDriver. It bypasses the SQL
