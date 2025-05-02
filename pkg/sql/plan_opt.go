@@ -432,6 +432,7 @@ func (opc *optPlanningCtx) log(ctx context.Context, msg redact.SafeString) {
 		msg := msg
 		log.InfofDepth(ctx, 1, "%s: %s", msg, opc.p.stmt)
 	} else {
+		// log.Event(ctx, string(msg)) // nolint:fmtsafe
 		log.Event(ctx, string(msg))
 	}
 }

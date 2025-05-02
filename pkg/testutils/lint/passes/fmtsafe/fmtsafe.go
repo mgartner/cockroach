@@ -151,7 +151,7 @@ func maybeGetConstStr(
 	if nparams+argIdx < 0 {
 		panic(errors.New("not enough arguments"))
 	}
-	if p := params.At(nparams + argIdx); p.Type() == types.Typ[types.String] {
+	if p := params.At(nparams + argIdx); p.Type().Underlying() == types.Typ[types.String] {
 		// Found it!
 		return fn.Name(), p
 	}
@@ -222,11 +222,18 @@ func checkCallExpr(pass *analysis.Pass, enclosingFnName string, call *ast.CallEx
 		return
 	}
 
-	// Not a constant. If it's a variable and the variable
-	// refers to the incoming format/message from the arg list,
-	// tolerate that.
+	// Not a constant. If it's a variable or a variable wrapped by a string
+	// cast, and the variable refers to the incoming format/message from the arg
+	// list, tolerate that.
 	if fv != nil {
-		if id, ok := call.Args[idx].(*ast.Ident); ok {
+		arg := call.Args[idx]
+		// if c, ok := arg.(*ast.CallExpr); ok {
+		// 	if str, ok := c.Fun.(*ast.Ident); ok && str.Name == "string" && len(c.Args) == 1 {
+		// 		// Unwrap a string(...) cast.
+		// 		arg = c.Args[0]
+		// 	}
+		// }
+		if id, ok := arg.(*ast.Ident); ok {
 			if pass.TypesInfo.ObjectOf(id) == fv {
 				// Same arg as incoming. All good.
 				return
@@ -236,11 +243,14 @@ func checkCallExpr(pass *analysis.Pass, enclosingFnName string, call *ast.CallEx
 
 	// If the argument is opting out of the linter with a special
 	// comment, tolerate that.
-	if hasNoLintComment(pass, call, idx) {
+	fPos, f := findContainingFile(pass, call)
+	if hasNoLintComment(call, idx, fPos, f) {
 		return
 	}
 
-	pass.Reportf(call.Lparen, escNl("%s(): %s argument is not a constant expression"+Tip), enclosingFnName, argType)
+	pos := pass.Fset.Position(call.Pos())
+	pass.Reportf(f.Pos(), escNl("%s:%d:%d %s(): %s argument is not a constant expression"+Tip),
+		pos.Filename, pos.Line, pos.Column, enclosingFnName, argType)
 }
 
 // Tip is exported for use in tests.
@@ -248,9 +258,7 @@ var Tip = `
 Tip: use YourFuncf("descriptive prefix %%s", ...) or list new formatting wrappers in pkg/testutils/lint/passes/fmtsafe/functions.go.
 N.B. additional entry is required functions in the main package. See functions.go#requireConstFmt`
 
-func hasNoLintComment(pass *analysis.Pass, call *ast.CallExpr, idx int) bool {
-	fPos, f := findContainingFile(pass, call)
-
+func hasNoLintComment(call *ast.CallExpr, idx int, fPos *token.File, f *ast.File) bool {
 	if !strings.HasSuffix(fPos.Name(), "_test.go") {
 		// The nolint: escape hatch is only supported in test files.
 		return false
@@ -281,7 +289,7 @@ func findContainingFile(pass *analysis.Pass, n ast.Node) (*token.File, *ast.File
 			return fPos, f
 		}
 	}
-	panic(fmt.Errorf("cannot file file for %v", n))
+	panic(fmt.Errorf("cannot find file for %v", n))
 }
 
 func stripVendor(s string) string {

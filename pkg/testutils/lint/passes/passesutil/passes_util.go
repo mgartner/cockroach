@@ -23,7 +23,7 @@ func FindContainingFile(pass *analysis.Pass, n ast.Node) *ast.File {
 			return f
 		}
 	}
-	panic(fmt.Errorf("cannot file file for %v", n))
+	panic(fmt.Errorf("cannot find file for %v", n))
 }
 
 // HasNolintComment returns true if the comments on the passed node have
