@@ -2503,6 +2503,16 @@ left-join (hash)
  └── filters
       └── y:2 = k:6 [outer=(2,6), constraints=(/2: (/NULL - ]; /6: (/NULL - ]), fd=(2)==(6), (6)==(2)]
 
+# --------------------------------------------------
+# SimplifyZeroCardinalityLeftJoin
+# --------------------------------------------------
+
+# norm expect=SimplifyLeftJoin
+# norm
+optstepsweb
+SELECT * FROM (SELECT k FROM a WHERE false) AS a LEFT JOIN a AS a2 ON a.k=a2.k
+----
+https://raduberinde.github.io/optsteps.html?eJzsWt1u2zYUvt9TnPlKmk0nlNNWZWEgQ-ZuLbyka7oNWFIEjEwvjGXKkOSu2TCgyDPksk-XJxkkWZItUaRsz66HOTehyHNkn7_vOyT9V-P8p36DNM57_d7JO_gGXr49-xGM2eMoeaTw6w-9tz0YUjdgJnx7DhT6vZfv4PXZq1Og8YQFZ6dA26MutdqjRqtx6vnj7_hw2CANhBDQg1eCh5y6l6LZbMJ1_nh8DAhDE7c6HTg-vhTNie_dMie8FE14fPj8-PDp8eETOJ47HYuAwIjgr8XUdWFEbODkOQwJPoSAYAy3BFsFLeoPuKAuD-8IXBwCgsP3ixIjdkfAwObi7HBAwLBNhC6nh4cdZjxH2DJbkVw2ZUdTidbDTMtlwxDdelyAcUODm3g1_pOYQduZIZHDiB39i8yhVju2iFrt2ChqtSO7ov-OP7i-4iJkvqDu1fiD41yFfMyCkI4nBHcikZBeu8zjA4KPZJ9e4Y6C2HjqhnzicieWi63yvT8Cg32kTujeIU8wswU-__1mtvAn8z3k-fGC5H3zPi4sSRx9VHb0kUx1Lk1mK_daXyuE1a6511o0k0hzIWCu5MvVyYY2JxbQ9pB00omAHAFt35InQNU58BRongHPdB9ew2J9IGVicVDnImihZzqVwKECaIWQPq6b91rNBJAnwxIOyVS4GzI_kEoVRSNUhgvHE0HoUy7CoGs4ngh9OuBOyD3xAsKoVk1ZrSeOhwsadKmlyPjc6TFaZcg1B1nZ3L-GW1Kn24qqk8LJnHiVdwvLcWJBN0XmC28aMr9r4JZttmDBzweYgHFw-nO_Dwjev4ADe_7ZbMFw0DWw2e0akaphRyMcBSLhxHM-nrh8ePcb872TvB6_973pJCVKtUzMnhF1NnHLsmMCzZFRGkAtgepBAkkrAa1MoIvvknFxroZbM0VQMm89rN0U89YE25LYmsyLqgG7tLQG886FSfbSQqyOZNGYS9HaIK8QrshSHXYXJYrkjWQI_WVoSOX9e3UQFHj5gbpTJieZGoamw0Vr0-EteZIO1XanUrnx0nDXqihlxKoCL0viElsrVdL2RSq05falznfQeKJW-yLVLBGsRKooukr7Uh1ebWNVqI7YloqA5m2RPpibb4vUwbTNsoSmLaqOmjxSW2uL3vhTwX6JsenEc4O0EypNJ82PZW-1-ZGmnI4E9w2LtGGpruHSyk61FupSlFSigpurijbl5tWakE1z87Idw0psrlTJfK0mIhncL0UQe3rYNXrouXzMBQ3Zm-wIMOaH8vwCQXT2BPF_JIjSzrd8cPy5ALn6ct4cc1TtWiWwVLV9XZU5dBqr7riWxWjdAd8enHcYnNPjyj4bhq89LorHmPn8DJw7UnBG69_9ybSSQaqaPK0P7qWTTwm4IyW4l0BqyxeFuu8fHwwWQr54-cmFYP7Kt5_bKb5d4S75YayEu2oesMqjU_r8XaA3Jcztgf0_AOzr3lUlgI_xsoCvge760J8MFl-SjKI3ZWm_ISaQ1ypSI-kS9LDhm1k90TVV9wvLff9sXDIie8hCVsOcTG7OpiLK1Wx2d4UiqrKpAvmrNhc1NgPr3bYpdiuqjU0V8uvt2HwtqA22dRaXkR9VIj_6Ushf_uFE1SZ7hXN7jKVEoD2W2QqQL3teU6qwXUW6LUDx6h13GSx0iVcrQy1z1aPDJEefximK8oOjvJPehVxddvu5xVyVfUg9Zl0uFYqNR5XMpWi0Gr2PE9fz2ezXyY2_v_onAAD__zSpfGw=
 
 # --------------------------------------------------
 # SimplifyLeftJoinWithZeroRowsRight

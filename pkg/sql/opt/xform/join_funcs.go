@@ -707,6 +707,12 @@ func (c *CustomFuncs) generateLookupJoinsImpl(
 			lookupJoin.On,
 			&lookupJoin.LookupJoinPrivate,
 		)
+		// if indexJoin.Input.Relational().Cardinality.IsZero() {
+		// 	// In some cases, the input to the lookup join is empty. This can happen
+		// 	// if
+		// 	// There is no need to build a lookup join if the input is empty.
+		// 	return
+		// }
 		indexJoin.JoinType = joinType
 		indexJoin.Table = scanPrivate.Table
 		indexJoin.Index = cat.PrimaryIndex

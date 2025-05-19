@@ -324,6 +324,19 @@
 =>
 (ConstructNonLeftJoin (OpName) $left $right $on $private)
 
+# SimplifyZeroCardinalityLeftJoin converts a LeftJoin operator to an empty
+# Values when it's known that the left input produces no rows.
+# [SimplifyZeroCardinalityLeftJoin, Normalize]
+# (LeftJoin | LeftJoinApply
+#     $left:*
+#     $right:*
+#     $on:* & (HasZeroRows $left)
+# )
+# =>
+# (ConstructEmptyValues
+#     (UnionCols (OutputCols $left) (OutputCols $right))
+# )
+
 # SimplifyLeftJoinWithZeroRowsRight replaces a LeftJoin with a Project when
 # the right input never returns any rows. The Project passes through columns
 # from the left input and produces NULL values for each column in the right

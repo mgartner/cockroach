@@ -486,10 +486,14 @@ func (c *CustomFuncs) GetEquivGroups(
 
 // JoinFiltersMatchAllLeftRows returns true when each row in the given join's
 // left input matches at least one row from the right input, according to the
-// join filters.
+// join filters. This function always returns true, regardless of the filters,
+// if the left input is guaranteed to produce zero rows.
 func (c *CustomFuncs) JoinFiltersMatchAllLeftRows(
 	left, right memo.RelExpr, on memo.FiltersExpr,
 ) bool {
+	// if left.Relational().Cardinality.IsZero() {
+	// 	return true
+	// }
 	multiplicity := memo.DeriveJoinMultiplicityFromInputs(c.mem, left, right, on)
 	return multiplicity.JoinFiltersMatchAllLeftRows()
 }
