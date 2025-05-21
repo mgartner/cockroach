@@ -14,6 +14,7 @@ import (
 
 	"github.com/cockroachdb/cockroach/pkg/base"
 	"github.com/cockroachdb/cockroach/pkg/kv/kvserver/logstore"
+	"github.com/cockroachdb/cockroach/pkg/testutils/datapathutils"
 	"github.com/cockroachdb/cockroach/pkg/testutils/serverutils"
 	"github.com/cockroachdb/cockroach/pkg/testutils/skip"
 	"github.com/cockroachdb/cockroach/pkg/testutils/sqlutils"
@@ -26,6 +27,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// This file contains "internal tests" that are run by BenchmarkTPCC in a
+// subprocess. They are not real tests at all, and they are skipped if the
+// COCKROACH_INTERNAL_TEST environment variable is not set. These tests are run
+// in a subprocess so that profiles collected while running the benchmark do not
+// include the overhead of the client code.
+
 // databaseName is the name of the database used by this test.
 const databaseName = "tpcc"
 
@@ -35,8 +42,6 @@ const (
 	allowInternalTestEnvVar = "COCKROACH_INTERNAL_TEST"
 	pgurlEnvVar             = "COCKROACH_PGURL"
 	nEnvVar                 = "COCKROACH_N"
-	storeDirEnvVar          = "COCKROACH_STORE_DIR"
-	srcEngineEnvVar         = "COCKROACH_SRC_ENGINE"
 	dstEngineEnvVar         = "COCKROACH_DST_ENGINE"
 )
 
@@ -54,12 +59,14 @@ func TestInternalCloneEngine(t *testing.T) {
 		skip.IgnoreLint(t)
 	}
 
-	src, ok := envutil.EnvString(srcEngineEnvVar, 0)
-	require.True(t, ok)
+	src := datapathutils.TestDataPath(t, storePath)
 	dst, ok := envutil.EnvString(dstEngineEnvVar, 0)
-	require.True(t, ok)
-	_, err := vfs.Clone(vfs.Default, vfs.Default, src, dst)
-	require.NoError(t, err)
+	if !ok {
+		t.Fatal("missing dst engine env var")
+	}
+	if _, err := vfs.Clone(vfs.Default, vfs.Default, src, dst); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestInternalRunClient(t *testing.T) {
@@ -84,7 +91,7 @@ func TestInternalRunClient(t *testing.T) {
 
 	// Verify the TPC-C database exists.
 	if _, err := conn.Exec(ctx, "USE "+databaseName); err != nil {
-		t.Fatal(databaseName + " database does not exist")
+		t.Fatal(databaseName + " database does not exist, try running with --rewrite first")
 	}
 
 	// Send a signal to the parent process and wait for an ack before
@@ -110,8 +117,7 @@ func TestInternalGenerateStoreDir(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	storeDir, ok := envutil.EnvString(storeDirEnvVar, 0)
-	require.True(t, ok)
+	storeDir := datapathutils.TestDataPath(t, storePath)
 
 	srv, db, _ := serverutils.StartServer(t, base.TestServerArgs{
 		StoreSpecs: []base.StoreSpec{{Path: storeDir}},
