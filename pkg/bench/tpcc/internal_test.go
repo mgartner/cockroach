@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/cockroachdb/cockroach/pkg/base"
-	"github.com/cockroachdb/cockroach/pkg/testutils/datapathutils"
 	"github.com/cockroachdb/cockroach/pkg/testutils/serverutils"
 	"github.com/cockroachdb/cockroach/pkg/testutils/skip"
 	"github.com/cockroachdb/cockroach/pkg/testutils/sqlutils"
@@ -41,6 +40,8 @@ const (
 	allowInternalTestEnvVar = "COCKROACH_INTERNAL_TEST"
 	pgurlEnvVar             = "COCKROACH_PGURL"
 	nEnvVar                 = "COCKROACH_N"
+	storeDirEnvVar          = "COCKROACH_STORE_DIR"
+	srcEngineEnvVar         = "COCKROACH_SRC_ENGINE"
 	dstEngineEnvVar         = "COCKROACH_DST_ENGINE"
 )
 
@@ -58,7 +59,11 @@ func TestInternalCloneEngine(t *testing.T) {
 		skip.IgnoreLint(t)
 	}
 
-	src := datapathutils.TestDataPath(t, storePath)
+	// src := datapathutils.TestDataPath(t, storePath)
+	src, ok := envutil.EnvString(srcEngineEnvVar, 0)
+	if !ok {
+		t.Fatal("missing src engine env var")
+	}
 	dst, ok := envutil.EnvString(dstEngineEnvVar, 0)
 	if !ok {
 		t.Fatal("missing dst engine env var")
@@ -116,7 +121,11 @@ func TestInternalGenerateStoreDir(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	storeDir := datapathutils.TestDataPath(t, storePath)
+	// storeDir := datapathutils.TestDataPath(t, storePath)
+	storeDir, ok := envutil.EnvString(storeDirEnvVar, 0)
+	if !ok {
+		t.Fatal("missing store dir env var")
+	}
 
 	srv, db, _ := serverutils.StartServer(t, base.TestServerArgs{
 		StoreSpecs: []base.StoreSpec{{Path: storeDir}},

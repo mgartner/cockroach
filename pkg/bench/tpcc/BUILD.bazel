@@ -11,7 +11,7 @@ go_test(
     data = glob(["testdata/**"]),
     deps = [
         "//pkg/base",
-        "//pkg/kv/kvserver/logstore",
+        "//pkg/clusterversion",
         "//pkg/security/securityassets",
         "//pkg/security/securitytest",
         "//pkg/server",
@@ -22,6 +22,7 @@ go_test(
         "//pkg/testutils/skip",
         "//pkg/testutils/sqlutils",
         "//pkg/testutils/testcluster",
+        "//pkg/testutils/testfixtures",
         "//pkg/util/envutil",
         "//pkg/util/leaktest",
         "//pkg/util/log",

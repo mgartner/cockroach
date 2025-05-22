@@ -7,27 +7,27 @@ package tpcc
 
 import (
 	"context"
-	"flag"
 	"net/url"
 	"os"
 	"os/exec"
 	"testing"
 
 	"github.com/cockroachdb/cockroach/pkg/base"
+	"github.com/cockroachdb/cockroach/pkg/clusterversion"
 	"github.com/cockroachdb/cockroach/pkg/testutils"
-	"github.com/cockroachdb/cockroach/pkg/testutils/datapathutils"
 	"github.com/cockroachdb/cockroach/pkg/testutils/pgurlutils"
 	"github.com/cockroachdb/cockroach/pkg/testutils/serverutils"
+	"github.com/cockroachdb/cockroach/pkg/testutils/testfixtures"
 	"github.com/cockroachdb/cockroach/pkg/util/leaktest"
 	"github.com/cockroachdb/cockroach/pkg/util/log"
 	_ "github.com/cockroachdb/cockroach/pkg/workload/tpcc"
 )
 
-const storePath = "store"
-
-var rewrite = flag.Bool("rewrite", false,
-	"regenerate store files containing the TPC-C schema and data",
-)
+// const storePath = "store"
+//
+// var rewrite = flag.Bool("rewrite", false,
+// 	"regenerate store files containing the TPC-C schema and data",
+// )
 
 // BenchmarkTPCC runs TPC-C transactions against a single warehouse. It runs the
 // client side of the workload in a subprocess so that the client overhead is
@@ -54,16 +54,20 @@ func BenchmarkTPCC(b *testing.B) {
 	defer log.Scope(b).Close(b)
 
 	// Generate TPCC data if requested.
-	if *rewrite {
-		storeDir := datapathutils.TestDataPath(b, storePath)
-		if err := os.RemoveAll(storeDir); err != nil {
+	storeName := "tpcc_" + clusterversion.PreviousRelease.Version().String()
+	storeDir := testfixtures.ReuseOrGenerate(b, storeName, func(dir string) {
+		// buildInitialState(ctx, b, initial, dir)
+		// if *rewrite {
+		// storeDir := datapathutils.TestDataPath(b, storePath)
+		if err := os.RemoveAll(dir); err != nil {
 			b.Fatalf("failed to clear store dir: %s", err)
 		}
-		c, output := generateStoreDir.exec()
+		c, output := generateStoreDir.withEnv(storeDirEnvVar, dir).exec()
 		if err := c.Run(); err != nil {
 			b.Fatalf("failed to generate store dir: %s\n%s", err, output.String())
 		}
-	}
+		// }
+	})
 
 	for _, impl := range []struct{ name, flag string }{
 		{"literal", "--literal-implementation=true"},
@@ -79,7 +83,7 @@ func BenchmarkTPCC(b *testing.B) {
 				{"default", "--mix=newOrder=10,payment=10,orderStatus=1,delivery=1,stockLevel=1"},
 			} {
 				b.Run(tc.name, func(b *testing.B) {
-					run(b, []string{impl.flag, tc.flag})
+					run(b, storeDir, []string{impl.flag, tc.flag})
 				})
 			}
 		})
@@ -87,8 +91,8 @@ func BenchmarkTPCC(b *testing.B) {
 	}
 }
 
-func run(b *testing.B, workloadFlags []string) {
-	pgURL, closeServer := startCockroach(b)
+func run(b *testing.B, storeDir string, workloadFlags []string) {
+	pgURL, closeServer := startCockroach(b, storeDir)
 	defer closeServer()
 	c, output := startClient(b, pgURL, workloadFlags)
 
@@ -111,12 +115,15 @@ func run(b *testing.B, workloadFlags []string) {
 	}
 }
 
-func startCockroach(b testing.TB) (pgURL string, closeServer func()) {
+func startCockroach(b testing.TB, storeDir string) (pgURL string, closeServer func()) {
 	ctx := context.Background()
 
 	// Clone the store dir.
 	td, engCleanup := testutils.TempDir(b)
-	c, output := cloneEngine.withEnv(dstEngineEnvVar, td).exec()
+	c, output := cloneEngine.
+		withEnv(srcEngineEnvVar, storeDir).
+		withEnv(dstEngineEnvVar, td).
+		exec()
 	if err := c.Run(); err != nil {
 		b.Fatalf("failed to clone engine: %s\n%s", err, output.String())
 	}
