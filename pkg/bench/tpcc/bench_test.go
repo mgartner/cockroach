@@ -41,7 +41,7 @@ var rewrite = flag.Bool("rewrite", false,
 //
 // For example, first generate the store directory with:
 //
-//	./dev bench pkg/bench/tpcc -f 'BenchmarkTPCC/literal/mix=newOrder=1$' --rewrite
+//	./dev bench pkg/bench/tpcc -f 'BenchmarkTPCC/literal/new_order' --rewrite
 //
 // Future benchmark runs will reuse the store directory:
 //
@@ -65,31 +65,26 @@ func BenchmarkTPCC(b *testing.B) {
 		}
 	}
 
-	for _, impl := range []string{"literal", "optimized"} {
-		b.Run(impl, func(b *testing.B) {
-			var baseFlag string
-			if impl == "literal" {
-				baseFlag = workloadFlag("literal-implementation", "true")
-			}
-			for _, mixFlag := range []string{
-				workloadFlag("mix", "newOrder=1"),
-				workloadFlag("mix", "payment=1"),
-				workloadFlag("mix", "orderStatus=1"),
-				workloadFlag("mix", "delivery=1"),
-				workloadFlag("mix", "stockLevel=1"),
-				workloadFlag("mix", "newOrder=10,payment=10,orderStatus=1,delivery=1,stockLevel=1"),
+	for _, impl := range []struct{ name, flag string }{
+		{"literal", "--literal-implementation=true"},
+		{"optimized", "--literal-implementation=false"},
+	} {
+		b.Run(impl.name, func(b *testing.B) {
+			for _, tc := range []struct{ name, flag string }{
+				{"new_order", "--mix=newOrder=1"},
+				{"payment", "--mix=payment=1"},
+				{"order_status", "--mix=orderStatus=1"},
+				{"delivery", "--mix=delivery=1"},
+				{"stock_level", "--mix=stockLevel=1"},
+				{"default", "--mix=newOrder=10,payment=10,orderStatus=1,delivery=1,stockLevel=1"},
 			} {
-				b.Run(mixFlag, func(b *testing.B) {
-					run(b, []string{baseFlag, mixFlag})
+				b.Run(tc.name, func(b *testing.B) {
+					run(b, []string{impl.flag, tc.flag})
 				})
 			}
 		})
 
 	}
-}
-
-func workloadFlag(name, value string) string {
-	return name + "=" + value
 }
 
 func run(b *testing.B, workloadFlags []string) {
