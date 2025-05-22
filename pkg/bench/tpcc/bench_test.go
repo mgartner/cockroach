@@ -14,7 +14,6 @@ import (
 	"testing"
 
 	"github.com/cockroachdb/cockroach/pkg/base"
-	"github.com/cockroachdb/cockroach/pkg/kv/kvserver/logstore"
 	"github.com/cockroachdb/cockroach/pkg/testutils"
 	"github.com/cockroachdb/cockroach/pkg/testutils/datapathutils"
 	"github.com/cockroachdb/cockroach/pkg/testutils/pgurlutils"
@@ -131,7 +130,6 @@ func startCockroach(b testing.TB) (pgURL string, closeServer func()) {
 	s := serverutils.StartServerOnly(b, base.TestServerArgs{
 		StoreSpecs: []base.StoreSpec{{Path: td}},
 	})
-	logstore.DisableSyncRaftLog.Override(ctx, &s.SystemLayer().ClusterSettings().SV, true)
 
 	// Generate a PG URL.
 	u, urlCleanup, err := pgurlutils.PGUrlE(
