@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"sync"
 	"testing"
 )
 
@@ -31,7 +32,7 @@ func (c cmd) withEnv(k string, v any) cmd {
 	return c
 }
 
-func (c cmd) exec(args ...string) (_ *exec.Cmd, stdout *bytes.Buffer) {
+func (c cmd) exec(args ...string) (_ *exec.Cmd, output *synchronizedBuffer) {
 	cmd := exec.Command(os.Args[0], "--test.run=^"+c.name+"$", "--test.v")
 	if len(args) > 0 {
 		cmd.Args = append(cmd.Args, "--")
@@ -39,7 +40,25 @@ func (c cmd) exec(args ...string) (_ *exec.Cmd, stdout *bytes.Buffer) {
 	}
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, c.envVars...)
-	var buf bytes.Buffer
+	var buf synchronizedBuffer
 	cmd.Stdout = &buf
+	cmd.Stderr = &buf
 	return cmd, &buf
+}
+
+type synchronizedBuffer struct {
+	mu  sync.Mutex
+	buf bytes.Buffer
+}
+
+func (b *synchronizedBuffer) Write(p []byte) (n int, err error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.Write(p)
+}
+
+func (b *synchronizedBuffer) String() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.String()
 }
