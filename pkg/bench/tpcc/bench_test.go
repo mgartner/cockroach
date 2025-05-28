@@ -8,18 +8,25 @@ package tpcc
 import (
 	"context"
 	"net/url"
-	"os/exec"
+	"os"
 	"testing"
+	"time"
 
 	"github.com/cockroachdb/cockroach/pkg/base"
 	"github.com/cockroachdb/cockroach/pkg/storage"
 	"github.com/cockroachdb/cockroach/pkg/testutils/pgurlutils"
 	"github.com/cockroachdb/cockroach/pkg/testutils/serverutils"
 	"github.com/cockroachdb/cockroach/pkg/testutils/testfixtures"
-	"github.com/cockroachdb/cockroach/pkg/util/leaktest"
 	"github.com/cockroachdb/cockroach/pkg/util/log"
 	"github.com/cockroachdb/cockroach/pkg/util/stop"
+	"github.com/cockroachdb/cockroach/pkg/workload"
+	"github.com/cockroachdb/cockroach/pkg/workload/histogram"
 	_ "github.com/cockroachdb/cockroach/pkg/workload/tpcc"
+	"github.com/jackc/pgx/v5"
+)
+
+const (
+	dbName = "tpcc"
 )
 
 // BenchmarkTPCC runs TPC-C transactions against a single warehouse. It runs the
@@ -31,7 +38,6 @@ import (
 // clone and use the store directory, rather than regenerating the schema and
 // data. This enables faster iteration when re-running the benchmark.
 func BenchmarkTPCC(b *testing.B) {
-	defer leaktest.AfterTest(b)()
 	defer log.Scope(b).Close(b)
 
 	// Reuse or generate TPCC data.
@@ -66,29 +72,57 @@ func BenchmarkTPCC(b *testing.B) {
 }
 
 func run(b *testing.B, storeDir string, workloadFlags []string) {
+	ctx := context.Background()
+
 	server, pgURL := startCockroach(b, storeDir)
 	defer server.Stopper().Stop(context.Background())
-	c, output := startClient(b, pgURL, workloadFlags)
 
-	var s synchronizer
-	s.init(c.Process.Pid)
+	verifyDatabaseExists(b, pgURL)
 
-	// Reset the timer when the client starts running queries.
-	if timedOut := s.waitWithTimeout(); timedOut {
-		b.Fatalf("waiting on client timed-out:\n%s", output.String())
+	tpcc, err := workload.Get("tpcc")
+	if err != nil {
+		b.Fatal(err)
 	}
+	gen := tpcc.New()
+	wl := gen.(interface {
+		workload.Flagser
+		workload.Hookser
+		workload.Opser
+	})
+
+	flags := append([]string{
+		"--wait=0",
+		"--workers=1",
+		"--db=" + dbName,
+	}, workloadFlags...)
+	if err := wl.Flags().Parse(flags); err != nil {
+		b.Fatal(err)
+	}
+	if err := wl.Hooks().Validate(); err != nil {
+		b.Fatal(err)
+	}
+
+	// Temporarily redirect stdout to /dev/null.
+	restore := redirectStdoutToDevNull(b)
+	defer restore()
+
+	reg := histogram.NewRegistry(time.Minute, "tpcc")
+	ql, err := wl.Ops(ctx, []string{pgURL}, reg)
+	if err != nil {
+		b.Fatal(b)
+	}
+	defer func() { _ = ql.Close(ctx) }()
+
 	b.ResetTimer()
-	s.notify(b)
-
-	// Stop the timer when the client stops running queries.
-	s.wait()
-	b.StopTimer()
-
-	if err := c.Wait(); err != nil {
-		b.Fatalf("client failed: %s\n%s\n%s", err, output.String(), output.String())
+	for i := 0; i < b.N; i++ {
+		if err := ql.WorkerFns[0](ctx); err != nil {
+			b.Fatalf("worker function failed: %s", err)
+		}
 	}
+	b.StopTimer()
 }
 
+// startCockroach clones the store directory and starts a CockroachDB server.
 func startCockroach(
 	b testing.TB, storeDir string,
 ) (server serverutils.TestServerInterface, pgURL string) {
@@ -114,21 +148,35 @@ func startCockroach(
 	if err != nil {
 		b.Fatalf("failed to create pgurl: %s", err)
 	}
-	u.Path = databaseName
+	u.Path = dbName
 	s.Stopper().AddCloser(stop.CloserFn(urlCleanup))
 
 	return s, u.String()
 }
 
-func startClient(
-	b *testing.B, pgURL string, workloadFlags []string,
-) (c *exec.Cmd, output *synchronizedBuffer) {
-	c, output = runClient.
-		withEnv(nEnvVar, b.N).
-		withEnv(pgurlEnvVar, pgURL).
-		exec(workloadFlags...)
-	if err := c.Start(); err != nil {
-		b.Fatalf("failed to start client: %s\n%s", err, output.String())
+// verifyDatabaseExists checks if the tpcc database exists and is accessible.
+func verifyDatabaseExists(b *testing.B, pgURL string) {
+	ctx := context.Background()
+	conn, err := pgx.Connect(ctx, pgURL)
+	if err != nil {
+		b.Fatal(err)
 	}
-	return c, output
+	defer func() { _ = conn.Close(ctx) }()
+	if _, err := conn.Exec(ctx, "USE "+dbName); err != nil {
+		b.Fatalf("database %q does not exist", dbName)
+	}
+}
+
+// redirectStdoutToDevNull redirects stdout to /dev/null to suppress the
+// workload's output during the benchmark.
+func redirectStdoutToDevNull(b *testing.B) (restore func()) {
+	old := os.Stdout
+	var err error
+	if os.Stdout, err = os.Open(os.DevNull); err != nil {
+		b.Fatal(err)
+	}
+	return func() {
+		_ = os.Stdout.Close()
+		os.Stdout = old
+	}
 }

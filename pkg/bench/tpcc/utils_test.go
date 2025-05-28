@@ -10,10 +10,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"os/signal"
-	"syscall"
 	"testing"
-	"time"
 
 	"github.com/cockroachdb/cockroach/pkg/util/syncutil"
 )
@@ -66,34 +63,4 @@ func (b *synchronizedBuffer) String() string {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	return b.buf.String()
-}
-
-type synchronizer struct {
-	pid    int // the PID of the process to coordinate with
-	waitCh chan os.Signal
-}
-
-func (s *synchronizer) init(pid int) {
-	s.pid = pid
-	s.waitCh = make(chan os.Signal, 1)
-	signal.Notify(s.waitCh, syscall.SIGUSR1)
-}
-
-func (s synchronizer) notify(t testing.TB) {
-	if err := syscall.Kill(s.pid, syscall.SIGUSR1); err != nil {
-		t.Fatalf("failed to notify process %d: %s", s.pid, err)
-	}
-}
-
-func (s synchronizer) wait() {
-	<-s.waitCh
-}
-
-func (c synchronizer) waitWithTimeout() (timedOut bool) {
-	select {
-	case <-c.waitCh:
-		return false
-	case <-time.After(5 * time.Second):
-		return true
-	}
 }
