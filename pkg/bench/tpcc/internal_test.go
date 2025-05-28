@@ -17,7 +17,6 @@ import (
 	"github.com/cockroachdb/cockroach/pkg/workload"
 	"github.com/cockroachdb/cockroach/pkg/workload/workloadsql"
 	"github.com/cockroachdb/pebble/vfs"
-	"github.com/stretchr/testify/require"
 )
 
 // This file contains "internal tests" that are run by BenchmarkTPCC in a
@@ -55,8 +54,12 @@ func TestInternalCloneEngine(t *testing.T) {
 	if !ok {
 		t.Fatal("missing dst engine env var")
 	}
-	if _, err := vfs.Clone(vfs.Default, vfs.Default, src, dst); err != nil {
-		t.Fatal(err)
+	srcStores := storeDirs(src)
+	dstStores := storeDirs(dst)
+	for i := range srcStores {
+		if _, err := vfs.Clone(vfs.Default, vfs.Default, srcStores[i], dstStores[i]); err != nil {
+			t.Fatal(err)
+		}
 	}
 }
 
@@ -71,28 +74,40 @@ func TestInternalGenerateStoreDir(t *testing.T) {
 		t.Fatal("missing store dir env var")
 	}
 
-	srv, db, _ := serverutils.StartServer(t, base.TestServerArgs{
-		StoreSpecs: []base.StoreSpec{{Path: storeDir}},
+	stores := storeDirs(storeDir)
+	serverArgs := make(map[int]base.TestServerArgs, nodes)
+	for i := 0; i < nodes; i++ {
+		serverArgs[i] = base.TestServerArgs{
+			StoreSpecs: []base.StoreSpec{{Path: stores[i]}},
+		}
+	}
+	cluster := serverutils.StartCluster(t, nodes, base.TestClusterArgs{
+		ServerArgsPerNode: serverArgs,
+		ParallelStart:     true,
 	})
-	defer srv.Stopper().Stop(ctx)
+	defer cluster.Stopper().Stop(ctx)
 
-	tdb := sqlutils.MakeSQLRunner(db)
+	tdb := sqlutils.MakeSQLRunner(cluster.ServerConn(0))
 	tdb.Exec(t, "CREATE DATABASE "+dbName)
 	tdb.Exec(t, "USE "+dbName)
 	tpcc, err := workload.Get("tpcc")
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 	gen := tpcc.New().(interface {
 		workload.Flagser
 		workload.Hookser
 		workload.Generator
 	})
-	require.NoError(t, gen.Flags().Parse([]string{
-		"--db=" + dbName,
-	}))
-	require.NoError(t, gen.Hooks().Validate())
-	{
-		var l workloadsql.InsertsDataLoader
-		_, err := workloadsql.Setup(ctx, db, gen, l)
-		require.NoError(t, err)
+	if err := gen.Flags().Parse([]string{"--db=" + dbName}); err != nil {
+		t.Fatal(err)
+	}
+	if err := gen.Hooks().Validate(); err != nil {
+		t.Fatal(err)
+	}
+
+	var l workloadsql.InsertsDataLoader
+	if _, err := workloadsql.Setup(ctx, cluster.ServerConn(0), gen, l); err != nil {
+		t.Fatal(err)
 	}
 }

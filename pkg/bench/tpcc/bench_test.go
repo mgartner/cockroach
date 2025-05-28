@@ -9,6 +9,7 @@ import (
 	"context"
 	"net/url"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 
@@ -27,6 +28,7 @@ import (
 
 const (
 	dbName = "tpcc"
+	nodes  = 3
 )
 
 // BenchmarkTPCC runs TPC-C transactions against a single warehouse. It runs the
@@ -54,6 +56,11 @@ func BenchmarkTPCC(b *testing.B) {
 		{"optimized", "--literal-implementation=false"},
 	} {
 		b.Run(impl.name, func(b *testing.B) {
+			// Setup the cluster once per implementation.
+			cluster, pgURL := startCluster(b, storeDir)
+			defer cluster.Stopper().Stop(context.Background())
+			verifyDatabaseExists(b, pgURL)
+
 			for _, mix := range []struct{ name, flag string }{
 				{"new_order", "--mix=newOrder=1"},
 				{"payment", "--mix=payment=1"},
@@ -62,8 +69,8 @@ func BenchmarkTPCC(b *testing.B) {
 				{"stock_level", "--mix=stockLevel=1"},
 				{"default", "--mix=newOrder=10,payment=10,orderStatus=1,delivery=1,stockLevel=1"},
 			} {
-				b.Run(mix.name, func(b *testing.B) {
-					run(b, storeDir, []string{impl.flag, mix.flag})
+				b.Run(mix.name, func(ib *testing.B) {
+					run(ib, pgURL, []string{impl.flag, mix.flag})
 				})
 			}
 		})
@@ -71,13 +78,8 @@ func BenchmarkTPCC(b *testing.B) {
 	}
 }
 
-func run(b *testing.B, storeDir string, workloadFlags []string) {
+func run(b *testing.B, pgURL string, workloadFlags []string) {
 	ctx := context.Background()
-
-	server, pgURL := startCockroach(b, storeDir)
-	defer server.Stopper().Stop(context.Background())
-
-	verifyDatabaseExists(b, pgURL)
 
 	tpcc, err := workload.Get("tpcc")
 	if err != nil {
@@ -122,10 +124,10 @@ func run(b *testing.B, storeDir string, workloadFlags []string) {
 	b.StopTimer()
 }
 
-// startCockroach clones the store directory and starts a CockroachDB server.
-func startCockroach(
+// startCluster clones the store directory and starts a CockroachDB server.
+func startCluster(
 	b testing.TB, storeDir string,
-) (server serverutils.TestServerInterface, pgURL string) {
+) (cluster serverutils.TestClusterInterface, pgURL string) {
 	// Clone the store dir.
 	td := b.TempDir()
 	c, output := cloneEngine.
@@ -136,22 +138,30 @@ func startCockroach(
 		b.Fatalf("failed to clone engine: %s\n%s", err, output.String())
 	}
 
-	// Start the server.
-	s := serverutils.StartServerOnly(b, base.TestServerArgs{
-		StoreSpecs: []base.StoreSpec{{Path: td}},
+	// Start the cluster.
+	stores := storeDirs(td)
+	serverArgs := make(map[int]base.TestServerArgs, nodes)
+	for i := 0; i < nodes; i++ {
+		serverArgs[i] = base.TestServerArgs{
+			StoreSpecs: []base.StoreSpec{{Path: stores[i]}},
+		}
+	}
+	cluster = serverutils.StartCluster(b, nodes, base.TestClusterArgs{
+		ServerArgsPerNode: serverArgs,
+		ParallelStart:     true,
 	})
 
 	// Generate a PG URL.
 	u, urlCleanup, err := pgurlutils.PGUrlE(
-		s.AdvSQLAddr(), b.TempDir(), url.User("root"),
+		cluster.Server(0).AdvSQLAddr(), b.TempDir(), url.User("root"),
 	)
 	if err != nil {
 		b.Fatalf("failed to create pgurl: %s", err)
 	}
 	u.Path = dbName
-	s.Stopper().AddCloser(stop.CloserFn(urlCleanup))
+	cluster.Stopper().AddCloser(stop.CloserFn(urlCleanup))
 
-	return s, u.String()
+	return cluster, u.String()
 }
 
 // verifyDatabaseExists checks if the tpcc database exists and is accessible.
@@ -179,4 +189,14 @@ func redirectStdoutToDevNull(b *testing.B) (restore func()) {
 		_ = os.Stdout.Close()
 		os.Stdout = old
 	}
+}
+
+// storeDirs returns an array of store directory paths, one for each node,
+// within the given directory.
+func storeDirs(dir string) [nodes]string {
+	var r [nodes]string
+	for i := 0; i < nodes; i++ {
+		r[i] = dir + string(os.PathSeparator) + "n" + strconv.Itoa(i)
+	}
+	return r
 }
