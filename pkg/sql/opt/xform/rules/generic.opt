@@ -56,3 +56,40 @@
     []
     (OutputCols (Root))
 )
+
+# TODO: For productions:
+# 1. We need to actually cost these PlaceholderScans now. Maybe they can have
+# the same cost as the lookup join, but like a little bit less?
+# TODO: Tests to write:
+#   - Non-empty ON filters.
+#   - No key cols?
+#   - Others?
+#   - Locking is propagated to PlaceholderScan. Look at previous tests when I
+#   fixed this before for inspo.
+#
+# (Project (PlaceholderScan $span $scanPrivate) [] $outputCols)
+[ConvertParameterizedLookupJoinToPlaceholderScan, Explore]
+(Project
+    (LookupJoin
+        $values:(Values [ (Tuple $row:[ ... ]) ])
+        []
+        $lookupPrivate:*
+    )
+    []
+    $outputCols:* &
+        (Let
+            (
+                $span
+                $scanPrivate
+                $ok
+            ):(PlaceholderScanSpanAndPrivate
+                $lookupPrivate
+                $values
+                $row
+                $outputCols
+            )
+            $ok
+        )
+)
+=>
+(PlaceholderScan $span $scanPrivate)

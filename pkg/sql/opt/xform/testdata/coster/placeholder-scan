@@ -1,0 +1,220 @@
+exec-ddl
+CREATE TABLE t (
+  k INT PRIMARY KEY,
+  a INT,
+  b INT,
+  c INT,
+  INDEX (a, b)
+)
+----
+
+# TODO(mgartner): AvgSize? Use a string or something?
+exec-ddl
+ALTER TABLE t INJECT STATISTICS '[
+  {
+    "columns": ["k"],
+    "created_at": "2019-02-08 04:10:40.001179+00:00",
+    "row_count": 100000,
+    "distinct_count": 100000
+  },
+  {
+    "columns": ["a"],
+    "created_at": "2019-02-08 04:10:40.001179+00:00",
+    "row_count": 100000,
+    "distinct_count": 100
+  },
+  {
+    "columns": ["b"],
+    "created_at": "2019-02-08 04:10:40.001179+00:00",
+    "row_count": 100000,
+    "distinct_count": 100000
+  },
+  {
+    "columns": ["c"],
+    "created_at": "2019-02-08 04:10:40.001179+00:00",
+    "row_count": 100000,
+    "distinct_count": 100000
+  }
+]'
+----
+
+
+# Single-column primary index lookup.
+opt
+SELECT k FROM t WHERE k = 1
+----
+scan t
+ ├── columns: k:1!null
+ ├── constraint: /1: [/1 - /1]
+ ├── cardinality: [0 - 1]
+ ├── stats: [rows=1, distinct(1)=1, null(1)=0]
+ ├── cost: 9.06
+ ├── key: ()
+ └── fd: ()-->(1)
+
+opt
+SELECT k FROM t WHERE k = $1
+----
+placeholder-scan t
+ ├── columns: k:1!null
+ ├── cardinality: [0 - 1]
+ ├── has-placeholder
+ ├── stats: [rows=1, distinct(1)=1, null(1)=0]
+ ├── cost: 9.06
+ ├── key: ()
+ ├── fd: ()-->(1)
+ └── span
+      └── $1
+
+
+# Primary index lookup.
+opt
+SELECT * FROM t WHERE k = 1
+----
+scan t
+ ├── columns: k:1!null a:2 b:3 c:4
+ ├── constraint: /1: [/1 - /1]
+ ├── cardinality: [0 - 1]
+ ├── stats: [rows=1, distinct(1)=1, null(1)=0]
+ ├── cost: 9.09
+ ├── key: ()
+ └── fd: ()-->(1-4)
+
+opt
+SELECT * FROM t WHERE k = $1
+----
+placeholder-scan t
+ ├── columns: k:1!null a:2 b:3 c:4
+ ├── cardinality: [0 - 1]
+ ├── has-placeholder
+ ├── stats: [rows=1, distinct(1)=1, null(1)=0]
+ ├── cost: 9.09
+ ├── key: ()
+ ├── fd: ()-->(1-4)
+ └── span
+      └── $1
+
+
+# Single-column secondary index lookup.
+opt
+SELECT k FROM t WHERE a = 1 AND b = 2
+----
+project
+ ├── columns: k:1!null
+ ├── stats: [rows=0.01001]
+ ├── cost: 18.0507107
+ ├── key: (1)
+ └── scan t@t_a_b_idx
+      ├── columns: k:1!null a:2!null b:3!null
+      ├── constraint: /2/3/1: [/1/2 - /1/2]
+      ├── stats: [rows=0.01001, distinct(2)=0.01001, null(2)=0, distinct(3)=0.01001, null(3)=0, distinct(2,3)=0.01001, null(2,3)=0]
+      ├── cost: 18.0306106
+      ├── key: (1)
+      └── fd: ()-->(2,3)
+
+opt
+SELECT k FROM t WHERE a = $1 AND b = $2
+----
+project
+ ├── columns: k:1!null
+ ├── has-placeholder
+ ├── stats: [rows=0.01001]
+ ├── cost: 18.0507107
+ ├── key: (1)
+ └── placeholder-scan t@t_a_b_idx
+      ├── columns: k:1!null a:2!null b:3!null
+      ├── has-placeholder
+      ├── stats: [rows=0.01001, distinct(2)=0.01001, null(2)=0, distinct(3)=0.01001, null(3)=0, distinct(2,3)=0.01001, null(2,3)=0]
+      ├── cost: 18.0306106
+      ├── key: (1)
+      ├── fd: ()-->(2,3)
+      └── span
+           ├── $1
+           └── $2
+
+
+# TODO: Single-column secondary index lookup.
+opt
+SELECT k, a, b FROM t WHERE a = 1 AND b = 2
+----
+scan t@t_a_b_idx
+ ├── columns: k:1!null a:2!null b:3!null
+ ├── constraint: /2/3/1: [/1/2 - /1/2]
+ ├── stats: [rows=0.01001, distinct(2)=0.01001, null(2)=0, distinct(3)=0.01001, null(3)=0, distinct(2,3)=0.01001, null(2,3)=0]
+ ├── cost: 18.0306106
+ ├── key: (1)
+ └── fd: ()-->(2,3)
+
+opt
+SELECT k, a, b FROM t WHERE a = $1 AND b = $2
+----
+placeholder-scan t@t_a_b_idx
+ ├── columns: k:1!null a:2!null b:3!null
+ ├── has-placeholder
+ ├── stats: [rows=0.01001, distinct(2)=0.01001, null(2)=0, distinct(3)=0.01001, null(3)=0, distinct(2,3)=0.01001, null(2,3)=0]
+ ├── cost: 18.0306106
+ ├── key: (1)
+ ├── fd: ()-->(2,3)
+ └── span
+      ├── $1
+      └── $2
+
+
+# TODO: Single-column secondary index lookup.
+opt
+SELECT * FROM t WHERE a = 1 AND b = 2
+----
+index-join t
+ ├── columns: k:1!null a:2!null b:3!null c:4
+ ├── stats: [rows=0.01001, distinct(2)=0.01001, null(2)=0, distinct(3)=0.01001, null(3)=0, distinct(2,3)=0.01001, null(2,3)=0]
+ ├── cost: 18.1112712
+ ├── key: (1)
+ ├── fd: ()-->(2,3), (1)-->(4)
+ └── scan t@t_a_b_idx
+      ├── columns: k:1!null a:2!null b:3!null
+      ├── constraint: /2/3/1: [/1/2 - /1/2]
+      ├── stats: [rows=0.01001, distinct(2)=0.01001, null(2)=0, distinct(3)=0.01001, null(3)=0, distinct(2,3)=0.01001, null(2,3)=0]
+      ├── cost: 18.0306106
+      ├── key: (1)
+      └── fd: ()-->(2,3)
+
+# TODO: Would be nice to use a placeholder-scan here.
+opt
+SELECT * FROM t WHERE a = $1 AND b = $2
+----
+project
+ ├── columns: k:1!null a:2!null b:3!null c:4
+ ├── has-placeholder
+ ├── stats: [rows=0.01001, distinct(2)=0.01001, null(2)=0, distinct(3)=0.01001, null(3)=0, distinct(2,3)=0.01001, null(2,3)=0]
+ ├── cost: 28.1614001
+ ├── key: (1)
+ ├── fd: ()-->(2,3), (1)-->(4)
+ └── inner-join (lookup t)
+      ├── columns: k:1!null a:2!null b:3!null c:4 "$1":7!null "$2":8!null
+      ├── key columns: [1] = [1]
+      ├── lookup columns are key
+      ├── has-placeholder
+      ├── stats: [rows=0.01, distinct(2)=0.01, null(2)=0, distinct(3)=0.01, null(3)=0, distinct(7)=0.01, null(7)=0, distinct(8)=0.01, null(8)=0]
+      ├── cost: 28.1413
+      ├── key: (1)
+      ├── fd: ()-->(2,3,7,8), (1)-->(4), (2)==(7), (7)==(2), (3)==(8), (8)==(3)
+      ├── inner-join (lookup t@t_a_b_idx)
+      │    ├── columns: k:1!null a:2!null b:3!null "$1":7!null "$2":8!null
+      │    ├── flags: disallow merge join
+      │    ├── key columns: [7 8] = [2 3]
+      │    ├── has-placeholder
+      │    ├── stats: [rows=0.01, distinct(2)=0.01, null(2)=0, distinct(3)=0.01, null(3)=0, distinct(7)=0.01, null(7)=0, distinct(8)=0.01, null(8)=0]
+      │    ├── cost: 24.0607
+      │    ├── key: (1)
+      │    ├── fd: ()-->(2,3,7,8), (2)==(7), (7)==(2), (3)==(8), (8)==(3)
+      │    ├── values
+      │    │    ├── columns: "$1":7 "$2":8
+      │    │    ├── cardinality: [1 - 1]
+      │    │    ├── has-placeholder
+      │    │    ├── stats: [rows=1, distinct(7)=1, null(7)=0, distinct(8)=1, null(8)=0]
+      │    │    ├── cost: 0.02
+      │    │    ├── key: ()
+      │    │    ├── fd: ()-->(7,8)
+      │    │    └── ($1, $2)
+      │    └── filters (true)
+      └── filters (true)
