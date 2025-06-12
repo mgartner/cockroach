@@ -12,62 +12,62 @@ CREATE TABLE t (
 ----
 
 # --------------------------------------------------
-# GenerateParameterizedJoin
+# GenerateParameterizedJoin /
+#   ConvertParameterizedLookupJoinToPlaceholderScan
 # --------------------------------------------------
 
-opt expect=GenerateParameterizedJoin
+opt expect=(GenerateParameterizedJoin,ConvertParameterizedLookupJoinToPlaceholderScan)
 SELECT * FROM t WHERE k = $1
 ----
-project
+placeholder-scan t
  ├── columns: k:1!null i:2 s:3 b:4 t:5
  ├── cardinality: [0 - 1]
  ├── has-placeholder
  ├── key: ()
  ├── fd: ()-->(1-5)
- └── inner-join (lookup t)
-      ├── columns: k:1!null i:2 s:3 b:4 t:5 "$1":8!null
-      ├── flags: disallow merge join
-      ├── key columns: [8] = [1]
-      ├── lookup columns are key
-      ├── cardinality: [0 - 1]
-      ├── has-placeholder
-      ├── key: ()
-      ├── fd: ()-->(1-5,8), (1)==(8), (8)==(1)
-      ├── values
-      │    ├── columns: "$1":8
-      │    ├── cardinality: [1 - 1]
-      │    ├── has-placeholder
-      │    ├── key: ()
-      │    ├── fd: ()-->(8)
-      │    └── ($1,)
-      └── filters (true)
+ └── span
+      └── $1
 
-opt expect=GenerateParameterizedJoin
+opt expect=(GenerateParameterizedJoin,ConvertParameterizedLookupJoinToPlaceholderScan)
 SELECT * FROM t WHERE k = $1::INT
 ----
-project
+placeholder-scan t
  ├── columns: k:1!null i:2 s:3 b:4 t:5
  ├── cardinality: [0 - 1]
  ├── has-placeholder
  ├── key: ()
  ├── fd: ()-->(1-5)
- └── inner-join (lookup t)
-      ├── columns: k:1!null i:2 s:3 b:4 t:5 "$1":8!null
-      ├── flags: disallow merge join
-      ├── key columns: [8] = [1]
-      ├── lookup columns are key
-      ├── cardinality: [0 - 1]
-      ├── has-placeholder
-      ├── key: ()
-      ├── fd: ()-->(1-5,8), (1)==(8), (8)==(1)
-      ├── values
-      │    ├── columns: "$1":8
-      │    ├── cardinality: [1 - 1]
-      │    ├── has-placeholder
-      │    ├── key: ()
-      │    ├── fd: ()-->(8)
-      │    └── ($1,)
-      └── filters (true)
+ └── span
+      └── $1
+
+optstepsweb
+SELECT *, i+1 FROM (VALUES ($1::INT)) AS v(k) JOIN t ON t.k = v.k
+----
+https://raduberinde.github.io/optsteps.html?eJzsmd1u2zYcxe_3FP8Ju5BnsYnk1Us5GE2ReUMK19mSdjd2EDA2HbOmSIOismXDgGLPkMs9XZ5kkD9iy6I-nNpJvehOFo8s8pD8HVL8yzr7tWVh66zZah69h28dYFUXfjo9eQf2b29aH5pnYH_jYnzcfl-pwJszuLZHFXh7ctwGDSdt0C9G0IDrFyPLsdpS-T-ywcDCFkIIyN6xYJoR3hXVahUuFz8PDwG5UHUd7xUcHnZFdazkR9rTXVGFu9t_724_3d1-gp7koS8CDCPsfi1CzmGEvekFwzUI8HdwiV-CxnXoWq-n6tddC79a-Rui-kwQzvQNhs4-IHDP4wrm-6Eml5w6MCQBGnPSo0PJ-1TFdSN6g8GuxG8O-tE9hLrh_n6N2i6qO68qDthupdGwvejKi67clceYEFShj5IJsIckGM6K_wEAkwXTCzfXiJ7qX14woakShF_4173ehWY-DTTxx_h7mLRSsj4-ML8u1aoVoR9yzcac9SZKTgcaKfl7YP9JlURSISloxQHFroaGAuM_5vXBijzWFStliR45yOiPlWevCQ9pECvK7ZJMdcxRN-now2wo4EaOKUbx7Uw8n_EHjtmloEcE6EIubXikGhvuZTZm0nJv0fQaOojr74WMa6qWOx_ighH2oLHod-jIUFPVsF0nGlc9KQKtCBM6aNh7LgZ7r_2h1QIE5z_Anrf8u-LAoN9IDsnZ0Ji_b0ZFJsWkUiu1iQytggsdEjTi_HNgVrFaxVmMqPOumFK5yZnPBNH0iAR6zuaVmxNCR3heQBruIZ3S0etCOp88RWeGcS5kIiEd0pAN6UJE2Bykc5GybNVmIY0-G9LGfkpDVwFmpYLc8Owc5LAWyDPURpCjDYM8y7ECxuUzP1nhPOYnZY7Z8XkoFHB8wzMjNRSSmuxQMAnnoQBPGAqQFgqJ2jw4FH5RoaBvJROnEQ-OJA_myWAqKeMhJR4M0HzsNfyar3vSjFkTgYlONNj9Oav_5Dj40gInXb_16EiHaX4mpOfkI20Ucl9TLFDS4zN3l5Grrz_XALIcq_nHmEtFYx-PTqlUfaqi5LnPovi9MoW2t0nZ6VgospdIQ_t2Pnds_iNGvYwhcwwZ1gQbiKGshx-WD8-W91O8_0wFVUTTd1Rd0RjkTSXLqK_tPyfUo_xDA1OxH5m3qSgwMDFiOkzCmIkrDFXXqJoQflnmrZErhom8w7lSsnq9LUMBUx5vLV-P6xOsRk_I6pwzn0Q70hcZ8XmafkICtlbhfD49Uky0pByFY2NOxIpie4KXZVDkBgWfuAd6i1kxojeLP-q459CAjmc-WJ7VZqYGomj0dBkaZWjs5gJ_B0LjC4B7uQf4X-wBvGJ7ALfE-Q4sd7e1rCwjLTvSyphYPhr4-6v_AgAA__8Zk8qz
+
+# opt expect=(GenerateParameterizedJoin,ConvertParameterizedLookupJoinToPlaceholderScan)
+# TODO(mgartner): This query is not converted to a scan because it does not have
+# a project above the lookup-join, which is required by the match pattern of
+# ConvertParameterizedLookupJoinToPlaceholderScan.
+opt
+SELECT * FROM (VALUES ($1::INT)) AS v(k) JOIN t ON t.k = v.k
+----
+inner-join (lookup t)
+ ├── columns: k:1!null k:2!null i:3 s:4 b:5 t:6
+ ├── key columns: [1] = [2]
+ ├── lookup columns are key
+ ├── cardinality: [0 - 1]
+ ├── has-placeholder
+ ├── key: ()
+ ├── fd: ()-->(1-6), (1)==(2), (2)==(1)
+ ├── values
+ │    ├── columns: column1:1
+ │    ├── cardinality: [1 - 1]
+ │    ├── has-placeholder
+ │    ├── key: ()
+ │    ├── fd: ()-->(1)
+ │    └── ($1,)
+ └── filters (true)
 
 opt expect=GenerateParameterizedJoin
 SELECT * FROM t WHERE i = $1 AND s = $2 AND b = $3
@@ -182,29 +182,14 @@ project
       ├── has-placeholder
       ├── key: ()
       ├── fd: ()-->(1-5,8,9), (1)==(9), (9)==(1)
-      ├── project
+      ├── placeholder-scan t
       │    ├── columns: k:8!null i:9
       │    ├── cardinality: [0 - 1]
       │    ├── has-placeholder
       │    ├── key: ()
       │    ├── fd: ()-->(8,9)
-      │    └── inner-join (lookup t)
-      │         ├── columns: k:8!null i:9 "$1":15!null
-      │         ├── flags: disallow merge join
-      │         ├── key columns: [15] = [8]
-      │         ├── lookup columns are key
-      │         ├── cardinality: [0 - 1]
-      │         ├── has-placeholder
-      │         ├── key: ()
-      │         ├── fd: ()-->(8,9,15), (8)==(15), (15)==(8)
-      │         ├── values
-      │         │    ├── columns: "$1":15
-      │         │    ├── cardinality: [1 - 1]
-      │         │    ├── has-placeholder
-      │         │    ├── key: ()
-      │         │    ├── fd: ()-->(15)
-      │         │    └── ($1,)
-      │         └── filters (true)
+      │    └── span
+      │         └── $1
       └── filters (true)
 
 # TODO(mgartner): The rule doesn't apply because the filters do not reference

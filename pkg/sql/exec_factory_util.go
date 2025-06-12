@@ -21,6 +21,7 @@ import (
 )
 
 func constructPlan(
+	// TODO Remove this.
 	planner *planner,
 	root exec.Node,
 	subqueries []exec.Subquery,
