@@ -275,19 +275,19 @@ func (it *scanIndexIter) ForEachStartingAfter(ord int, f enumerateIndexFunc) {
 		}
 
 		// Filters constrain column.
-		filtersConstrainKeyCols := false
-		for i, n := 0, index.KeyColumnCount(); i < n; i++ {
-			ord := index.Column(i).Ordinal()
-			col := it.tabMeta.MetaID.ColumnID(ord)
-			if it.filters.OuterCols().Contains(col) {
-				filtersConstrainKeyCols = true
-			}
-		}
-		if !filtersConstrainKeyCols {
-			// If the filters do not constrain any key columns, then skip over
-			// the index.
-			continue
-		}
+		// filtersConstrainKeyCols := false
+		// for i, n := 0, index.KeyColumnCount(); i < n; i++ {
+		// 	ord := index.Column(i).Ordinal()
+		// 	col := it.tabMeta.MetaID.ColumnID(ord)
+		// 	if it.filters.OuterCols().Contains(col) {
+		// 		filtersConstrainKeyCols = true
+		// 	}
+		// }
+		// if !filtersConstrainKeyCols {
+		// 	// If the filters do not constrain any key columns, then skip over
+		// 	// the index.
+		// 	continue
+		// }
 
 		pred, isPartialIndex := it.tabMeta.PartialIndexPredicate(ord)
 
