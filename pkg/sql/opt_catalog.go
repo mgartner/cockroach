@@ -1653,7 +1653,7 @@ type optIndex struct {
 
 	// columnOrds maps the index columns to table column ordinals.
 	columnOrds    []int
-	keyColumnDirs []catenumpb.IndexColumn_Direction
+	keyColumnDesc []bool
 
 	// storedCols is the set of non-PK columns if this is the primary index,
 	// otherwise it is desc.StoreColumnIDs.
@@ -1785,17 +1785,15 @@ func (oi *optIndex) init(
 	numKeyCols := idx.NumKeyColumns()
 	numKeySuffixCols := idx.NumKeySuffixColumns()
 	oi.columnOrds = make([]int, oi.numCols)
-	oi.keyColumnDirs = make([]catenumpb.IndexColumn_Direction, numKeyCols)
+	oi.keyColumnDesc = make([]bool, numKeyCols)
 	for i := 0; i < oi.numCols; i++ {
 		var ord int
 		switch {
 		case inverted && i == numKeyCols-1:
 			ord = oi.invertedColOrd
-			// Assume inverted columns are always ascending.
-			oi.keyColumnDirs[i] = catenumpb.IndexColumn_ASC
 		case i < numKeyCols:
 			ord, _ = oi.tab.LookupColumnOrdinal(oi.idx.GetKeyColumnID(i))
-			oi.keyColumnDirs[i] = oi.idx.GetKeyColumnDirection(i)
+			oi.keyColumnDesc[i] = oi.idx.GetKeyColumnDirection(i) == catenumpb.IndexColumn_DESC
 		case i < numKeyCols+numKeySuffixCols:
 			ord, _ = oi.tab.LookupColumnOrdinal(oi.idx.GetKeySuffixColumnID(i - numKeyCols))
 		default:
@@ -1862,7 +1860,7 @@ func (oi *optIndex) PrefixColumnCount() int {
 func (oi *optIndex) Column(i int) cat.IndexColumn {
 	ord := oi.columnOrds[i]
 	// Only key columns have a direction.
-	descending := i < len(oi.keyColumnDirs) && oi.keyColumnDirs[i] == catenumpb.IndexColumn_DESC
+	descending := i < len(oi.keyColumnDesc) && oi.keyColumnDesc[i]
 	return cat.IndexColumn{
 		Column:     oi.tab.Column(ord),
 		Descending: descending,
