@@ -334,7 +334,8 @@ func (tm *TableMeta) IndexColumns(indexOrd int) ColSet {
 
 	var indexCols ColSet
 	for i, n := 0, index.ColumnCount(); i < n; i++ {
-		ord := index.Column(i).Ordinal()
+		ord := index.ColumnOrd(i)
+		// ord := index.Column(i).Ordinal()
 		indexCols.Add(tm.MetaID.ColumnID(ord))
 	}
 	return indexCols
@@ -363,7 +364,8 @@ func (tm *TableMeta) IndexKeyColumns(indexOrd int) ColSet {
 
 	var indexCols ColSet
 	for i, n := 0, index.KeyColumnCount(); i < n; i++ {
-		ord := index.Column(i).Ordinal()
+		// ord := index.Column(i).Ordinal()
+		ord := index.ColumnOrd(i)
 		indexCols.Add(tm.MetaID.ColumnID(ord))
 	}
 	return indexCols

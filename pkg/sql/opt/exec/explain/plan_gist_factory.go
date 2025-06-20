@@ -757,6 +757,10 @@ func (u *unknownIndex) Column(i int) cat.IndexColumn {
 	}
 }
 
+func (u *unknownIndex) ColumnOrd(i int) int {
+	return i
+}
+
 func (u *unknownIndex) InvertedColumn() cat.IndexColumn {
 	panic(errors.AssertionFailedf("not implemented"))
 }

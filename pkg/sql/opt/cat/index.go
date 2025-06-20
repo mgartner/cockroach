@@ -136,6 +136,7 @@ type Index interface {
 	// Column returns the ith IndexColumn within the index definition, where
 	// i < ColumnCount.
 	Column(i int) IndexColumn
+	ColumnOrd(i int) int
 
 	// InvertedColumn returns the inverted IndexColumn of the index. Panics if
 	// the index is not an inverted index.

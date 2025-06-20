@@ -1403,6 +1403,10 @@ func (ti *Index) Column(i int) cat.IndexColumn {
 	return ti.Columns[i]
 }
 
+func (ti *Index) ColumnOrd(i int) int {
+	return ti.Columns[i].Ordinal()
+}
+
 // InvertedColumn is part of the cat.Index interface.
 func (ti *Index) InvertedColumn() cat.IndexColumn {
 	if ti.Type() != idxtype.INVERTED {

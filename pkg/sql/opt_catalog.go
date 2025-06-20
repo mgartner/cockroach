@@ -1867,6 +1867,13 @@ func (oi *optIndex) Column(i int) cat.IndexColumn {
 	}
 }
 
+func (oi *optIndex) ColumnOrd(i int) int {
+	return oi.columnOrds[i]
+	// // This is used by the optimizer to access the column ordinals of the index
+	// // columns. It is not part of the cat.Index interface.
+	// return cat.ColumnOrdinal(oi.columnOrds[i])
+}
+
 // InvertedColumn is part of the cat.Index interface.
 func (oi *optIndex) InvertedColumn() cat.IndexColumn {
 	if oi.Type() != idxtype.INVERTED {
@@ -2865,6 +2872,10 @@ func (oi *optVirtualIndex) Column(i int) cat.IndexColumn {
 	i -= length + 1
 	ord, _ := oi.tab.LookupColumnOrdinal(oi.idx.GetStoredColumnID(i))
 	return cat.IndexColumn{Column: oi.tab.Column(ord)}
+}
+
+func (oi *optVirtualIndex) ColumnOrd(i int) int {
+	return oi.Column(i).Ordinal()
 }
 
 // InvertedColumn is part of the cat.Index interface.

@@ -168,6 +168,10 @@ func (hi *hypotheticalIndex) Column(i int) cat.IndexColumn {
 	return hi.storedCols[i-numKeyCols]
 }
 
+func (hi *hypotheticalIndex) ColumnOrd(i int) int {
+	return hi.Column(i).Ordinal()
+}
+
 // InvertedColumn is part of the cat.Index interface.
 func (hi *hypotheticalIndex) InvertedColumn() cat.IndexColumn {
 	if hi.Type() != idxtype.INVERTED {
