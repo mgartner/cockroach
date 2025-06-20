@@ -189,6 +189,26 @@ type enumerateIndexFunc func(
 	constProj memo.ProjectionsExpr,
 )
 
+// type lazyIndexColSet struct {
+// 	tabMeta *opt.TableMeta
+// 	ord     int
+// 	cols    opt.ColSet
+// }
+//
+// func MakeLazyIndexColSet(tabMeta *opt.TableMeta, ord int) lazyIndexColSet {
+// 	return lazyIndexColSet{
+// 		tabMeta: tabMeta,
+// 		ord:     ord,
+// 	}
+// }
+//
+// func (l *lazyIndexColSet) Cols() opt.ColSet {
+// 	if l.cols.Empty() {
+// 		l.cols = l.tabMeta.IndexColumns(l.ord)
+// 	}
+// 	return l.cols
+// }
+
 // ForEach calls the given callback function for every index of the Scan
 // operator's table in the order they appear in the catalog.
 //
@@ -251,6 +271,21 @@ func (it *scanIndexIter) ForEachStartingAfter(ord int, f enumerateIndexFunc) {
 
 		// Skip over non-vector indexes if rejectNonVectorIndexes is set.
 		if it.hasRejectFlags(rejectNonVectorIndexes) && index.Type() != idxtype.VECTOR {
+			continue
+		}
+
+		// Filters constrain column.
+		filtersConstrainKeyCols := false
+		for i, n := 0, index.KeyColumnCount(); i < n; i++ {
+			ord := index.Column(i).Ordinal()
+			col := it.tabMeta.MetaID.ColumnID(ord)
+			if it.filters.OuterCols().Contains(col) {
+				filtersConstrainKeyCols = true
+			}
+		}
+		if !filtersConstrainKeyCols {
+			// If the filters do not constrain any key columns, then skip over
+			// the index.
 			continue
 		}
 
