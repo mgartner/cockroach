@@ -1644,8 +1644,6 @@ func (ot *optTable) IsRefreshViewRequired() bool {
 	return ot.desc.IsRefreshViewRequired()
 }
 
-const noIndexColDir catenumpb.IndexColumn_Direction = -1
-
 // optIndex is a wrapper around catalog.Index that caches some
 // commonly accessed information and keeps a reference to the table wrapper.
 type optIndex struct {
@@ -1787,28 +1785,24 @@ func (oi *optIndex) init(
 	numKeyCols := idx.NumKeyColumns()
 	numKeySuffixCols := idx.NumKeySuffixColumns()
 	oi.columnOrds = make([]int, oi.numCols)
-	oi.columnDirs = make([]catenumpb.IndexColumn_Direction, oi.numCols)
+	oi.columnDirs = make([]catenumpb.IndexColumn_Direction, numKeyCols+numKeySuffixCols)
 	for i := 0; i < oi.numCols; i++ {
 		var ord int
-		var dir catenumpb.IndexColumn_Direction
 		switch {
 		case inverted && i == numKeyCols-1:
 			ord = oi.invertedColOrd
 			// Assume inverted columns are always ascending.
-			dir = catenumpb.IndexColumn_ASC
+			oi.columnDirs[i] = catenumpb.IndexColumn_ASC
 		case i < numKeyCols:
 			ord, _ = oi.tab.LookupColumnOrdinal(oi.idx.GetKeyColumnID(i))
-			dir = oi.idx.GetKeyColumnDirection(i)
+			oi.columnDirs[i] = oi.idx.GetKeyColumnDirection(i)
 		case i < numKeyCols+numKeySuffixCols:
 			ord, _ = oi.tab.LookupColumnOrdinal(oi.idx.GetKeySuffixColumnID(i - numKeyCols))
-			dir = oi.idx.GetKeyColumnDirection(i)
+			oi.columnDirs[i] = oi.idx.GetKeyColumnDirection(i)
 		default:
 			ord, _ = oi.tab.LookupColumnOrdinal(oi.storedCols[i-numKeyCols-numKeySuffixCols])
-			// Only key columns have a direction.
-			dir = noIndexColDir
 		}
 		oi.columnOrds[i] = ord
-		oi.columnDirs[i] = dir
 	}
 }
 
@@ -1868,7 +1862,8 @@ func (oi *optIndex) PrefixColumnCount() int {
 // Column is part of the cat.Index interface.
 func (oi *optIndex) Column(i int) cat.IndexColumn {
 	ord := oi.columnOrds[i]
-	descending := oi.columnDirs[i] == catenumpb.IndexColumn_DESC
+	// Only key columns have a direction.
+	descending := i < len(oi.columnDirs) && oi.columnDirs[i] == catenumpb.IndexColumn_DESC
 	return cat.IndexColumn{
 		Column:     oi.tab.Column(ord),
 		Descending: descending,
