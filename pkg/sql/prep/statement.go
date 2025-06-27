@@ -47,6 +47,10 @@ type Statement struct {
 	// as-is.
 	GenericMemo *memo.Memo
 
+	// TODO(mgartner): Figure out how to avoid import cycles.
+	CompiledQuery     any
+	CompilationFailed bool
+
 	// IdealGenericPlan is true if GenericMemo is guaranteed to be optimal
 	// across all executions of the prepared statement. Ideal generic plans are
 	// generated when the statement has no placeholders nor fold-able stable

@@ -263,6 +263,17 @@ func (p *planner) makeOptimizerPlan(ctx context.Context) error {
 		return err
 	}
 
+	compilerEnabled := p.EvalContext().SessionData().SQLVMEnabled
+	if compilerEnabled && p.stmt.Prepared != nil && !p.stmt.Prepared.CompilationFailed {
+		p.compiler.Init(p.EvalContext(), execMemo, p.execCfg.Codec)
+		if code, ok := p.compiler.Compile(); ok {
+			p.stmt.Prepared.CompiledQuery = &code
+		} else {
+			p.stmt.Prepared.CompilationFailed = true
+		}
+
+	}
+
 	// Build the plan tree.
 	const disableTelemetryAndPlanGists = false
 	return p.runExecBuild(ctx, execMemo, disableTelemetryAndPlanGists)
