@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/cockroachdb/cockroach/pkg/kv/kvserver/concurrency/isolation"
 	"github.com/cockroachdb/cockroach/pkg/sql/opt"
 	"github.com/cockroachdb/cockroach/pkg/sql/opt/cat"
 	"github.com/cockroachdb/cockroach/pkg/sql/opt/memo"
@@ -604,6 +605,19 @@ func (b *Builder) buildDeleteCascadeMutationInput(
 		indexFlags = &tree.IndexFlags{AvoidFullScan: true}
 	}
 
+	locking := noRowLocking
+	if b.evalCtx.TxnIsoLevel != isolation.Serializable {
+		locking = lockingSpec{
+			&lockingItem{
+				item: &tree.LockingItem{
+					Strength: tree.ForUpdate,
+					// Targets:    []tree.TableName{tree.MakeUnqualifiedTableName(h.otherTab.Name())},
+					WaitPolicy: tree.LockWaitBlock,
+				},
+			},
+		}
+	}
+
 	// The scan is exempt from RLS to maintain data integrity.
 	outScope = b.buildScan(
 		b.addTable(childTable, childTableAlias),
@@ -613,7 +627,7 @@ func (b *Builder) buildDeleteCascadeMutationInput(
 			includeInverted:  false,
 		}),
 		indexFlags,
-		noRowLocking,
+		locking,
 		b.allocScope(),
 		true, /* disableNotVisibleIndex */
 		cat.PolicyScopeExempt,
