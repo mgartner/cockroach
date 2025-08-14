@@ -582,7 +582,7 @@ func (ih *instrumentationHelper) setupWithPlanGist(
 	// and set up when we created the original optimizer plan - no need to reset
 	// it just for running the execbuild.
 	origPlanComponents := p.curPlan.planComponents
-	err := p.runExecBuild(ctx, p.curPlan.mem, disableTelemetryAndPlanGists)
+	err := p.runExecBuild(ctx, p.curPlan.mem, false, disableTelemetryAndPlanGists)
 	if err != nil {
 		// This seems unexpected, but let's proceed with the original plan.
 		if buildutil.CrdbTestBuild {
@@ -780,6 +780,7 @@ func (ih *instrumentationHelper) ShouldUseJobForCreateStats() bool {
 // ShouldBuildExplainPlan returns true if we should build an explain plan and
 // call RecordExplainPlan.
 func (ih *instrumentationHelper) ShouldBuildExplainPlan() bool {
+	return false
 	return ih.collectBundle || ih.collectExecStats ||
 		ih.outputMode == explainAnalyzePlanOutput ||
 		ih.outputMode == explainAnalyzeDistSQLOutput

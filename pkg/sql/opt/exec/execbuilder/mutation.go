@@ -113,6 +113,7 @@ func (b *Builder) buildMutationInput(
 
 func (b *Builder) buildInsert(ins *memo.InsertExpr) (_ execPlan, outputCols colOrdMap, err error) {
 	if ep, cols, ok, err := b.tryBuildFastPathInsert(ins); err != nil || ok {
+		b.builtInsertFastPath = true
 		return ep, cols, err
 	}
 	// Construct list of columns that only contains columns that need to be
@@ -359,7 +360,11 @@ func (b *Builder) tryBuildFastPathInsert(
 		ins.InsertCols, ins.CheckCols, ins.PartialIndexPutCols,
 		ins.VectorIndexDelPartitionCols, ins.VectorIndexPutQuantizedVecCols,
 	)
+	// TODO: Disable placeholder evaluation.
+
+	b.disablePlaceholderEvaluation = true
 	rows, err := b.buildValuesRows(values)
+	b.disablePlaceholderEvaluation = false
 	if err != nil {
 		return execPlan{}, colOrdMap{}, false, err
 	}

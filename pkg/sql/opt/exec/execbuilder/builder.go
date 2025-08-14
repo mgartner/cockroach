@@ -108,7 +108,12 @@ type Builder struct {
 	initialAllowAutoCommit bool
 
 	allowInsertFastPath      bool
+	builtInsertFastPath      bool
 	allowDeleteRangeFastPath bool
+
+	// TODO(mgartner): Should this always be disabled? Why did I do this in the
+	// first place?
+	disablePlaceholderEvaluation bool
 
 	// forceForUpdateLocking, if set, is the table ID of the table being mutated
 	// that should be locked using forUpdateLocking in mutation's input
@@ -304,6 +309,10 @@ func (b *Builder) Build() (_ exec.Plan, err error) {
 	return b.factory.ConstructPlan(
 		plan.root, b.subqueries, b.cascades, b.triggers, b.checks, rootRowCount, b.flags,
 	)
+}
+
+func (b *Builder) BuiltInsertFastPath() bool {
+	return b.builtInsertFastPath
 }
 
 type functionLookupHelper func(context.Context, tree.UnresolvedRoutineName, tree.SearchPath) (*tree.ResolvedFunctionDefinition, error)

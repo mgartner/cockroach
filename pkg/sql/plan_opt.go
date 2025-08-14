@@ -263,15 +263,22 @@ func (p *planner) makeOptimizerPlan(ctx context.Context) error {
 		return err
 	}
 
+	generic := false
+	if prep := opc.p.stmt.Prepared; prep != nil {
+		if prep.GenericMemo == execMemo {
+			generic = true
+		}
+	}
+
 	// Build the plan tree.
 	const disableTelemetryAndPlanGists = false
-	return p.runExecBuild(ctx, execMemo, disableTelemetryAndPlanGists)
+	return p.runExecBuild(ctx, execMemo, generic, disableTelemetryAndPlanGists)
 }
 
 // runExecBuild builds the plan tree for the given memo. It assumes that the
 // optPlanningCtx of the planner has been properly set up.
 func (p *planner) runExecBuild(
-	ctx context.Context, execMemo *memo.Memo, disableTelemetryAndPlanGists bool,
+	ctx context.Context, execMemo *memo.Memo, cachePlanNode, disableTelemetryAndPlanGists bool,
 ) error {
 	opc := &p.optPlanningCtx
 	if mode := p.SessionData().ExperimentalDistSQLPlanningMode; mode != sessiondatapb.ExperimentalDistSQLPlanningOff {
@@ -288,6 +295,7 @@ func (p *planner) runExecBuild(
 			&p.stmt,
 			newDistSQLSpecExecFactory(ctx, p, planningMode),
 			execMemo,
+			false, /* cachePlanNode */
 			p.SemaCtx(),
 			p.EvalContext(),
 			p.autoCommit,
@@ -325,6 +333,7 @@ func (p *planner) runExecBuild(
 					&p.stmt,
 					newDistSQLSpecExecFactory(ctx, p, distSQLLocalOnlyPlanning),
 					execMemo,
+					false, /* cachePlanNode */
 					p.SemaCtx(),
 					p.EvalContext(),
 					p.autoCommit,
@@ -348,6 +357,7 @@ func (p *planner) runExecBuild(
 		&p.stmt,
 		newExecFactory(ctx, p),
 		execMemo,
+		cachePlanNode,
 		p.SemaCtx(),
 		p.EvalContext(),
 		p.autoCommit,
@@ -687,6 +697,7 @@ func (opc *optPlanningCtx) chooseValidPreparedMemo(ctx context.Context) (*memo.M
 			// new stats could drastically change the cost of generic and custom
 			// plans, so we should re-consider which to use.
 			prep.GenericMemo = nil
+			prep.GenericExecPlan = nil
 			prep.BaseMemo = nil
 			prep.Costs.Reset()
 			return nil, nil
@@ -702,6 +713,7 @@ func (opc *optPlanningCtx) chooseValidPreparedMemo(ctx context.Context) (*memo.M
 			// new stats could drastically change the cost of generic and custom
 			// plans, so we should re-consider which to use.
 			prep.GenericMemo = nil
+			prep.GenericExecPlan = nil
 			prep.BaseMemo = nil
 			prep.Costs.Reset()
 			return nil, nil
@@ -909,6 +921,7 @@ func (opc *optPlanningCtx) runExecBuilder(
 	stmt *Statement,
 	f exec.Factory,
 	mem *memo.Memo,
+	generic bool,
 	semaCtx *tree.SemaContext,
 	evalCtx *eval.Context,
 	allowAutoCommit bool,
@@ -922,18 +935,36 @@ func (opc *optPlanningCtx) runExecBuilder(
 	}
 	var bld *execbuilder.Builder
 	if !planTop.instrumentation.ShouldBuildExplainPlan() {
-		bld = execbuilder.New(
-			ctx, f, &opc.optimizer, mem, opc.catalog, mem.RootExpr(),
-			semaCtx, evalCtx, allowAutoCommit, statements.IsANSIDML(stmt.AST),
-		)
-		if disableTelemetryAndPlanGists {
-			bld.DisableTelemetry()
+		// TODO(mgartner): Need to check distsql spec factory... This might be
+		// ok since generic is false for those...
+		b := true
+		if opc.p.SessionData().PlanCacheMode == sessiondatapb.PlanCacheModeForceGeneric {
+			b = false
 		}
-		plan, err := bld.Build()
-		if err != nil {
-			return err
+		if generic {
+			b = false
 		}
-		result = plan.(*planComponents)
+		_ = b
+		if generic && stmt.Prepared != nil && stmt.Prepared.GenericExecPlan != nil {
+			result = stmt.Prepared.GenericExecPlan.(*planComponents)
+		} else {
+			bld = execbuilder.New(
+				ctx, f, &opc.optimizer, mem, opc.catalog, mem.RootExpr(),
+				semaCtx, evalCtx, allowAutoCommit, statements.IsANSIDML(stmt.AST),
+			)
+			if disableTelemetryAndPlanGists {
+				bld.DisableTelemetry()
+			}
+			plan, err := bld.Build()
+			if err != nil {
+				return err
+			}
+			result = plan.(*planComponents)
+			if generic && bld.BuiltInsertFastPath() && stmt.Prepared != nil {
+				// Cache the plan node tree for generic, insert fast paths.
+				stmt.Prepared.GenericExecPlan = result
+			}
+		}
 	} else {
 		// Create an explain factory and record the explain.Plan.
 		explainFactory := explain.NewFactory(f, semaCtx, evalCtx)
@@ -952,15 +983,17 @@ func (opc *optPlanningCtx) runExecBuilder(
 		result = explainPlan.WrappedPlan.(*planComponents)
 		planTop.instrumentation.RecordExplainPlan(explainPlan)
 	}
-	planTop.instrumentation.maxFullScanRows = bld.MaxFullScanRows
-	planTop.instrumentation.totalScanRows = bld.TotalScanRows
-	planTop.instrumentation.totalScanRowsWithoutForecasts = bld.TotalScanRowsWithoutForecasts
-	planTop.instrumentation.nanosSinceStatsCollected = bld.NanosSinceStatsCollected
-	planTop.instrumentation.nanosSinceStatsForecasted = bld.NanosSinceStatsForecasted
-	planTop.instrumentation.joinTypeCounts = bld.JoinTypeCounts
-	planTop.instrumentation.joinAlgorithmCounts = bld.JoinAlgorithmCounts
-	planTop.instrumentation.scanCounts = bld.ScanCounts
-	planTop.instrumentation.indexesUsed = bld.IndexesUsed
+	if bld != nil {
+		planTop.instrumentation.maxFullScanRows = bld.MaxFullScanRows
+		planTop.instrumentation.totalScanRows = bld.TotalScanRows
+		planTop.instrumentation.totalScanRowsWithoutForecasts = bld.TotalScanRowsWithoutForecasts
+		planTop.instrumentation.nanosSinceStatsCollected = bld.NanosSinceStatsCollected
+		planTop.instrumentation.nanosSinceStatsForecasted = bld.NanosSinceStatsForecasted
+		planTop.instrumentation.joinTypeCounts = bld.JoinTypeCounts
+		planTop.instrumentation.joinAlgorithmCounts = bld.JoinAlgorithmCounts
+		planTop.instrumentation.scanCounts = bld.ScanCounts
+		planTop.instrumentation.indexesUsed = bld.IndexesUsed
+	}
 
 	if opc.gf.Initialized() {
 		planTop.instrumentation.planGist = opc.gf.PlanGist()

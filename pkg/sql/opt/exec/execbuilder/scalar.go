@@ -131,7 +131,7 @@ func (b *Builder) buildTypedExpr(
 func (b *Builder) buildPlaceholder(
 	ctx *buildScalarCtx, scalar opt.ScalarExpr,
 ) (tree.TypedExpr, error) {
-	if b.evalCtx != nil && b.evalCtx.Placeholders != nil {
+	if !b.disablePlaceholderEvaluation && b.evalCtx != nil && b.evalCtx.Placeholders != nil {
 		return eval.Expr(b.ctx, b.evalCtx, scalar.Private().(*tree.Placeholder))
 	}
 	return b.buildTypedExpr(ctx, scalar)

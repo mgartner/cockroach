@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cockroachdb/cockroach/pkg/sql/opt/exec"
 	"github.com/cockroachdb/cockroach/pkg/sql/opt/memo"
 	"github.com/cockroachdb/cockroach/pkg/util/log"
 	"github.com/cockroachdb/cockroach/pkg/util/mon"
@@ -47,7 +48,8 @@ type Statement struct {
 
 	// GenericMemo, if present, is a fully-optimized memo that can be executed
 	// as-is.
-	GenericMemo *memo.Memo
+	GenericMemo     *memo.Memo
+	GenericExecPlan exec.Plan
 
 	// IdealGenericPlan is true if GenericMemo is guaranteed to be optimal
 	// across all executions of the prepared statement. Ideal generic plans are

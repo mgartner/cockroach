@@ -1523,8 +1523,8 @@ func (ef *execFactory) ConstructInsertFastPath(
 	}
 
 	// Regular path for INSERT.
-	ins := insertFastPathNodePool.Get().(*insertFastPathNode)
-	*ins = insertFastPathNode{
+	// ins := insertFastPathNodePool.Get().(*insertFastPathNode)
+	ins := &insertFastPathNode{
 		input: rows,
 		run: insertFastPathRun{
 			insertRun: insertRun{

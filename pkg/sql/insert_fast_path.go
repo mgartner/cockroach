@@ -7,7 +7,6 @@ package sql
 
 import (
 	"context"
-	"sync"
 
 	"github.com/cockroachdb/cockroach/pkg/kv/kvpb"
 	"github.com/cockroachdb/cockroach/pkg/kv/kvserver/concurrency/lock"
@@ -29,11 +28,11 @@ import (
 	"github.com/cockroachdb/errors"
 )
 
-var insertFastPathNodePool = sync.Pool{
-	New: func() interface{} {
-		return &insertFastPathNode{}
-	},
-}
+// var insertFastPathNodePool = sync.Pool{
+// 	New: func() interface{} {
+// 		return &insertFastPathNode{}
+// 	},
+// }
 
 // insertFastPathNode is a faster implementation of inserting values in a table
 // and performing FK checks. It is used when all the foreign key checks can be
@@ -539,9 +538,12 @@ func (n *insertFastPathNode) BatchedCount() int { return len(n.input) }
 func (n *insertFastPathNode) BatchedValues(rowIdx int) tree.Datums { return n.run.ti.rows.At(rowIdx) }
 
 func (n *insertFastPathNode) Close(ctx context.Context) {
-	n.run.ti.close(ctx)
-	*n = insertFastPathNode{}
-	insertFastPathNodePool.Put(n)
+	n.run.ti.clearLastBatch(ctx)
+	// n.run.ti.ini
+	// n.run.ti.rowsWritten = 0
+	// n.run.ti.close(ctx)
+	// *n = insertFastPathNode{}
+	// insertFastPathNodePool.Put(n)
 }
 
 func (n *insertFastPathNode) rowsWritten() int64 {
