@@ -80,6 +80,7 @@ var _ batchedPlanNode = &updateSwapNode{}
 // The FastPathResults behavior of the source plan, if any, is also
 // preserved.
 type serializeNode struct {
+	nonReusablePlanNode
 	source batchedPlanNode
 
 	// fastPath is set to true during startExec if the source plan
@@ -170,6 +171,7 @@ func (s *serializeNode) requireSpool() {}
 // Next() consume the batched rows individually and instead quickly
 // accumulate the batch counts themselves.
 type rowCountNode struct {
+	nonReusablePlanNode
 	source   batchedPlanNode
 	rowCount int
 }

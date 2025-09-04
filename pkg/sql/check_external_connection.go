@@ -26,6 +26,7 @@ func (p *planner) CheckExternalConnection(
 
 type checkExternalConnectionNode struct {
 	zeroInputPlanNode
+	nonReusablePlanNode
 	node    *tree.CheckExternalConnection
 	loc     string
 	params  CloudCheckParams

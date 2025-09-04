@@ -39,6 +39,7 @@ type scanNode struct {
 	_ util.NoCopy
 
 	zeroInputPlanNode
+	nonReusablePlanNode
 	fetchPlanningInfo
 
 	spans   []roachpb.Span

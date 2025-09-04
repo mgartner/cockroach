@@ -145,6 +145,7 @@ func ClearPlanHooks() {
 // channel.
 type hookFnNode struct {
 	zeroInputPlanNode
+	nonReusablePlanNode
 	optColumnsSlot
 
 	name    string

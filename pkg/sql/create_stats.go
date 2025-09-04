@@ -124,6 +124,7 @@ func StubTableStats(
 // framework.
 type createStatsNode struct {
 	zeroInputPlanNode
+	nonReusablePlanNode
 	tree.CreateStats
 
 	// p is the "outer planner" from planning the CREATE STATISTICS

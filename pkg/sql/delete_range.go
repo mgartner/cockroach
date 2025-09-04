@@ -31,6 +31,7 @@ import (
 // be deleted, it'll enable autoCommit for delete range.
 type deleteRangeNode struct {
 	zeroInputPlanNode
+	nonReusablePlanNode
 	// spans are the spans to delete.
 	spans roachpb.Spans
 	// desc is the table descriptor the delete is operating on.

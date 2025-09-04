@@ -30,6 +30,7 @@ import (
 
 type truncateNode struct {
 	zeroInputPlanNode
+	nonReusablePlanNode
 	n *tree.Truncate
 }
 

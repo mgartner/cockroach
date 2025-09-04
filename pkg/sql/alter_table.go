@@ -55,6 +55,7 @@ import (
 
 type alterTableNode struct {
 	zeroInputPlanNode
+	nonReusablePlanNode
 	n         *tree.AlterTable
 	prefix    catalog.ResolvedObjectPrefix
 	tableDesc *tabledesc.Mutable

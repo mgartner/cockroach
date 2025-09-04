@@ -32,6 +32,7 @@ import (
 // setVarNode represents a SET {SESSION | LOCAL} statement.
 type setVarNode struct {
 	zeroInputPlanNode
+	nonReusablePlanNode
 	name  string
 	local bool
 	v     sessionVar
@@ -42,6 +43,7 @@ type setVarNode struct {
 // resetAllNode represents a RESET ALL statement.
 type resetAllNode struct {
 	zeroInputPlanNode
+	nonReusablePlanNode
 }
 
 // SetVar sets session variables.

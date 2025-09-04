@@ -20,6 +20,7 @@ import (
 // the child node is still run to completion.
 type spoolNode struct {
 	singleInputPlanNode
+	nonReusablePlanNode
 	rows      *rowcontainer.RowContainer
 	hardLimit int64
 	curRowIdx int

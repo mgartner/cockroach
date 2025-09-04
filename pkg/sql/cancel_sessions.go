@@ -19,6 +19,7 @@ import (
 
 type cancelSessionsNode struct {
 	singleInputPlanNode
+	nonReusablePlanNode
 	ifExists bool
 }
 

@@ -19,6 +19,7 @@ import (
 
 type cancelQueriesNode struct {
 	singleInputPlanNode
+	nonReusablePlanNode
 	ifExists bool
 }
 

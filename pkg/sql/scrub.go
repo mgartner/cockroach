@@ -29,6 +29,7 @@ import (
 
 type scrubNode struct {
 	zeroInputPlanNode
+	nonReusablePlanNode
 	optColumnsSlot
 
 	n *tree.Scrub

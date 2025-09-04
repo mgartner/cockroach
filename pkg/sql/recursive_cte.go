@@ -29,6 +29,7 @@ import (
 type recursiveCTENode struct {
 	// The input plan node is for the initial query.
 	singleInputPlanNode
+	nonReusablePlanNode
 
 	genIterationFn exec.RecursiveCTEIterationFn
 	// iterationCount tracks the number of invocations of genIterationFn.

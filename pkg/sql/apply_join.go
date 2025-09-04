@@ -34,6 +34,7 @@ type applyJoinNode struct {
 
 	// The data source with no outer columns.
 	singleInputPlanNode
+	nonReusablePlanNode
 
 	// pred represents the join predicate.
 	pred *joinPredicate
