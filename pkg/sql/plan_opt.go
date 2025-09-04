@@ -8,6 +8,7 @@ package sql
 import (
 	"context"
 	"strings"
+	"time"
 
 	"github.com/cockroachdb/cockroach/pkg/server/telemetry"
 	"github.com/cockroachdb/cockroach/pkg/settings"
@@ -952,8 +953,8 @@ func (opc *optPlanningCtx) runExecBuilder(
 	planTop.instrumentation.maxFullScanRows = bld.MaxFullScanRows
 	planTop.instrumentation.totalScanRows = bld.TotalScanRows
 	planTop.instrumentation.totalScanRowsWithoutForecasts = bld.TotalScanRowsWithoutForecasts
-	planTop.instrumentation.nanosSinceStatsCollected = bld.NanosSinceStatsCollected
-	planTop.instrumentation.nanosSinceStatsForecasted = bld.NanosSinceStatsForecasted
+	planTop.instrumentation.nanosSinceStatsCollected = time.Since(bld.StatsCollectedAt)
+	planTop.instrumentation.nanosSinceStatsForecasted = time.Since(bld.StatsForecastedAt)
 	planTop.instrumentation.joinTypeCounts = bld.JoinTypeCounts
 	planTop.instrumentation.joinAlgorithmCounts = bld.JoinAlgorithmCounts
 	planTop.instrumentation.scanCounts = bld.ScanCounts
