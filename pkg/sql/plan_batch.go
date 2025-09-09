@@ -171,7 +171,6 @@ func (s *serializeNode) requireSpool() {}
 // Next() consume the batched rows individually and instead quickly
 // accumulate the batch counts themselves.
 type rowCountNode struct {
-	nonReusablePlanNode
 	source   batchedPlanNode
 	rowCount int
 }
@@ -197,7 +196,12 @@ func (r *rowCountNode) startExec(params runParams) error {
 
 func (r *rowCountNode) Next(params runParams) (bool, error) { return false, nil }
 func (r *rowCountNode) Values() tree.Datums                 { return nil }
-func (r *rowCountNode) Close(ctx context.Context)           { r.source.Close(ctx) }
+func (r *rowCountNode) Close(ctx context.Context) {
+	r.rowCount = 0
+	r.source.Close(ctx)
+}
+func (r *rowCountNode) Reuse() (ok bool)            { return r.source.Reuse() }
+func (r *rowCountNode) Destroy(ctx context.Context) { r.source.Destroy(ctx) }
 
 func (r *rowCountNode) InputCount() int {
 	return 1
