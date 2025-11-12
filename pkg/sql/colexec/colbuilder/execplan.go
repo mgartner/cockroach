@@ -275,6 +275,7 @@ func canWrap(mode sessiondatapb.VectorizeExecMode, core *execinfrapb.ProcessorCo
 	switch {
 	case core.Noop != nil:
 	case core.TableReader != nil:
+	case core.LevenshteinReader != nil:
 	case core.JoinReader != nil:
 	case core.Sorter != nil:
 	case core.Aggregator != nil:

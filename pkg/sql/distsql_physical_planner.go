@@ -2179,6 +2179,37 @@ func (dsp *DistSQLPlanner) createTableReaders(
 	return p, err
 }
 
+func (dsp *DistSQLPlanner) createLevenshteinReaders(
+	planCtx *PlanningCtx, n *levenshteinScanNode,
+) (*PhysicalPlan, error) {
+	lr := execinfrapb.LevenshteinReaderSpec{
+		Column:  uint32(n.col),
+		Target:  n.target,
+		MaxDist: n.maxDist,
+	}
+	colIDs := make([]descpb.ColumnID, len(n.catalogCols))
+	for i := range n.catalogCols {
+		colIDs[i] = n.catalogCols[i].GetID()
+	}
+	if err := rowenc.InitIndexFetchSpec(&lr.FetchSpec, dsp.codec, n.desc, n.index, colIDs); err != nil {
+		return nil, err
+	}
+	corePlacement := []physicalplan.ProcessorCorePlacement{{
+		dsp.gatewaySQLInstanceID,
+		execinfrapb.ProcessorCoreUnion{LevenshteinReader: &lr},
+		100,
+		time.Now(),
+	}}
+	typs := make([]*types.T, len(lr.FetchSpec.FetchedColumns))
+	for i := range typs {
+		typs[i] = lr.FetchSpec.FetchedColumns[i].Type
+	}
+	p := planCtx.NewPhysicalPlan()
+	p.AddNoInputStage(corePlacement, execinfrapb.PostProcessSpec{}, typs, execinfrapb.Ordering{}, nil)
+	p.PlanToStreamColMap = identityMap(make([]int, len(typs)), len(typs))
+	return p, nil
+}
+
 // tableReaderPlanningInfo is a utility struct that contains the information
 // needed to perform the physical planning of table readers once the specs have
 // been created. See scanNode to get more context on some of the fields.
@@ -4040,6 +4071,10 @@ func (dsp *DistSQLPlanner) createPhysPlanForPlanNode(
 				numIndexes, 0, /* curIndex */
 			)
 		}
+
+	case *levenshteinScanNode:
+		// plan, err = dsp.wrapPlan(ctx, planCtx, n, false /* allowPartialDistribution */)
+		plan, err = dsp.createLevenshteinReaders(planCtx, n)
 
 	case *distinctNode:
 		plan, err = dsp.createPlanForDistinct(ctx, planCtx, n)

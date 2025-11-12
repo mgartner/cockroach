@@ -144,6 +144,7 @@ var planNodeNames = map[reflect.Type]string{
 	reflect.TypeOf(&invertedFilterNode{}):                      "inverted filter",
 	reflect.TypeOf(&invertedJoinNode{}):                        "inverted join",
 	reflect.TypeOf(&joinNode{}):                                "join",
+	reflect.TypeOf(&levenshteinScanNode{}):                     "levenshtein scan",
 	reflect.TypeOf(&limitNode{}):                               "limit",
 	reflect.TypeOf(&lookupJoinNode{}):                          "lookup join",
 	reflect.TypeOf(&max1RowNode{}):                             "max1row",

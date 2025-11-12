@@ -153,6 +153,7 @@ go_library(
         "jobs_profiler_execution_details.go",
         "join.go",
         "join_predicate.go",
+        "levenshtein_scan.go",
         "limit.go",
         "lookup_join.go",
         "max_one_row.go",

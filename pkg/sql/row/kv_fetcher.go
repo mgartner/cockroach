@@ -246,6 +246,12 @@ func newKVFetcher(batchFetcher KVBatchFetcher) *KVFetcher {
 	return &KVFetcher{KVBatchFetcher: batchFetcher}
 }
 
+// endOfBatch returns true if the fetcher has reached the end of the current
+// batch. Also returns true if there is no current batch.
+func (f *KVFetcher) endOfBatch() bool {
+	return len(f.kvs) == 0 && len(f.batchResponse) == 0
+}
+
 // nextKV returns the next kv from this fetcher. Returns false if there are no
 // more kvs to fetch, the kv that was fetched, the ID associated with the span
 // that generated this kv (0 if nil spanIDs were provided when constructing the
@@ -311,6 +317,7 @@ func (f *KVFetcher) nextKV(
 			return true, f.kv, f.spanID, nil
 		}
 
+		// fmt.Printf("fetcher fetching next batch from KV layer\n")
 		resp, err := f.NextBatch(ctx)
 		if err != nil || !resp.MoreKVs {
 			return resp.MoreKVs, roachpb.KeyValue{}, 0, err
@@ -375,6 +382,22 @@ func (f *KVFetcher) SetupNextFetch(
 	)
 }
 
+func (f *KVFetcher) SetupNextFetchWithoutReset(
+	ctx context.Context,
+	spans roachpb.Spans,
+	spanIDs []int,
+	batchBytesLimit rowinfra.BytesLimit,
+	firstBatchKeyLimit rowinfra.KeyLimit,
+	spansCanOverlap bool,
+) error {
+	f.kvs = nil
+	f.batchResponse = nil
+	f.spanID = 0
+	return f.KVBatchFetcher.SetupNextFetchWithoutReset(
+		ctx, spans, spanIDs, batchBytesLimit, firstBatchKeyLimit, spansCanOverlap,
+	)
+}
+
 func (f *KVFetcher) reset(b KVBatchFetcher) {
 	*f = KVFetcher{KVBatchFetcher: b}
 }
@@ -401,6 +424,13 @@ func (f *KVProvider) NextBatch(context.Context) (KVBatchFetcherResponse, error) 
 
 // SetupNextFetch implements the KVBatchFetcher interface.
 func (f *KVProvider) SetupNextFetch(
+	context.Context, roachpb.Spans, []int, rowinfra.BytesLimit, rowinfra.KeyLimit, bool,
+) error {
+	return nil
+}
+
+// SetupNextFetch implements the KVBatchFetcher interface.
+func (f *KVProvider) SetupNextFetchWithoutReset(
 	context.Context, roachpb.Spans, []int, rowinfra.BytesLimit, rowinfra.KeyLimit, bool,
 ) error {
 	return nil

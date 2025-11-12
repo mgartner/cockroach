@@ -1004,3 +1004,12 @@ define DeleteSwap {
     # processed through side-effecting expressions.
     AutoCommit bool
 }
+
+define LevenshteinScan {
+    Table cat.Table
+    Index cat.Index
+    NeededCols exec.TableColumnOrdinalSet
+    Col exec.TableColumnOrdinal
+    Target string
+    MaxDist int
+}

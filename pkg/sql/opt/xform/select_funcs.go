@@ -18,6 +18,7 @@ import (
 	"github.com/cockroachdb/cockroach/pkg/sql/opt/partition"
 	"github.com/cockroachdb/cockroach/pkg/sql/opt/props"
 	"github.com/cockroachdb/cockroach/pkg/sql/opt/props/physical"
+	"github.com/cockroachdb/cockroach/pkg/sql/sem/idxtype"
 	"github.com/cockroachdb/cockroach/pkg/sql/sem/tree"
 	"github.com/cockroachdb/cockroach/pkg/sql/types"
 	"github.com/cockroachdb/cockroach/pkg/util/intsets"
@@ -2130,4 +2131,98 @@ func (c *CustomFuncs) checkCancellation() {
 	if err := c.e.o.cancelChecker.Check(); err != nil {
 		panic(err)
 	}
+}
+
+// TODO(mgartner): Handle the case when the arguments are swapped.
+// TODO(mgartner): Handle multi-column indexes.
+// TODO(mgartner): Handle partial indexes.
+func (c *CustomFuncs) CanGenerateLevenshteinScan(
+	scanPrivate *memo.ScanPrivate, lhs opt.ScalarExpr,
+) (col opt.ColumnID, target string, ok bool) {
+	fn, ok := lhs.(*memo.FunctionExpr)
+	if !ok {
+		return 0, "", false
+	}
+	args := fn.Args
+	if len(args) != 2 {
+		return 0, "", false
+	}
+	s, ok := args[1].(*memo.ConstExpr)
+	if !ok {
+		return 0, "", false
+	}
+	targetDatum, ok := s.Value.(*tree.DString)
+	if !ok {
+		return 0, "", false
+	}
+	if s.Typ.Family() != types.StringFamily {
+		return 0, "", false
+	}
+	v, ok := args[0].(*memo.VariableExpr)
+	if !ok {
+		return 0, "", false
+	}
+	md := c.e.mem.Metadata()
+	tabMeta := md.TableMeta(scanPrivate.Table)
+	for i := 0; i < tabMeta.Table.IndexCount(); i++ {
+		index := tabMeta.Table.Index(i)
+		if index.Type() != idxtype.FORWARD {
+			continue
+		}
+		if _, partial := index.Predicate(); partial {
+			continue
+		}
+		col := index.Column(0)
+		ord := col.Ordinal()
+		if v.Col == tabMeta.MetaID.ColumnID(ord) {
+			return v.Col, string(*targetDatum), true
+		}
+	}
+	return 0, "", false
+}
+
+func (c *CustomFuncs) GenerateLevenshteinScans(
+	grp memo.RelExpr,
+	required *physical.Required,
+	scanPrivate *memo.ScanPrivate,
+	col opt.ColumnID,
+	target string,
+	maxDist tree.Datum,
+) {
+	md := c.e.mem.Metadata()
+	tabMeta := md.TableMeta(scanPrivate.Table)
+	reject := rejectPartialIndexes | rejectInvertedIndexes | rejectVectorIndexes
+	var iter scanIndexIter
+	iter.Init(c.e.evalCtx, c.e, c.e.mem, &c.im, scanPrivate, nil, reject)
+	iter.ForEach(func(index cat.Index, remainingFilters memo.FiltersExpr, indexCols opt.ColSet, isCovering bool, constProj memo.ProjectionsExpr) {
+		if !isCovering {
+			// TODO(mgartner): Handle non-covering indexes by adding an
+			// index-join.
+			return
+		}
+		if len(constProj) > 0 {
+			// TODO(mgartner): Handle indexes that require constant projections.
+			return
+		}
+		if len(remainingFilters) > 0 {
+			// TODO(mgartner): Handle remaining filters.
+			return
+		}
+		indexCol := index.Column(0)
+		ord := indexCol.Ordinal()
+		if col != tabMeta.MetaID.ColumnID(ord) {
+			return
+		}
+		lScan := memo.LevenshteinScanExpr{
+			LevenshteinScanPrivate: memo.LevenshteinScanPrivate{
+				Table:   scanPrivate.Table,
+				Index:   index.Ordinal(),
+				Cols:    scanPrivate.Cols,
+				Col:     col,
+				Target:  target,
+				MaxDist: int(tree.MustBeDInt(maxDist)),
+			},
+		}
+		c.e.mem.AddLevenshteinScanToGroup(&lScan, grp)
+	})
 }

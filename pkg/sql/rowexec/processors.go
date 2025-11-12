@@ -124,6 +124,12 @@ func NewProcessor(
 		}
 		return newTableReader(ctx, flowCtx, processorID, stageID, core.TableReader, post)
 	}
+	if core.LevenshteinReader != nil {
+		if err := checkNumIn(inputs, 0); err != nil {
+			return nil, err
+		}
+		return newLevenshteinReader(ctx, flowCtx, processorID, stageID, core.LevenshteinReader, post)
+	}
 	if core.Filterer != nil {
 		if err := checkNumIn(inputs, 1); err != nil {
 			return nil, err

@@ -126,6 +126,11 @@ func (c *rowFetcherStatCollector) StartInconsistentScan(
 	return err
 }
 
+// // TODO(mgartner): Implement this (or figure out a better way without having to.
+// func (c *rowFetcherStatCollector) EndOfBatch() bool {
+// 	return false
+// }
+
 // NextRow is part of the rowFetcher interface.
 func (c *rowFetcherStatCollector) NextRow(ctx context.Context) (rowenc.EncDatumRow, int, error) {
 	start := timeutil.Now()

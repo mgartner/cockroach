@@ -15,6 +15,7 @@ import (
 
 	"github.com/cockroachdb/cockroach/pkg/kv/kvserver/concurrency/isolation"
 	"github.com/cockroachdb/cockroach/pkg/server/telemetry"
+	"github.com/cockroachdb/cockroach/pkg/sql/catalog"
 	"github.com/cockroachdb/cockroach/pkg/sql/catalog/colinfo"
 	"github.com/cockroachdb/cockroach/pkg/sql/catalog/descpb"
 	"github.com/cockroachdb/cockroach/pkg/sql/opt"
@@ -195,6 +196,9 @@ func (b *Builder) buildRelational(e memo.RelExpr) (_ execPlan, outputCols colOrd
 
 	case *memo.PlaceholderScanExpr:
 		ep, outputCols, err = b.buildPlaceholderScan(t)
+
+	case *memo.LevenshteinScanExpr:
+		ep, outputCols, err = b.buildLevenshteinScan(t)
 
 	case *memo.SelectExpr:
 		ep, outputCols, err = b.buildSelect(t)
@@ -1046,6 +1050,39 @@ func (b *Builder) buildPlaceholderScan(
 		return execPlan{}, colOrdMap{}, err
 	}
 
+	var res execPlan
+	res.root = root
+	return res, outputCols, nil
+}
+
+func (b *Builder) buildLevenshteinScan(
+	scan *memo.LevenshteinScanExpr,
+) (_ execPlan, outputCols colOrdMap, err error) {
+	md := b.mem.Metadata()
+	tab := md.Table(scan.Table)
+	var needed exec.TableColumnOrdinalSet
+	needed, outputCols = b.getColumns(scan.Cols, scan.Table)
+	colOrd, ok := outputCols.Get(scan.Col)
+	if !ok {
+		return execPlan{}, colOrdMap{}, errors.AssertionFailedf("expected column %d in output columns", scan.Col)
+	}
+	idx := b.mem.Metadata().Table(scan.Table).Index(scan.Index)
+	var colMap catalog.TableColMap
+	for i, n := 0, idx.KeyColumnCount(); i < n; i++ {
+		colID := descpb.ColumnID(idx.Column(i).ColID())
+		colMap.Set(colID, i)
+	}
+	root, err := b.factory.ConstructLevenshteinScan(
+		tab,
+		tab.Index(scan.Index),
+		needed,
+		exec.TableColumnOrdinal(colOrd),
+		scan.Target,
+		scan.MaxDist,
+	)
+	if err != nil {
+		return execPlan{}, colOrdMap{}, err
+	}
 	var res execPlan
 	res.root = root
 	return res, outputCols, nil

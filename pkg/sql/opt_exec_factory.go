@@ -200,6 +200,31 @@ func (ef *execFactory) constructVirtualScan(
 	)
 }
 
+func (ef *execFactory) ConstructLevenshteinScan(
+	table cat.Table,
+	index cat.Index,
+	neededCols exec.TableColumnOrdinalSet,
+	col exec.TableColumnOrdinal,
+	target string,
+	maxDist int,
+) (exec.Node, error) {
+	scan := &levenshteinScanNode{
+		// table:      roachpb.TableID(table.ID()),
+		// index:      roachpb.IndexID(index.ID()),
+		// neededCols: neededCols,
+		col:     col,
+		target:  target,
+		maxDist: uint64(maxDist),
+	}
+	tabDesc := table.(*optTable).desc
+	colCfg := makeScanColumnsConfig(table, neededCols)
+	if err := scan.initDescDefaults(tabDesc, colCfg); err != nil {
+		return nil, err
+	}
+	scan.index = index.(*optIndex).idx
+	return scan, nil
+}
+
 // ConstructFilter is part of the exec.Factory interface.
 func (ef *execFactory) ConstructFilter(
 	n exec.Node, filter tree.TypedExpr, reqOrdering exec.OutputOrdering,

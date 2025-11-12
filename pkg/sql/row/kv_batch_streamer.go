@@ -75,6 +75,17 @@ func newTxnKVStreamer(
 	return f
 }
 
+func (f *txnKVStreamer) SetupNextFetchWithoutReset(
+	ctx context.Context,
+	spans roachpb.Spans,
+	spanIDs []int,
+	bytesLimit rowinfra.BytesLimit,
+	_ rowinfra.KeyLimit,
+	_ bool,
+) error {
+	return f.SetupNextFetch(ctx, spans, spanIDs, bytesLimit, 0, false)
+}
+
 // SetupNextFetch implements the KVBatchFetcher interface.
 func (f *txnKVStreamer) SetupNextFetch(
 	ctx context.Context,

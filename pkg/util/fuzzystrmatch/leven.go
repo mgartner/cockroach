@@ -13,6 +13,10 @@ import "unicode/utf8"
 // Adapted from the 'Iterative with two matrix rows' approach within
 // https://en.wikipedia.org/wiki/Levenshtein_distance. This approach provides us
 // with O(n^2) time complexity and O(n) space complexity.
+// TODO(mgartner): We should be able to speed this up by:
+//   - We only need to allocate one row and can update it in place.
+//   - We can trim the common prefix of the two strings before calculating the
+//     distance.
 func LevenshteinDistanceWithCost(source, target string, insCost, delCost, subCost int) int {
 	if source == target {
 		return 0
@@ -78,6 +82,11 @@ func LevenshteinLessEqualDistance(source, target string, maxD int) int {
 // 'Iterative with two matrix rows' approach within https://en.wikipedia.org/wiki/Wagner–Fischer_algorithm.
 // A couple of optimizations have been added for tightening the bounds and for handling
 // impossibly tight bound case where the result is definitely greater than given maxDist.
+// TODO(mgartner): We should be able to speed this up by:
+//   - We only need to allocate one row and can update it in place.
+//   - We can trim the common prefix of the two strings before calculating the
+//     distance.
+//   - Reducing allocated space by using smaller int types when maxDist is small.
 func LevenshteinLessEqualDistanceWithCost(
 	source, target string, insCost, delCost, subCost, maxDist int,
 ) int {

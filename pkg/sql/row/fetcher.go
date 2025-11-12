@@ -130,6 +130,15 @@ type KVBatchFetcher interface {
 		spansCanOverlap bool,
 	) error
 
+	SetupNextFetchWithoutReset(
+		ctx context.Context,
+		spans roachpb.Spans,
+		spanIDs []int,
+		batchBytesLimit rowinfra.BytesLimit,
+		firstBatchKeyLimit rowinfra.KeyLimit,
+		spansCanOverlap bool,
+	) error
+
 	// NextBatch returns the next batch of rows. See KVBatchFetcherResponse for
 	// details on what is returned.
 	NextBatch(ctx context.Context) (KVBatchFetcherResponse, error)
@@ -610,6 +619,29 @@ func (rf *Fetcher) setTxnAndSendFn(txn *kv.Txn, sendFn sendFunc) error {
 //
 // Batch limits can only be used if the spans are ordered.
 func (rf *Fetcher) StartScan(
+	ctx context.Context,
+	spans roachpb.Spans,
+	spanIDs []int,
+	batchBytesLimit rowinfra.BytesLimit,
+	rowLimitHint rowinfra.RowLimit,
+) error {
+	if rf.args.WillUseKVProvider {
+		return errors.AssertionFailedf("StartScan is called instead of ConsumeKVProvider")
+	}
+	if len(spans) == 0 {
+		return errors.AssertionFailedf("no spans")
+	}
+
+	if err := rf.kvFetcher.SetupNextFetch(
+		ctx, spans, spanIDs, batchBytesLimit, rf.rowLimitToKeyLimit(rowLimitHint), rf.args.SpansCanOverlap,
+	); err != nil {
+		return err
+	}
+
+	return rf.startScan(ctx)
+}
+
+func (rf *Fetcher) RestartScan(
 	ctx context.Context,
 	spans roachpb.Spans,
 	spanIDs []int,
@@ -1166,6 +1198,10 @@ func (rf *Fetcher) processValueBytes(
 		prettyValue = rf.prettyValueBuf.String()
 	}
 	return prettyKey, prettyValue, nil
+}
+
+func (rf *Fetcher) EndOfBatch() bool {
+	return rf.kvFetcher.endOfBatch()
 }
 
 // NextRow processes keys until we complete one row, which is returned as an

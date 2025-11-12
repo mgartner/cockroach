@@ -106,6 +106,23 @@ define ScanPrivate {
     ExactPrefix int
 }
 
+[Relational]
+define LevenshteinScan {
+    _ LevenshteinScanPrivate
+}
+
+# TODO(mgartner): Add a hard limit.
+# TODO(mgartner): Add locking.
+[Private]
+define LevenshteinScanPrivate {
+    Table TableID
+    Index IndexOrdinal
+    Cols ColSet
+    Col ColumnID
+    Target string
+    MaxDist int
+}
+
 # PlaceholderScan is a special variant of Scan. It scans exactly one span of a
 # non-inverted index, and the span has the same start and end key. The values
 # for the span key are child scalar operators which are either constants or

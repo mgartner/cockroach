@@ -20,6 +20,7 @@ go_library(
         "joinreader.go",
         "joinreader_span_generator.go",
         "joinreader_strategies.go",
+        "levenshtein_reader.go",
         "mergejoiner.go",
         "noop.go",
         "ordinality.go",

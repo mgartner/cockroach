@@ -94,6 +94,7 @@ message ProcessorCoreUnion {
 
   optional NoopCoreSpec noop = 1;
   optional TableReaderSpec tableReader = 2;
+  optional LevenshteinReaderSpec levenshteinReader = 51;
   optional JoinReaderSpec joinReader = 3;
   optional SorterSpec sorter = 4;
   optional AggregatorSpec aggregator = 5;
@@ -136,7 +137,7 @@ message ProcessorCoreUnion {
   optional InspectSpec inspect = 50;
 
   reserved 6, 12, 14, 17, 18, 19, 20, 32;
-  // NEXT ID: 51.
+  // NEXT ID: 52.
 }
 
 // NoopCoreSpec indicates a "no-op" processor core. This is used when we just

@@ -404,6 +404,17 @@ func (e *distSQLSpecExecFactory) checkExprsAndMaybeMergeLastStage(
 	return recommendation
 }
 
+func (e *distSQLSpecExecFactory) ConstructLevenshteinScan(
+	table cat.Table,
+	index cat.Index,
+	neededCols exec.TableColumnOrdinalSet,
+	col exec.TableColumnOrdinal,
+	target string,
+	maxDist int,
+) (exec.Node, error) {
+	return nil, unimplemented.NewWithIssue(47473, "experimental opt-driven distsql planning: levenshtein-scan")
+}
+
 func (e *distSQLSpecExecFactory) ConstructFilter(
 	n exec.Node, filter tree.TypedExpr, reqOrdering exec.OutputOrdering,
 ) (exec.Node, error) {

@@ -295,3 +295,43 @@
     []
     (OutputCols $input)
 )
+
+# [GenerateLevenshteinScans, Explore]
+# (Select
+#     (Scan $scanPrivate:* & (IsCanonicalScan $scanPrivate))
+#     $filters:[
+#         ...
+#         $item:(FiltersItem
+#                 (Le
+#                     (Function
+#                         $args:*
+#                         $private:(FunctionPrivate "levenshtein")
+#                     )
+#                     (Const $maxDist:*)
+#                 )
+#             ) &
+#             (IsPositiveInt $maxDist) &
+#             (CanGenerateLevenshteinScan $scanPrivate $args)
+#         ...
+#     ]
+# )
+# =>
+# (GenerateLevenshteinScans $scanPrivate $args $maxDist)
+
+[GenerateLevenshteinScans, Explore]
+(Select
+    (Scan $scanPrivate:* & (IsCanonicalScan $scanPrivate))
+    [
+        (FiltersItem (Le $lhs:* (Const $maxDist:*))) &
+            (IsPositiveInt $maxDist) &
+            (Let
+                ($col $target $ok):(CanGenerateLevenshteinScan
+                    $scanPrivate
+                    $lhs
+                )
+                $ok
+            )
+    ]
+)
+=>
+(GenerateLevenshteinScans $scanPrivate $col $target $maxDist)

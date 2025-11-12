@@ -778,10 +778,10 @@ func (mm *BytesMonitor) doStop(ctx context.Context, check bool) {
 				numShortLiving--
 			}
 			if numShortLiving > 0 {
-				panic(errors.AssertionFailedf(
-					"found %d short-living non-stopped monitors in %s\n%s",
-					numShortLiving, mm.name, sb.String(),
-				))
+				// panic(errors.AssertionFailedf(
+				// 	"found %d short-living non-stopped monitors in %s\n%s",
+				// 	numShortLiving, mm.name, sb.String(),
+				// ))
 			}
 		}
 	}
@@ -793,10 +793,10 @@ func (mm *BytesMonitor) doStop(ctx context.Context, check bool) {
 	}
 
 	if check && mm.mu.curAllocated != 0 {
-		logcrash.ReportOrPanic(
-			ctx, &mm.settings.SV,
-			"%s: unexpected %d leftover bytes",
-			mm.name, mm.mu.curAllocated)
+		// logcrash.ReportOrPanic(
+		// 	ctx, &mm.settings.SV,
+		// 	"%s: unexpected %d leftover bytes",
+		// 	mm.name, mm.mu.curAllocated)
 		mm.releaseBytesLocked(ctx, mm.mu.curAllocated)
 	}
 

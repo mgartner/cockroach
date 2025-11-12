@@ -62,6 +62,10 @@ func getResultColumns(
 		a := args.(*scanArgs)
 		return tableColumns(a.Table, a.Params.NeededCols), nil
 
+	case levenshteinScanOp:
+		a := args.(*levenshteinScanArgs)
+		return tableColumns(a.Table, a.NeededCols), nil
+
 	case indexJoinOp:
 		a := args.(*indexJoinArgs)
 		return tableColumns(a.Table, a.TableCols), nil

@@ -487,6 +487,17 @@ func (f *txnKVFetcher) SetupNextFetch(
 	spansCanOverlap bool,
 ) error {
 	f.reset(ctx)
+	return f.SetupNextFetchWithoutReset(ctx, spans, spanIDs, batchBytesLimit, firstBatchKeyLimit, spansCanOverlap)
+}
+
+func (f *txnKVFetcher) SetupNextFetchWithoutReset(
+	ctx context.Context,
+	spans roachpb.Spans,
+	spanIDs []int,
+	batchBytesLimit rowinfra.BytesLimit,
+	firstBatchKeyLimit rowinfra.KeyLimit,
+	spansCanOverlap bool,
+) error {
 
 	if firstBatchKeyLimit < 0 || (batchBytesLimit == 0 && firstBatchKeyLimit != 0) {
 		// Passing firstBatchKeyLimit without batchBytesLimit doesn't make sense

@@ -25,6 +25,10 @@ type rowFetcher interface {
 		_ context.Context, _ roachpb.Spans, spanIDs []int,
 		batchBytesLimit rowinfra.BytesLimit, rowLimitHint rowinfra.RowLimit,
 	) error
+	RestartScan(
+		_ context.Context, _ roachpb.Spans, spanIDs []int,
+		batchBytesLimit rowinfra.BytesLimit, rowLimitHint rowinfra.RowLimit,
+	) error
 	StartInconsistentScan(
 		_ context.Context,
 		_ *kv.DB,
@@ -36,6 +40,7 @@ type rowFetcher interface {
 		qualityOfService sessiondatapb.QoSLevel,
 	) error
 
+	EndOfBatch() bool
 	NextRow(ctx context.Context) (_ rowenc.EncDatumRow, spanID int, _ error)
 	NextRowInto(
 		ctx context.Context, destination rowenc.EncDatumRow, colIdxMap catalog.TableColMap,

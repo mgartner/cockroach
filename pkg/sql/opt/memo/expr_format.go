@@ -546,6 +546,12 @@ func (f *ExprFmtCtx) formatRelational(e RelExpr, tp treeprinter.Node) {
 		}
 		f.formatLocking(tp, private.Locking)
 
+	case *LevenshteinScanExpr:
+		private := t.Private().(*LevenshteinScanPrivate)
+		f.formatCol("col", private.Col, e.Relational().NotNullCols)
+		tp.Childf("target: %q", private.Target)
+		tp.Childf("max-dist: %d", private.MaxDist)
+
 	case *InvertedFilterExpr:
 		var b strings.Builder
 		b.WriteRune('/')

@@ -203,6 +203,46 @@ func (b *logicalPropsBuilder) buildScanProps(scan *ScanExpr, rel *props.Relation
 	}
 }
 
+func (b *logicalPropsBuilder) buildLevenshteinScanProps(
+	scan *LevenshteinScanExpr, rel *props.Relational,
+) {
+	md := b.mem.Metadata()
+
+	// Output Columns
+	// --------------
+	// Scan output columns are stored in the definition.
+	rel.OutputCols = scan.Cols
+
+	// Not Null Columns
+	// ----------------
+	// Initialize not-NULL columns from the table schema.
+	rel.NotNullCols = makeTableNotNullCols(md, scan.Table).Copy()
+	rel.NotNullCols.Add(scan.Col)
+
+	// Outer Columns
+	// -------------
+	// Levenshtein can operator never has outer columns.
+
+	// Functional Dependencies
+	// -----------------------
+	rel.FuncDeps.CopyFrom(MakeTableFuncDep(md, scan.Table))
+	rel.FuncDeps.MakeNotNull(rel.NotNullCols)
+	rel.FuncDeps.ProjectCols(rel.OutputCols)
+
+	// Cardinality
+	// -----------
+	// Restrict cardinality based on constraint, partial index predicate, FDs,
+	// and hard limit.
+	rel.Cardinality = props.AnyCardinality
+
+	// Statistics
+	// ----------
+	// TODO(mgartner): Build statistics for LevenshteinScan.
+	// if !b.disableStats {
+	// 	b.sb.buildScan(scan, rel)
+	// }
+}
+
 // buildPlaceholderScanProps is unimplemented. Placeholder expressions are only created
 // in two places:
 //

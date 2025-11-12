@@ -422,6 +422,7 @@ var nodeNames = [...]string{
 	insertOp:               "insert",
 	invertedFilterOp:       "inverted filter",
 	invertedJoinOp:         "inverted join",
+	levenshteinScanOp:      "levenshtein scan",
 	limitOp:                "limit",
 	lookupJoinOp:           "", // This node does not have a fixed name.
 	max1RowOp:              "max1row",
@@ -733,6 +734,12 @@ func (e *emitter) emitNodeAttributes(ctx context.Context, evalCtx *eval.Context,
 		}
 		e.emitLockingPolicy(a.Params.Locking)
 		e.emitPolicies(ob, a.Table, n)
+
+	case levenshteinScanOp:
+		a := n.args.(*levenshteinScanArgs)
+		e.emitTableAndIndex("table", a.Table, a.Index, "")
+		ob.Attrf("target", "%q", a.Target)
+		ob.Attr("maxDist", a.MaxDist)
 
 	case valuesOp:
 		a := n.args.(*valuesArgs)

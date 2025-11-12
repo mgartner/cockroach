@@ -123,6 +123,16 @@ message TableReaderSpec {
   reserved 1, 2, 4, 6, 7, 8, 13, 14, 15, 16, 17, 19;
 }
 
+message LevenshteinReaderSpec {
+  optional sqlbase.IndexFetchSpec fetch_spec = 1 [(gogoproto.nullable) = false];
+
+  optional uint32 column = 2 [(gogoproto.nullable) = false];
+
+  optional string target = 3 [(gogoproto.nullable) = false];
+
+  optional uint64 max_dist = 4 [(gogoproto.nullable) = false];
+}
+
 // FiltererSpec is the specification for a processor that filters input rows
 // according to a boolean expression.
 message FiltererSpec {
@@ -1070,7 +1080,7 @@ message HashGroupJoinerSpec {
   optional AggregatorSpec aggregator_spec = 3 [(gogoproto.nullable) = false];
 }
 
-// InsertSpec is a limited insert processor that can only handle vectorized 
+// InsertSpec is a limited insert processor that can only handle vectorized
 // batch inserts for rows affected insert queries (ie doesn't support returning
 // rows or inserts from select).
 message InsertSpec {
@@ -1079,7 +1089,7 @@ message InsertSpec {
     (gogoproto.customname) = "ColumnIDs",
     (gogoproto.casttype) = "github.com/cockroachdb/cockroach/pkg/sql/catalog/descpb.ColumnID"
   ];
-  // The serialized bytes from intsets.Fast.Encode. 
+  // The serialized bytes from intsets.Fast.Encode.
   optional bytes check_ords = 3;
   // Whether the insert should be autocommitted.
   optional bool auto_commit = 4 [(gogoproto.nullable) = false];
