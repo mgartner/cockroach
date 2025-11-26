@@ -84,7 +84,7 @@ func (b *Builder) buildScalar(
 			// effectively constant) or it is part of a table and we are already
 			// grouping on the entire PK of that table.
 			g := inScope.groupby
-			if !inScope.isOuterColumn(t.id) {
+			if !inScope.isOuterColumn(t) {
 				if !b.allowImplicitGroupingColumn(t.id, g) {
 					panic(newGroupingError(t.name.ReferenceName()))
 				}
@@ -494,6 +494,17 @@ func (b *Builder) buildScalar(
 	}
 
 	return b.finishBuildScalar(scalar, out, outScope, outCol)
+}
+
+// buildVariableRef builds a variable reference into a scalar Variable or
+// Placeholder expression.
+func (b *Builder) buildVariableRef(col *scopeColumn) opt.ScalarExpr {
+	if col.isParam() && b.evalCtx.SessionData().OptimizerBuildRoutineParamsAsPlaceholders {
+		return b.factory.ConstructPlaceholder(
+			tree.NewTypedPlaceholder(tree.PlaceholderIdx(col.getParamOrd()), col.typ),
+		)
+	}
+	return b.factory.ConstructVariable(col.id)
 }
 
 func (b *Builder) hasSubOperator(t *tree.ComparisonExpr) bool {

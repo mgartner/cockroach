@@ -10,6 +10,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"unicode"
 
@@ -1070,9 +1071,7 @@ func (f *ExprFmtCtx) formatScalarWithLabel(
 			// Ensure that the definition of the UDF is not printed out again if it
 			// is recursively called.
 			f.seenUDFs[def] = struct{}{}
-			if len(def.Params) > 0 {
-				f.formatColList(tp, "params:", def.Params, opt.ColSet{} /* notNullCols */)
-			}
+			f.formatParamList(tp, "params:", def.Params)
 			n := tp.Child("body")
 			for i := range def.Body {
 				stmtNode := n
@@ -1634,6 +1633,27 @@ func (f *ExprFmtCtx) formatColList(
 		}
 		tp.Child(f.Buffer.String())
 	}
+}
+
+// formatParamList constructs a new treeprinter child containing the specified
+// list of parameters columns or placeholders.
+func (f *ExprFmtCtx) formatParamList(tp treeprinter.Node, heading string, colList opt.ColList) {
+	if len(colList) == 0 {
+		return
+	}
+	f.Buffer.Reset()
+	f.Buffer.WriteString(heading)
+	for i, col := range colList {
+		f.space()
+		if col == 0 {
+			f.Buffer.WriteString("$" + strconv.Itoa(i+1))
+		} else {
+			// TODO(mgartner): This case will no longer be necessary if we
+			// always build routine parameters as placeholders.
+			f.formatCol("" /* label */, col, opt.ColSet{} /* notNullCols */)
+		}
+	}
+	tp.Child(f.Buffer.String())
 }
 
 // formatOptionalColList constructs a new treeprinter child containing the

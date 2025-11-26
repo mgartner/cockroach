@@ -218,7 +218,11 @@ func (b *Builder) synthesizeParameterColumn(
 		scalar: scalar,
 	})
 	col := &scope.cols[len(scope.cols)-1]
-	col.id = b.factory.Metadata().AddColumn(name.MetadataName(), typ)
+	if !b.evalCtx.SessionData().OptimizerBuildRoutineParamsAsPlaceholders {
+		// If the parameter reference will be built as a Variable expression, we
+		// need to assign it a column ID.
+		col.id = b.factory.Metadata().AddColumn(name.MetadataName(), typ)
+	}
 	col.setParamOrd(ord)
 	return col
 }

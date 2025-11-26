@@ -313,27 +313,31 @@ func (b *Builder) finishBuildScalarRef(
 	}
 
 	// Collect the outer columns of the current subquery, if any.
-	isOuterColumn := inScope == nil || inScope.isOuterColumn(col.id)
+	isOuterColumn := inScope == nil || inScope.isOuterColumn(col)
 	if isOuterColumn && b.subquery != nil {
 		b.subquery.outerCols.Add(col.id)
 	}
 
-	// If this is not a projection context, then wrap the column reference with
-	// a Variable expression that can be embedded in outer expression(s).
+	// If this is not a projection context, then build a variable reference that
+	// can be embedded in outer expression(s).
 	if outScope == nil {
-		return b.factory.ConstructVariable(col.id)
+		return b.buildVariableRef(col)
 	}
 
-	// Outer columns must be wrapped in a variable expression and assigned a new
-	// column id before projection.
-	if isOuterColumn {
+	// Outer columns and routine parameters (with no column IDs and which will
+	// be built as placeholders) must be wrapped in a variable expression and
+	// assigned a new column id before projection.
+	// TODO(mgartner): Use (*scopeColumn).isParam once we stop building routine
+	// parameter references as Variable expressions.
+	placeholderParam := col.id == 0
+	if isOuterColumn || placeholderParam {
 		// Avoid synthesizing a new column if possible.
 		existing := outScope.findExistingCol(col, false /* allowSideEffects */)
 		if existing == nil || existing == outCol {
 			if outCol.name.IsAnonymous() {
 				outCol.name = col.name
 			}
-			group := b.factory.ConstructVariable(col.id)
+			group := b.buildVariableRef(col)
 			b.populateSynthesizedColumn(outCol, group)
 			return group
 		}
