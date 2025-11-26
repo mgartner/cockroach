@@ -23,15 +23,14 @@ call
  └── procedure: p
       ├── args
       │    └── const: 1
-      ├── params: x:1
+      ├── params: $1
       └── body
            └── values
-                ├── columns: stmt_if_5:12
-                ├── outer: (1)
+                ├── columns: stmt_if_5:8
                 ├── cardinality: [1 - 1]
-                ├── volatile
+                ├── volatile, has-placeholder
                 ├── key: ()
-                ├── fd: ()-->(12)
+                ├── fd: ()-->(8)
                 └── tuple
                      └── case
                           ├── true
@@ -43,16 +42,15 @@ call
                           │    └── udf: _stmt_raise_2
                           │         ├── tail-call
                           │         ├── args
-                          │         │    └── variable: x:1
-                          │         ├── params: x:4
+                          │         │    └── placeholder: $1
+                          │         ├── params: $1
                           │         └── body
                           │              ├── values
-                          │              │    ├── columns: stmt_raise_3:5
-                          │              │    ├── outer: (4)
+                          │              │    ├── columns: stmt_raise_3:2
                           │              │    ├── cardinality: [1 - 1]
-                          │              │    ├── volatile
+                          │              │    ├── volatile, has-placeholder
                           │              │    ├── key: ()
-                          │              │    ├── fd: ()-->(5)
+                          │              │    ├── fd: ()-->(2)
                           │              │    └── tuple
                           │              │         └── function: crdb_internal.plpgsql_raise
                           │              │              ├── const: 'NOTICE'
@@ -61,53 +59,53 @@ call
                           │              │              │    │    ├── const: 'foo '
                           │              │              │    │    └── coalesce
                           │              │              │    │         ├── cast: STRING
-                          │              │              │    │         │    └── variable: x:4
+                          │              │              │    │         │    └── placeholder: $1
                           │              │              │    │         └── const: '<NULL>'
                           │              │              │    └── const: ''
                           │              │              ├── const: ''
                           │              │              ├── const: ''
                           │              │              └── const: '00000'
                           │              └── values
-                          │                   ├── columns: stmt_if_1:6
+                          │                   ├── columns: stmt_if_1:3
                           │                   ├── cardinality: [1 - 1]
                           │                   ├── key: ()
-                          │                   ├── fd: ()-->(6)
+                          │                   ├── fd: ()-->(3)
                           │                   └── tuple
                           │                        └── subquery
                           │                             ├── tail-call
                           │                             └── values
-                          │                                  ├── columns: "_implicit_return":3
+                          │                                  ├── columns: "_implicit_return":1
                           │                                  ├── cardinality: [1 - 1]
                           │                                  ├── key: ()
-                          │                                  ├── fd: ()-->(3)
+                          │                                  ├── fd: ()-->(1)
                           │                                  └── tuple
                           │                                       └── null
                           └── udf: _stmt_exec_4
                                ├── tail-call
                                ├── args
-                               │    └── variable: x:1
-                               ├── params: x:8
+                               │    └── placeholder: $1
+                               ├── params: $1
                                └── body
                                     ├── values
-                                    │    ├── columns: x:9
-                                    │    ├── outer: (8)
+                                    │    ├── columns: x:5
                                     │    ├── cardinality: [1 - 1]
+                                    │    ├── has-placeholder
                                     │    ├── key: ()
-                                    │    ├── fd: ()-->(9)
+                                    │    ├── fd: ()-->(5)
                                     │    └── tuple
-                                    │         └── variable: x:8
+                                    │         └── placeholder: $1
                                     └── values
-                                         ├── columns: stmt_if_1:10
+                                         ├── columns: stmt_if_1:6
                                          ├── cardinality: [1 - 1]
                                          ├── key: ()
-                                         ├── fd: ()-->(10)
+                                         ├── fd: ()-->(6)
                                          └── tuple
                                               └── subquery
                                                    ├── tail-call
                                                    └── values
-                                                        ├── columns: "_implicit_return":3
+                                                        ├── columns: "_implicit_return":1
                                                         ├── cardinality: [1 - 1]
                                                         ├── key: ()
-                                                        ├── fd: ()-->(3)
+                                                        ├── fd: ()-->(1)
                                                         └── tuple
                                                              └── null

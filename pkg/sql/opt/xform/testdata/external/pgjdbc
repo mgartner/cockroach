@@ -34,34 +34,34 @@ WHERE
     t.typnamespace = n.oid AND n.nspname != 'pg_catalog';
 ----
 project
- ├── columns: type_cat:71 type_schem:35!null type_name:3!null class_name:71 data_type:72 remarks:132 base_type:133
+ ├── columns: type_cat:71 type_schem:35!null type_name:3!null class_name:71 data_type:72 remarks:130 base_type:131
  ├── immutable
  ├── fd: ()-->(71)
  ├── ensure-distinct-on
- │    ├── columns: t.typname:3!null t.typtype:8 nspname:35!null case:70 description:89 rownum:134!null
- │    ├── grouping columns: rownum:134!null
+ │    ├── columns: t.typname:3!null t.typtype:8 nspname:35!null case:70 description:87 rownum:132!null
+ │    ├── grouping columns: rownum:132!null
  │    ├── error: "more than one row returned by a subquery used as an expression"
  │    ├── immutable
- │    ├── key: (134)
- │    ├── fd: (134)-->(3,8,35,70,89)
+ │    ├── key: (132)
+ │    ├── fd: (132)-->(3,8,35,70,87)
  │    ├── left-join (hash)
- │    │    ├── columns: t.typname:3!null t.typtype:8 t.typbasetype:26 nspname:35!null pg_catalog.pg_type.oid:39 case:70 description:89 rownum:134!null
+ │    │    ├── columns: t.typname:3!null t.typtype:8 t.typbasetype:26 nspname:35!null pg_catalog.pg_type.oid:39 case:70 description:87 rownum:132!null
  │    │    ├── immutable
- │    │    ├── fd: (134)-->(3,8,26,35,89)
+ │    │    ├── fd: (132)-->(3,8,26,35,87)
  │    │    ├── distinct-on
- │    │    │    ├── columns: t.typname:3!null t.typtype:8 t.typbasetype:26 nspname:35!null description:89 rownum:134!null
- │    │    │    ├── grouping columns: rownum:134!null
+ │    │    │    ├── columns: t.typname:3!null t.typtype:8 t.typbasetype:26 nspname:35!null description:87 rownum:132!null
+ │    │    │    ├── grouping columns: rownum:132!null
  │    │    │    ├── immutable
- │    │    │    ├── key: (134)
- │    │    │    ├── fd: (134)-->(3,8,26,35,89)
- │    │    │    ├── left-join (hash)
- │    │    │    │    ├── columns: t.oid:2!null t.typname:3!null t.typnamespace:4!null t.typtype:8 t.typbasetype:26 n.oid:34!null nspname:35!null objoid:86 classoid:87 description:89 c.oid:91 relname:92 relnamespace:93 n.oid:128 nspname:129 rownum:134!null
+ │    │    │    ├── key: (132)
+ │    │    │    ├── fd: (132)-->(3,8,26,35,87)
+ │    │    │    ├── left-join-apply
+ │    │    │    │    ├── columns: t.oid:2!null t.typname:3!null t.typnamespace:4!null t.typtype:8 t.typbasetype:26 n.oid:34!null nspname:35!null classoid:85 description:87 c.oid:89 relname:90 relnamespace:91 n.oid:126 nspname:127 rownum:132!null
  │    │    │    │    ├── immutable
- │    │    │    │    ├── fd: (134)-->(2-4,8,26,34,35), (4)==(34), (34)==(4), (87)==(91), (91)==(87), (93)==(128), (128)==(93)
+ │    │    │    │    ├── fd: (132)-->(2-4,8,26,34,35), (4)==(34), (34)==(4), (85)==(89), (89)==(85), (91)==(126), (126)==(91)
  │    │    │    │    ├── ordinality
- │    │    │    │    │    ├── columns: t.oid:2!null t.typname:3!null t.typnamespace:4!null t.typtype:8 t.typbasetype:26 n.oid:34!null nspname:35!null rownum:134!null
- │    │    │    │    │    ├── key: (134)
- │    │    │    │    │    ├── fd: (134)-->(2-4,8,26,34,35), (4)==(34), (34)==(4)
+ │    │    │    │    │    ├── columns: t.oid:2!null t.typname:3!null t.typnamespace:4!null t.typtype:8 t.typbasetype:26 n.oid:34!null nspname:35!null rownum:132!null
+ │    │    │    │    │    ├── key: (132)
+ │    │    │    │    │    ├── fd: (132)-->(2-4,8,26,34,35), (4)==(34), (34)==(4)
  │    │    │    │    │    └── inner-join (hash)
  │    │    │    │    │         ├── columns: t.oid:2!null t.typname:3!null t.typnamespace:4!null t.typtype:8 t.typbasetype:26 n.oid:34!null nspname:35!null
  │    │    │    │    │         ├── fd: (4)==(34), (34)==(4)
@@ -76,64 +76,78 @@ project
  │    │    │    │    │         └── filters
  │    │    │    │    │              └── t.typnamespace:4 = n.oid:34 [outer=(4,34), constraints=(/4: (/NULL - ]; /34: (/NULL - ]), fd=(4)==(34), (34)==(4)]
  │    │    │    │    ├── inner-join (hash)
- │    │    │    │    │    ├── columns: objoid:86!null classoid:87!null description:89!null c.oid:91!null relname:92!null relnamespace:93!null n.oid:128!null nspname:129!null
+ │    │    │    │    │    ├── columns: classoid:85!null description:87!null c.oid:89!null relname:90!null relnamespace:91!null n.oid:126!null nspname:127!null
+ │    │    │    │    │    ├── outer: (2)
  │    │    │    │    │    ├── immutable
- │    │    │    │    │    ├── fd: ()-->(92,129), (87)==(91), (91)==(87), (93)==(128), (128)==(93)
+ │    │    │    │    │    ├── fd: ()-->(90,127), (85)==(89), (89)==(85), (91)==(126), (126)==(91)
  │    │    │    │    │    ├── union-all
- │    │    │    │    │    │    ├── columns: objoid:86!null classoid:87!null description:89!null
- │    │    │    │    │    │    ├── left columns: crdb_internal.kv_catalog_comments.objoid:77 crdb_internal.kv_catalog_comments.classoid:76 crdb_internal.kv_catalog_comments.description:79
- │    │    │    │    │    │    ├── right columns: crdb_internal.kv_builtin_function_comments.oid:81 classoid:83 crdb_internal.kv_builtin_function_comments.description:82
+ │    │    │    │    │    │    ├── columns: classoid:85!null description:87!null
+ │    │    │    │    │    │    ├── left columns: crdb_internal.kv_catalog_comments.classoid:74 crdb_internal.kv_catalog_comments.description:77
+ │    │    │    │    │    │    ├── right columns: classoid:81 crdb_internal.kv_builtin_function_comments.description:80
+ │    │    │    │    │    │    ├── outer: (2)
  │    │    │    │    │    │    ├── immutable
  │    │    │    │    │    │    ├── project
- │    │    │    │    │    │    │    ├── columns: crdb_internal.kv_catalog_comments.classoid:76!null crdb_internal.kv_catalog_comments.objoid:77!null crdb_internal.kv_catalog_comments.description:79!null
+ │    │    │    │    │    │    │    ├── columns: crdb_internal.kv_catalog_comments.classoid:74!null crdb_internal.kv_catalog_comments.description:77!null
+ │    │    │    │    │    │    │    ├── outer: (2)
  │    │    │    │    │    │    │    ├── immutable
  │    │    │    │    │    │    │    └── select
- │    │    │    │    │    │    │         ├── columns: crdb_internal.kv_catalog_comments.classoid:76!null crdb_internal.kv_catalog_comments.objoid:77!null crdb_internal.kv_catalog_comments.description:79!null objsubid:85!null
+ │    │    │    │    │    │    │         ├── columns: crdb_internal.kv_catalog_comments.classoid:74!null crdb_internal.kv_catalog_comments.description:77!null objsubid:83!null
+ │    │    │    │    │    │    │         ├── outer: (2)
  │    │    │    │    │    │    │         ├── immutable
- │    │    │    │    │    │    │         ├── fd: ()-->(85)
+ │    │    │    │    │    │    │         ├── fd: ()-->(83)
  │    │    │    │    │    │    │         ├── project
- │    │    │    │    │    │    │         │    ├── columns: objsubid:85!null crdb_internal.kv_catalog_comments.classoid:76!null crdb_internal.kv_catalog_comments.objoid:77!null crdb_internal.kv_catalog_comments.description:79!null
+ │    │    │    │    │    │    │         │    ├── columns: objsubid:83!null crdb_internal.kv_catalog_comments.classoid:74!null crdb_internal.kv_catalog_comments.description:77!null
+ │    │    │    │    │    │    │         │    ├── outer: (2)
  │    │    │    │    │    │    │         │    ├── immutable
  │    │    │    │    │    │    │         │    ├── select
- │    │    │    │    │    │    │         │    │    ├── columns: crdb_internal.kv_catalog_comments.classoid:76!null crdb_internal.kv_catalog_comments.objoid:77!null crdb_internal.kv_catalog_comments.objsubid:78!null crdb_internal.kv_catalog_comments.description:79!null
+ │    │    │    │    │    │    │         │    │    ├── columns: crdb_internal.kv_catalog_comments.classoid:74!null crdb_internal.kv_catalog_comments.objoid:75!null crdb_internal.kv_catalog_comments.objsubid:76!null crdb_internal.kv_catalog_comments.description:77!null
+ │    │    │    │    │    │    │         │    │    ├── outer: (2)
+ │    │    │    │    │    │    │         │    │    ├── fd: ()-->(75)
  │    │    │    │    │    │    │         │    │    ├── scan kv_catalog_comments
- │    │    │    │    │    │    │         │    │    │    └── columns: crdb_internal.kv_catalog_comments.classoid:76!null crdb_internal.kv_catalog_comments.objoid:77!null crdb_internal.kv_catalog_comments.objsubid:78!null crdb_internal.kv_catalog_comments.description:79!null
+ │    │    │    │    │    │    │         │    │    │    └── columns: crdb_internal.kv_catalog_comments.classoid:74!null crdb_internal.kv_catalog_comments.objoid:75!null crdb_internal.kv_catalog_comments.objsubid:76!null crdb_internal.kv_catalog_comments.description:77!null
  │    │    │    │    │    │    │         │    │    └── filters
- │    │    │    │    │    │    │         │    │         └── crdb_internal.kv_catalog_comments.classoid:76 != 4294967075 [outer=(76), constraints=(/76: (/NULL - /4294967074] [/4294967076 - ]; tight)]
+ │    │    │    │    │    │    │         │    │         ├── crdb_internal.kv_catalog_comments.classoid:74 != 4294967075 [outer=(74), constraints=(/74: (/NULL - /4294967074] [/4294967076 - ]; tight)]
+ │    │    │    │    │    │    │         │    │         └── crdb_internal.kv_catalog_comments.objoid:75 = t.oid:2 [outer=(2,75), constraints=(/2: (/NULL - ]; /75: (/NULL - ]), fd=(2)==(75), (75)==(2)]
  │    │    │    │    │    │    │         │    └── projections
- │    │    │    │    │    │    │         │         └── crdb_internal.kv_catalog_comments.objsubid:78::INT8 [as=objsubid:85, outer=(78), immutable]
+ │    │    │    │    │    │    │         │         └── crdb_internal.kv_catalog_comments.objsubid:76::INT8 [as=objsubid:83, outer=(76), immutable]
  │    │    │    │    │    │    │         └── filters
- │    │    │    │    │    │    │              └── objsubid:85 = 0 [outer=(85), constraints=(/85: [/0 - /0]; tight), fd=()-->(85)]
+ │    │    │    │    │    │    │              └── objsubid:83 = 0 [outer=(83), constraints=(/83: [/0 - /0]; tight), fd=()-->(83)]
  │    │    │    │    │    │    └── project
- │    │    │    │    │    │         ├── columns: classoid:83!null crdb_internal.kv_builtin_function_comments.oid:81!null crdb_internal.kv_builtin_function_comments.description:82!null
- │    │    │    │    │    │         ├── fd: ()-->(83)
- │    │    │    │    │    │         ├── scan kv_builtin_function_comments
- │    │    │    │    │    │         │    └── columns: crdb_internal.kv_builtin_function_comments.oid:81!null crdb_internal.kv_builtin_function_comments.description:82!null
+ │    │    │    │    │    │         ├── columns: classoid:81!null crdb_internal.kv_builtin_function_comments.description:80!null
+ │    │    │    │    │    │         ├── outer: (2)
+ │    │    │    │    │    │         ├── fd: ()-->(81)
+ │    │    │    │    │    │         ├── select
+ │    │    │    │    │    │         │    ├── columns: crdb_internal.kv_builtin_function_comments.oid:79!null crdb_internal.kv_builtin_function_comments.description:80!null
+ │    │    │    │    │    │         │    ├── outer: (2)
+ │    │    │    │    │    │         │    ├── fd: ()-->(79)
+ │    │    │    │    │    │         │    ├── scan kv_builtin_function_comments
+ │    │    │    │    │    │         │    │    └── columns: crdb_internal.kv_builtin_function_comments.oid:79!null crdb_internal.kv_builtin_function_comments.description:80!null
+ │    │    │    │    │    │         │    └── filters
+ │    │    │    │    │    │         │         └── crdb_internal.kv_builtin_function_comments.oid:79 = t.oid:2 [outer=(2,79), constraints=(/2: (/NULL - ]; /79: (/NULL - ]), fd=(2)==(79), (79)==(2)]
  │    │    │    │    │    │         └── projections
- │    │    │    │    │    │              └── 4294967043 [as=classoid:83]
+ │    │    │    │    │    │              └── 4294967043 [as=classoid:81]
  │    │    │    │    │    ├── inner-join (hash)
- │    │    │    │    │    │    ├── columns: c.oid:91!null relname:92!null relnamespace:93!null n.oid:128!null nspname:129!null
- │    │    │    │    │    │    ├── fd: ()-->(92,129), (93)==(128), (128)==(93)
+ │    │    │    │    │    │    ├── columns: c.oid:89!null relname:90!null relnamespace:91!null n.oid:126!null nspname:127!null
+ │    │    │    │    │    │    ├── fd: ()-->(90,127), (91)==(126), (126)==(91)
  │    │    │    │    │    │    ├── select
- │    │    │    │    │    │    │    ├── columns: c.oid:91!null relname:92!null relnamespace:93
- │    │    │    │    │    │    │    ├── fd: ()-->(92)
+ │    │    │    │    │    │    │    ├── columns: c.oid:89!null relname:90!null relnamespace:91
+ │    │    │    │    │    │    │    ├── fd: ()-->(90)
  │    │    │    │    │    │    │    ├── scan pg_class [as=c]
- │    │    │    │    │    │    │    │    └── columns: c.oid:91!null relname:92!null relnamespace:93
+ │    │    │    │    │    │    │    │    └── columns: c.oid:89!null relname:90!null relnamespace:91
  │    │    │    │    │    │    │    └── filters
- │    │    │    │    │    │    │         └── relname:92 = 'pg_type' [outer=(92), constraints=(/92: [/'pg_type' - /'pg_type']; tight), fd=()-->(92)]
+ │    │    │    │    │    │    │         └── relname:90 = 'pg_type' [outer=(90), constraints=(/90: [/'pg_type' - /'pg_type']; tight), fd=()-->(90)]
  │    │    │    │    │    │    ├── select
- │    │    │    │    │    │    │    ├── columns: n.oid:128 nspname:129!null
- │    │    │    │    │    │    │    ├── fd: ()-->(129)
+ │    │    │    │    │    │    │    ├── columns: n.oid:126 nspname:127!null
+ │    │    │    │    │    │    │    ├── fd: ()-->(127)
  │    │    │    │    │    │    │    ├── scan pg_namespace [as=n]
- │    │    │    │    │    │    │    │    └── columns: n.oid:128 nspname:129!null
+ │    │    │    │    │    │    │    │    └── columns: n.oid:126 nspname:127!null
  │    │    │    │    │    │    │    └── filters
- │    │    │    │    │    │    │         └── nspname:129 = 'pg_catalog' [outer=(129), constraints=(/129: [/'pg_catalog' - /'pg_catalog']; tight), fd=()-->(129)]
+ │    │    │    │    │    │    │         └── nspname:127 = 'pg_catalog' [outer=(127), constraints=(/127: [/'pg_catalog' - /'pg_catalog']; tight), fd=()-->(127)]
  │    │    │    │    │    │    └── filters
- │    │    │    │    │    │         └── relnamespace:93 = n.oid:128 [outer=(93,128), constraints=(/93: (/NULL - ]; /128: (/NULL - ]), fd=(93)==(128), (128)==(93)]
+ │    │    │    │    │    │         └── relnamespace:91 = n.oid:126 [outer=(91,126), constraints=(/91: (/NULL - ]; /126: (/NULL - ]), fd=(91)==(126), (126)==(91)]
  │    │    │    │    │    └── filters
- │    │    │    │    │         └── classoid:87 = c.oid:91 [outer=(87,91), constraints=(/87: (/NULL - ]; /91: (/NULL - ]), fd=(87)==(91), (91)==(87)]
- │    │    │    │    └── filters
- │    │    │    │         └── objoid:86 = t.oid:2 [outer=(2,86), constraints=(/2: (/NULL - ]; /86: (/NULL - ]), fd=(2)==(86), (86)==(2)]
+ │    │    │    │    │         └── classoid:85 = c.oid:89 [outer=(85,89), constraints=(/85: (/NULL - ]; /89: (/NULL - ]), fd=(85)==(89), (89)==(85)]
+ │    │    │    │    └── filters (true)
  │    │    │    └── aggregations
  │    │    │         ├── const-agg [as=t.typname:3, outer=(3)]
  │    │    │         │    └── t.typname:3
@@ -143,8 +157,8 @@ project
  │    │    │         │    └── t.typbasetype:26
  │    │    │         ├── const-agg [as=nspname:35, outer=(35)]
  │    │    │         │    └── nspname:35
- │    │    │         └── first-agg [as=description:89, outer=(89)]
- │    │    │              └── description:89
+ │    │    │         └── first-agg [as=description:87, outer=(87)]
+ │    │    │              └── description:87
  │    │    ├── project
  │    │    │    ├── columns: case:70!null pg_catalog.pg_type.oid:39!null
  │    │    │    ├── scan pg_type
@@ -162,13 +176,13 @@ project
  │         │    └── nspname:35
  │         ├── const-agg [as=case:70, outer=(70)]
  │         │    └── case:70
- │         └── const-agg [as=description:89, outer=(89)]
- │              └── description:89
+ │         └── const-agg [as=description:87, outer=(87)]
+ │              └── description:87
  └── projections
       ├── NULL [as=type_cat:71]
       ├── CASE WHEN t.typtype:8 = 'c' THEN 'STRUCT' ELSE 'DISTINCT' END [as=data_type:72, outer=(8)]
-      ├── description:89 [as=remarks:132, outer=(89)]
-      └── CASE WHEN t.typtype:8 = 'd' THEN case:70 ELSE CAST(NULL AS STRING) END [as=base_type:133, outer=(8,70)]
+      ├── description:87 [as=remarks:130, outer=(87)]
+      └── CASE WHEN t.typtype:8 = 'd' THEN case:70 ELSE CAST(NULL AS STRING) END [as=base_type:131, outer=(8,70)]
 
 
 # Regression test for #55140. Avoid lookup joins for virtual tables.

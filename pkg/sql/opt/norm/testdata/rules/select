@@ -769,9 +769,8 @@ CREATE PROCEDURE p157840(INT) LANGUAGE SQL AS $$
 $$
 ----
 
-# With optimizer_build_routine_params_as_placeholders enabled, the filter on i
-# is pushed into the project.
-norm format=show-scalars set=(optimizer_build_routine_params_as_placeholders=true) expect=PushSelectIntoProject
+# Tthe filter on i is pushed into the project.
+norm format=show-scalars
 CALL p157840(10)
 ----
 call

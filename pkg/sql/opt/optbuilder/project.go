@@ -44,7 +44,7 @@ func (b *Builder) constructProject(input memo.RelExpr, cols []scopeColumn) memo.
 	colSet := opt.ColSet{}
 	for i := range cols {
 		id, scalar := cols[i].id, cols[i].scalar
-		if !colSet.Contains(id) {
+		if id != 0 && !colSet.Contains(id) {
 			if scalar == nil {
 				passthrough.Add(id)
 			} else {
@@ -308,7 +308,7 @@ func (b *Builder) finishBuildScalarRef(
 
 	b.trackReferencedColumnForViews(col)
 	// Update the sets of column references and outer columns if needed.
-	if colRefs != nil {
+	if colRefs != nil && col.id != 0 {
 		colRefs.Add(col.id)
 	}
 

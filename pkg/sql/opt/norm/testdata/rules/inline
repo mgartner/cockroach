@@ -1417,7 +1417,7 @@ norm expect=InlineUDF
 SELECT add(1, i) FROM (VALUES (1), (2), (3)) v(i)
 ----
 project
- ├── columns: add:5!null
+ ├── columns: add:3!null
  ├── cardinality: [3 - 3]
  ├── immutable
  ├── values
@@ -1427,7 +1427,7 @@ project
  │    ├── (2,)
  │    └── (3,)
  └── projections
-      └── column1:1 + 1 [as=add:5, outer=(1), immutable]
+      └── column1:1 + 1 [as=add:3, outer=(1), immutable]
 
 norm expect=InlineUDF
 SELECT k FROM a WHERE add(i, 1) = 10
@@ -1451,19 +1451,19 @@ norm expect=InlineUDF
 SELECT add(1, $1)
 ----
 values
- ├── columns: add:4
+ ├── columns: add:2
  ├── cardinality: [1 - 1]
  ├── immutable, has-placeholder
  ├── key: ()
- ├── fd: ()-->(4)
+ ├── fd: ()-->(2)
  └── tuple
       └── subquery
            └── values
-                ├── columns: "?column?":3
+                ├── columns: "?column?":1
                 ├── cardinality: [1 - 1]
                 ├── immutable, has-placeholder
                 ├── key: ()
-                ├── fd: ()-->(3)
+                ├── fd: ()-->(1)
                 └── ($1 + 1,)
 
 # A UDF with an argument that is a tuple of constants, variables, and
@@ -1472,19 +1472,19 @@ norm expect=InlineUDF
 SELECT rec((1, i, $1::INT)) FROM a
 ----
 project
- ├── columns: rec:10
+ ├── columns: rec:9
  ├── has-placeholder
  ├── scan a
  │    └── columns: i:2
  └── projections
-      └── (1, i:2, $1) [as=rec:10, outer=(2)]
+      └── (1, i:2, $1) [as=rec:9, outer=(2)]
 
 # A strict UDF is inlined and wrapped in a CASE expression.
 norm expect=InlineUDF
 SELECT add_strict(1, i) FROM (VALUES (1), (2), (3)) v(i)
 ----
 project
- ├── columns: add_strict:5
+ ├── columns: add_strict:3
  ├── cardinality: [3 - 3]
  ├── immutable
  ├── values
@@ -1494,19 +1494,19 @@ project
  │    ├── (2,)
  │    └── (3,)
  └── projections
-      └── case [as=add_strict:5, outer=(1), immutable, correlated-subquery]
+      └── case [as=add_strict:3, outer=(1), immutable, correlated-subquery]
            ├── true
            ├── when
            │    ├── column1:1 IS NULL
            │    └── CAST(NULL AS INT8)
            └── subquery
                 └── values
-                     ├── columns: "?column?":4
+                     ├── columns: "?column?":2
                      ├── outer: (1)
                      ├── cardinality: [1 - 1]
                      ├── immutable
                      ├── key: ()
-                     ├── fd: ()-->(4)
+                     ├── fd: ()-->(2)
                      └── (column1:1 + 1,)
 
 # A strict non-set-returning UDF used as a datasource is inlined.
@@ -1514,7 +1514,7 @@ norm expect=InlineUDF
 SELECT * FROM add_strict(1, $1)
 ----
 project-set
- ├── columns: add_strict:4
+ ├── columns: add_strict:2
  ├── immutable, has-placeholder
  ├── values
  │    ├── cardinality: [1 - 1]
@@ -1528,11 +1528,11 @@ project-set
            │    └── CAST(NULL AS INT8)
            └── subquery
                 └── values
-                     ├── columns: "?column?":3
+                     ├── columns: "?column?":1
                      ├── cardinality: [1 - 1]
                      ├── immutable, has-placeholder
                      ├── key: ()
-                     ├── fd: ()-->(3)
+                     ├── fd: ()-->(1)
                      └── ($1 + 1,)
 
 # A strict UDF with zero arguments is inlined without a CASE expression.
@@ -1557,7 +1557,7 @@ norm expect-not=InlineUDF
 SELECT add(1, i+10) FROM (VALUES (1), (2), (3)) v(i)
 ----
 project
- ├── columns: add:5
+ ├── columns: add:3
  ├── cardinality: [3 - 3]
  ├── immutable
  ├── values
@@ -1567,25 +1567,25 @@ project
  │    ├── (2,)
  │    └── (3,)
  └── projections
-      └── add(1, column1:1 + 10) [as=add:5, outer=(1), immutable, udf]
+      └── add(1, column1:1 + 10) [as=add:3, outer=(1), immutable, udf]
 
 norm expect-not=InlineUDF
 SELECT rec((1, i+10, $1::INT)) FROM a
 ----
 project
- ├── columns: rec:10
+ ├── columns: rec:9
  ├── immutable, has-placeholder
  ├── scan a
  │    └── columns: i:2
  └── projections
-      └── rec((1, i:2 + 10, $1)) [as=rec:10, outer=(2), immutable, udf]
+      └── rec((1, i:2 + 10, $1)) [as=rec:9, outer=(2), immutable, udf]
 
 # Nested UDFs should be inlined.
 norm expect=InlineUDF
 SELECT add(10, add(i, 20)) FROM a WHERE add(k, add(10, f::INT)) = 100
 ----
 project
- ├── columns: add:20
+ ├── columns: add:12
  ├── immutable
  ├── select
  │    ├── columns: k:1!null i:2 f:3
@@ -1599,16 +1599,16 @@ project
  │    └── filters
  │         └── add(k:1, add(10, f:3::INT8)) = 100 [outer=(1,3), immutable, udf]
  └── projections
-      └── u-d-f-call [as=add:20, outer=(2), immutable, correlated-subquery, udf]
+      └── u-d-f-call [as=add:12, outer=(2), immutable, correlated-subquery, udf]
            ├── 10
            └── subquery
                 └── values
-                     ├── columns: "?column?":16
+                     ├── columns: "?column?":10
                      ├── outer: (2)
                      ├── cardinality: [1 - 1]
                      ├── immutable
                      ├── key: ()
-                     ├── fd: ()-->(16)
+                     ├── fd: ()-->(10)
                      └── (i:2 + 20,)
 
 exec-ddl
@@ -1688,42 +1688,42 @@ select
                 ├── args
                 │    └── subquery
                 │         └── limit
-                │              ├── columns: x:9!null
-                │              ├── internal-ordering: +9
+                │              ├── columns: x:8!null
+                │              ├── internal-ordering: +8
                 │              ├── cardinality: [0 - 1]
                 │              ├── key: ()
-                │              ├── fd: ()-->(9)
+                │              ├── fd: ()-->(8)
                 │              ├── select
-                │              │    ├── columns: x:9!null
-                │              │    ├── key: (9)
-                │              │    ├── ordering: +9
+                │              │    ├── columns: x:8!null
+                │              │    ├── key: (8)
+                │              │    ├── ordering: +8
                 │              │    ├── limit hint: 1.00
                 │              │    ├── scan xy
-                │              │    │    ├── columns: x:9!null
-                │              │    │    ├── key: (9)
-                │              │    │    ├── ordering: +9
+                │              │    │    ├── columns: x:8!null
+                │              │    │    ├── key: (8)
+                │              │    │    ├── ordering: +8
                 │              │    │    └── limit hint: 3.00
                 │              │    └── filters
-                │              │         └── x:9 > 0 [outer=(9), constraints=(/9: [/1 - ]; tight)]
+                │              │         └── x:8 > 0 [outer=(8), constraints=(/8: [/1 - ]; tight)]
                 │              └── 1
-                ├── params: i:13
+                ├── params: $1
                 └── body
                      └── limit
-                          ├── columns: x:14!null
-                          ├── internal-ordering: +14
-                          ├── outer: (13)
+                          ├── columns: x:12!null
+                          ├── internal-ordering: +12
                           ├── cardinality: [0 - 1]
+                          ├── has-placeholder
                           ├── key: ()
-                          ├── fd: ()-->(14)
+                          ├── fd: ()-->(12)
                           ├── select
-                          │    ├── columns: x:14!null
-                          │    ├── outer: (13)
-                          │    ├── key: (14)
+                          │    ├── columns: x:12!null
+                          │    ├── has-placeholder
+                          │    ├── key: (12)
                           │    ├── scan xy
-                          │    │    ├── columns: x:14!null
-                          │    │    └── key: (14)
+                          │    │    ├── columns: x:12!null
+                          │    │    └── key: (12)
                           │    └── filters
-                          │         └── x:14 > i:13 [outer=(13,14), constraints=(/13: (/NULL - ]; /14: (/NULL - ])]
+                          │         └── x:12 > $1 [outer=(12), constraints=(/12: (/NULL - ])]
                           └── 1
 
 # UDFs with volatile arguments are not inlined.
@@ -1731,12 +1731,12 @@ norm expect-not=InlineUDF
 SELECT add((random()*10)::INT, i) FROM a
 ----
 project
- ├── columns: add:11
+ ├── columns: add:9
  ├── volatile
  ├── scan a
  │    └── columns: i:2
  └── projections
-      └── add((random() * 10.0)::INT8, i:2) [as=add:11, outer=(2), volatile, udf]
+      └── add((random() * 10.0)::INT8, i:2) [as=add:9, outer=(2), volatile, udf]
 
 exec-ddl
 CREATE FUNCTION vol() RETURNS INT VOLATILE LANGUAGE SQL AS $$
@@ -1766,7 +1766,7 @@ norm expect-not=InlineUDF
 SELECT * FROM set_fn(0)
 ----
 project-set
- ├── columns: set_fn:9
+ ├── columns: set_fn:8
  ├── immutable
  ├── values
  │    ├── cardinality: [1 - 1]
@@ -1827,12 +1827,12 @@ norm expect-not=InlineUDF
 SELECT x_0_1_y_2((SELECT v FROM (VALUES (10), (20)) v(v) WHERE v > a.i), 10) FROM a
 ----
 project
- ├── columns: x_0_1_y_2:12
+ ├── columns: x_0_1_y_2:10
  ├── immutable
  ├── scan a
  │    └── columns: i:2
  └── projections
-      └── u-d-f-call [as=x_0_1_y_2:12, outer=(2), immutable, correlated-subquery, udf]
+      └── u-d-f-call [as=x_0_1_y_2:10, outer=(2), immutable, correlated-subquery, udf]
            ├── subquery
            │    └── max1-row
            │         ├── columns: column1:8!null
@@ -1865,7 +1865,7 @@ norm expect-not=InlineUDF
 SELECT * FROM x_y(1, 2) AS f(x INT, y INT);
 ----
 project-set
- ├── columns: x:5 y:6
+ ├── columns: x:2 y:3
  ├── immutable
  ├── values
  │    ├── cardinality: [1 - 1]

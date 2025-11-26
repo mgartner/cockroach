@@ -33,10 +33,10 @@ norm format=show-scalars
 SELECT strict_fn(1, 'foo', NULL)
 ----
 values
- ├── columns: strict_fn:5
+ ├── columns: strict_fn:2
  ├── cardinality: [1 - 1]
  ├── key: ()
- ├── fd: ()-->(5)
+ ├── fd: ()-->(2)
  └── tuple
       └── null
 
@@ -46,9 +46,9 @@ norm format=show-scalars
 SELECT strict_fn(1, 'foo', true)
 ----
 values
- ├── columns: strict_fn:5!null
+ ├── columns: strict_fn:2!null
  ├── cardinality: [1 - 1]
  ├── key: ()
- ├── fd: ()-->(5)
+ ├── fd: ()-->(2)
  └── tuple
       └── const: 1

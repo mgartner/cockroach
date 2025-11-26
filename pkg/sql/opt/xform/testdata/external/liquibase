@@ -161,77 +161,50 @@ ON ft.ftserver = fs.oid
 WHERE ((c.relkind = 'r'::CHAR) OR (c.relkind = 'f'::CHAR)) AND (n.nspname = 'public')
 ----
 project
- ├── columns: oid:1!null schemaname:31!null tablename:2!null relacl:26 tableowner:173 description:190 relkind:17!null cluster:106 hasoids:20!null hasindexes:13!null hasrules:22!null tablespace:37 param:27 hastriggers:23!null unlogged:15!null ftoptions:136 srvname:140 reltuples:10!null inhtable:191!null inhschemaname:79 inhtablename:50
+ ├── columns: oid:1!null schemaname:31!null tablename:2!null relacl:26 tableowner:172 description:188 relkind:17!null cluster:106 hasoids:20!null hasindexes:13!null hasrules:22!null tablespace:37 param:27 hastriggers:23!null unlogged:15!null ftoptions:136 srvname:140 reltuples:10!null inhtable:189!null inhschemaname:79 inhtablename:50
  ├── immutable
  ├── fd: ()-->(31), (1)-->(2,10,13,15,17,20,22,23,26,27,37), (2)-->(1,10,13,15,17,20,22,23,26,27,37)
  ├── group-by (hash)
- │    ├── columns: c.oid:1!null c.relname:2!null c.reltuples:10!null c.relhasindex:13!null c.relpersistence:15!null c.relkind:17!null c.relhasoids:20!null c.relhasrules:22!null c.relhastriggers:23!null c.relacl:26 c.reloptions:27 n.nspname:31!null spcname:37 c2.relname:50 n2.nspname:79 ci.relname:106 ftoptions:136 srvname:140 count_rows:154!null column172:172 description:189 rownum:192!null
- │    ├── grouping columns: rownum:192!null
+ │    ├── columns: c.oid:1!null c.relname:2!null c.reltuples:10!null c.relhasindex:13!null c.relpersistence:15!null c.relkind:17!null c.relhasoids:20!null c.relhasrules:22!null c.relhastriggers:23!null c.relacl:26 c.reloptions:27 n.nspname:31!null spcname:37 c2.relname:50 n2.nspname:79 ci.relname:106 ftoptions:136 srvname:140 count_rows:154!null column171:171 description:187 rownum:190!null
+ │    ├── grouping columns: rownum:190!null
  │    ├── immutable
- │    ├── key: (192)
- │    ├── fd: ()-->(31), (1)-->(2,10,13,15,17,20,22,23,26,27,37), (2)-->(1,10,13,15,17,20,22,23,26,27,37), (192)-->(1,2,10,13,15,17,20,22,23,26,27,31,37,50,79,106,136,140,154,172,189)
+ │    ├── key: (190)
+ │    ├── fd: ()-->(31), (1)-->(2,10,13,15,17,20,22,23,26,27,37), (2)-->(1,10,13,15,17,20,22,23,26,27,37), (190)-->(1,2,10,13,15,17,20,22,23,26,27,31,37,50,79,106,136,140,154,171,187)
  │    ├── right-join (hash)
- │    │    ├── columns: c.oid:1!null c.relname:2!null c.reltuples:10!null c.relhasindex:13!null c.relpersistence:15!null c.relkind:17!null c.relhasoids:20!null c.relhasrules:22!null c.relhastriggers:23!null c.relacl:26 c.reloptions:27 n.nspname:31!null spcname:37 c2.relname:50 n2.nspname:79 ci.relname:106 ftoptions:136 srvname:140 pg_inherits.inhparent:150 column172:172 description:189 rownum:192!null
+ │    │    ├── columns: c.oid:1!null c.relname:2!null c.reltuples:10!null c.relhasindex:13!null c.relpersistence:15!null c.relkind:17!null c.relhasoids:20!null c.relhasrules:22!null c.relhastriggers:23!null c.relacl:26 c.reloptions:27 n.nspname:31!null spcname:37 c2.relname:50 n2.nspname:79 ci.relname:106 ftoptions:136 srvname:140 pg_inherits.inhparent:150 column171:171 description:187 rownum:190!null
  │    │    ├── immutable
- │    │    ├── fd: ()-->(31), (1)-->(2,10,13,15,17,20,22,23,26,27,37), (2)-->(1,10,13,15,17,20,22,23,26,27,37), (192)-->(1,2,10,13,15,17,20,22,23,26,27,37,50,79,106,136,140,172,189)
+ │    │    ├── fd: ()-->(31), (1)-->(2,10,13,15,17,20,22,23,26,27,37), (2)-->(1,10,13,15,17,20,22,23,26,27,37), (190)-->(1,2,10,13,15,17,20,22,23,26,27,37,50,79,106,136,140,171,187)
  │    │    ├── scan pg_inherits
  │    │    │    └── columns: pg_inherits.inhparent:150!null
  │    │    ├── distinct-on
- │    │    │    ├── columns: c.oid:1!null c.relname:2!null c.reltuples:10!null c.relhasindex:13!null c.relpersistence:15!null c.relkind:17!null c.relhasoids:20!null c.relhasrules:22!null c.relhastriggers:23!null c.relacl:26 c.reloptions:27 n.nspname:31!null spcname:37 c2.relname:50 n2.nspname:79 ci.relname:106 ftoptions:136 srvname:140 column172:172 description:189 rownum:192!null
- │    │    │    ├── grouping columns: rownum:192!null
+ │    │    │    ├── columns: c.oid:1!null c.relname:2!null c.reltuples:10!null c.relhasindex:13!null c.relpersistence:15!null c.relkind:17!null c.relhasoids:20!null c.relhasrules:22!null c.relhastriggers:23!null c.relacl:26 c.reloptions:27 n.nspname:31!null spcname:37 c2.relname:50 n2.nspname:79 ci.relname:106 ftoptions:136 srvname:140 column171:171 description:187 rownum:190!null
+ │    │    │    ├── grouping columns: rownum:190!null
  │    │    │    ├── immutable
- │    │    │    ├── key: (192)
- │    │    │    ├── fd: ()-->(31), (1)-->(2,10,13,15,17,20,22,23,26,27,37), (2)-->(1,10,13,15,17,20,22,23,26,27,37), (192)-->(1,2,10,13,15,17,20,22,23,26,27,31,37,50,79,106,136,140,172,189)
- │    │    │    ├── right-join (hash)
- │    │    │    │    ├── columns: c.oid:1!null c.relname:2!null c.reltuples:10!null c.relhasindex:13!null c.relpersistence:15!null c.relkind:17!null c.relhasoids:20!null c.relhasrules:22!null c.relhastriggers:23!null c.relacl:26 c.reloptions:27 n.nspname:31!null spcname:37 c2.relname:50 n2.nspname:79 ci.relname:106 ftoptions:136 srvname:140 column172:172 objoid:186 description:189 rownum:192!null
+ │    │    │    ├── key: (190)
+ │    │    │    ├── fd: ()-->(31), (1)-->(2,10,13,15,17,20,22,23,26,27,37), (2)-->(1,10,13,15,17,20,22,23,26,27,37), (190)-->(1,2,10,13,15,17,20,22,23,26,27,31,37,50,79,106,136,140,171,187)
+ │    │    │    ├── left-join-apply
+ │    │    │    │    ├── columns: c.oid:1!null c.relname:2!null c.reltuples:10!null c.relhasindex:13!null c.relpersistence:15!null c.relkind:17!null c.relhasoids:20!null c.relhasrules:22!null c.relhastriggers:23!null c.relacl:26 c.reloptions:27 n.nspname:31!null spcname:37 c2.relname:50 n2.nspname:79 ci.relname:106 ftoptions:136 srvname:140 column171:171 description:187 rownum:190!null
  │    │    │    │    ├── immutable
- │    │    │    │    ├── fd: ()-->(31), (1)-->(2,10,13,15,17,20,22,23,26,27,37), (2)-->(1,10,13,15,17,20,22,23,26,27,37), (192)-->(1,2,10,13,15,17,20,22,23,26,27,37,50,79,106,136,140,172)
- │    │    │    │    ├── union-all
- │    │    │    │    │    ├── columns: objoid:186!null description:189!null
- │    │    │    │    │    ├── left columns: crdb_internal.kv_catalog_comments.objoid:177 crdb_internal.kv_catalog_comments.description:179
- │    │    │    │    │    ├── right columns: crdb_internal.kv_builtin_function_comments.oid:181 crdb_internal.kv_builtin_function_comments.description:182
- │    │    │    │    │    ├── immutable
- │    │    │    │    │    ├── project
- │    │    │    │    │    │    ├── columns: crdb_internal.kv_catalog_comments.objoid:177!null crdb_internal.kv_catalog_comments.description:179!null
- │    │    │    │    │    │    ├── immutable
- │    │    │    │    │    │    └── select
- │    │    │    │    │    │         ├── columns: crdb_internal.kv_catalog_comments.objoid:177!null crdb_internal.kv_catalog_comments.description:179!null objsubid:185!null
- │    │    │    │    │    │         ├── immutable
- │    │    │    │    │    │         ├── fd: ()-->(185)
- │    │    │    │    │    │         ├── project
- │    │    │    │    │    │         │    ├── columns: objsubid:185!null crdb_internal.kv_catalog_comments.objoid:177!null crdb_internal.kv_catalog_comments.description:179!null
- │    │    │    │    │    │         │    ├── immutable
- │    │    │    │    │    │         │    ├── select
- │    │    │    │    │    │         │    │    ├── columns: crdb_internal.kv_catalog_comments.classoid:176!null crdb_internal.kv_catalog_comments.objoid:177!null crdb_internal.kv_catalog_comments.objsubid:178!null crdb_internal.kv_catalog_comments.description:179!null
- │    │    │    │    │    │         │    │    ├── scan kv_catalog_comments
- │    │    │    │    │    │         │    │    │    └── columns: crdb_internal.kv_catalog_comments.classoid:176!null crdb_internal.kv_catalog_comments.objoid:177!null crdb_internal.kv_catalog_comments.objsubid:178!null crdb_internal.kv_catalog_comments.description:179!null
- │    │    │    │    │    │         │    │    └── filters
- │    │    │    │    │    │         │    │         └── crdb_internal.kv_catalog_comments.classoid:176 != 4294967075 [outer=(176), constraints=(/176: (/NULL - /4294967074] [/4294967076 - ]; tight)]
- │    │    │    │    │    │         │    └── projections
- │    │    │    │    │    │         │         └── crdb_internal.kv_catalog_comments.objsubid:178::INT8 [as=objsubid:185, outer=(178), immutable]
- │    │    │    │    │    │         └── filters
- │    │    │    │    │    │              └── objsubid:185 = 0 [outer=(185), constraints=(/185: [/0 - /0]; tight), fd=()-->(185)]
- │    │    │    │    │    └── scan kv_builtin_function_comments
- │    │    │    │    │         └── columns: crdb_internal.kv_builtin_function_comments.oid:181!null crdb_internal.kv_builtin_function_comments.description:182!null
+ │    │    │    │    ├── fd: ()-->(31), (1)-->(2,10,13,15,17,20,22,23,26,27,37), (2)-->(1,10,13,15,17,20,22,23,26,27,37), (190)-->(1,2,10,13,15,17,20,22,23,26,27,37,50,79,106,136,140,171)
  │    │    │    │    ├── project
- │    │    │    │    │    ├── columns: column172:172 c.oid:1!null c.relname:2!null c.reltuples:10!null c.relhasindex:13!null c.relpersistence:15!null c.relkind:17!null c.relhasoids:20!null c.relhasrules:22!null c.relhastriggers:23!null c.relacl:26 c.reloptions:27 n.nspname:31!null spcname:37 c2.relname:50 n2.nspname:79 ci.relname:106 ftoptions:136 srvname:140 rownum:192!null
+ │    │    │    │    │    ├── columns: column171:171 c.oid:1!null c.relname:2!null c.reltuples:10!null c.relhasindex:13!null c.relpersistence:15!null c.relkind:17!null c.relhasoids:20!null c.relhasrules:22!null c.relhastriggers:23!null c.relacl:26 c.reloptions:27 n.nspname:31!null spcname:37 c2.relname:50 n2.nspname:79 ci.relname:106 ftoptions:136 srvname:140 rownum:190!null
  │    │    │    │    │    ├── immutable
- │    │    │    │    │    ├── key: (192)
- │    │    │    │    │    ├── fd: ()-->(31), (1)-->(2,10,13,15,17,20,22,23,26,27,37), (2)-->(1,10,13,15,17,20,22,23,26,27,37), (192)-->(1,2,10,13,15,17,20,22,23,26,27,37,50,79,106,136,140,172)
+ │    │    │    │    │    ├── key: (190)
+ │    │    │    │    │    ├── fd: ()-->(31), (1)-->(2,10,13,15,17,20,22,23,26,27,37), (2)-->(1,10,13,15,17,20,22,23,26,27,37), (190)-->(1,2,10,13,15,17,20,22,23,26,27,37,50,79,106,136,140,171)
  │    │    │    │    │    ├── distinct-on
- │    │    │    │    │    │    ├── columns: c.oid:1!null c.relname:2!null c.relowner:5!null c.reltuples:10!null c.relhasindex:13!null c.relpersistence:15!null c.relkind:17!null c.relhasoids:20!null c.relhasrules:22!null c.relhastriggers:23!null c.relacl:26 c.reloptions:27 n.nspname:31!null spcname:37 c2.relname:50 n2.nspname:79 ci.relname:106 ftoptions:136 srvname:140 rolname:158 rownum:192!null
- │    │    │    │    │    │    ├── grouping columns: rownum:192!null
- │    │    │    │    │    │    ├── key: (192)
- │    │    │    │    │    │    ├── fd: ()-->(31), (1)-->(2,5,10,13,15,17,20,22,23,26,27,37), (2)-->(1,5,10,13,15,17,20,22,23,26,27,37), (192)-->(1,2,5,10,13,15,17,20,22,23,26,27,31,37,50,79,106,136,140,158)
+ │    │    │    │    │    │    ├── columns: c.oid:1!null c.relname:2!null c.relowner:5!null c.reltuples:10!null c.relhasindex:13!null c.relpersistence:15!null c.relkind:17!null c.relhasoids:20!null c.relhasrules:22!null c.relhastriggers:23!null c.relacl:26 c.reloptions:27 n.nspname:31!null spcname:37 c2.relname:50 n2.nspname:79 ci.relname:106 ftoptions:136 srvname:140 rolname:157 rownum:190!null
+ │    │    │    │    │    │    ├── grouping columns: rownum:190!null
+ │    │    │    │    │    │    ├── key: (190)
+ │    │    │    │    │    │    ├── fd: ()-->(31), (1)-->(2,5,10,13,15,17,20,22,23,26,27,37), (2)-->(1,5,10,13,15,17,20,22,23,26,27,37), (190)-->(1,2,5,10,13,15,17,20,22,23,26,27,31,37,50,79,106,136,140,157)
  │    │    │    │    │    │    ├── right-join (hash)
- │    │    │    │    │    │    │    ├── columns: c.oid:1!null c.relname:2!null c.relnamespace:3!null c.relowner:5!null c.reltablespace:8!null c.reltuples:10!null c.relhasindex:13!null c.relpersistence:15!null c.relkind:17!null c.relhasoids:20!null c.relhasrules:22!null c.relhastriggers:23!null c.relacl:26 c.reloptions:27 n.oid:30!null n.nspname:31!null t.oid:36 spcname:37 i.inhrelid:44 i.inhparent:45 c2.oid:49 c2.relname:50 c2.relnamespace:51 n2.oid:78 n2.nspname:79 indexrelid:84 indrelid:85 indisclustered:91 ci.oid:105 ci.relname:106 ftrelid:134 ftserver:135 ftoptions:136 fs.oid:139 srvname:140 pg_catalog.pg_roles.oid:157 rolname:158 rownum:192!null
- │    │    │    │    │    │    │    ├── fd: ()-->(3,30,31), (1)-->(2,5,8,10,13,15,17,20,22,23,26,27,36,37), (2)-->(1,5,8,10,13,15,17,20,22,23,26,27), (36)-->(37), (37)-->(36), (49)-->(50,51), (50,51)-->(49), (78)~~>(79), (79)~~>(78), (84)-->(85), (105)-->(106), (134)-->(135,136), (139)-->(140), (140)-->(139), (192)-->(1,2,5,8,10,13,15,17,20,22,23,26,27,36,37,44,45,49-51,78,79,84,85,91,105,106,134-136,139,140), (3)==(30), (30)==(3), (45)==(49), (49)==(45)
+ │    │    │    │    │    │    │    ├── columns: c.oid:1!null c.relname:2!null c.relnamespace:3!null c.relowner:5!null c.reltablespace:8!null c.reltuples:10!null c.relhasindex:13!null c.relpersistence:15!null c.relkind:17!null c.relhasoids:20!null c.relhasrules:22!null c.relhastriggers:23!null c.relacl:26 c.reloptions:27 n.oid:30!null n.nspname:31!null t.oid:36 spcname:37 i.inhrelid:44 i.inhparent:45 c2.oid:49 c2.relname:50 c2.relnamespace:51 n2.oid:78 n2.nspname:79 indexrelid:84 indrelid:85 indisclustered:91 ci.oid:105 ci.relname:106 ftrelid:134 ftserver:135 ftoptions:136 fs.oid:139 srvname:140 pg_catalog.pg_roles.oid:156 rolname:157 rownum:190!null
+ │    │    │    │    │    │    │    ├── fd: ()-->(3,30,31), (1)-->(2,5,8,10,13,15,17,20,22,23,26,27,36,37), (2)-->(1,5,8,10,13,15,17,20,22,23,26,27), (36)-->(37), (37)-->(36), (49)-->(50,51), (50,51)-->(49), (78)~~>(79), (79)~~>(78), (84)-->(85), (105)-->(106), (134)-->(135,136), (139)-->(140), (140)-->(139), (190)-->(1,2,5,8,10,13,15,17,20,22,23,26,27,36,37,44,45,49-51,78,79,84,85,91,105,106,134-136,139,140), (3)==(30), (30)==(3), (45)==(49), (49)==(45)
  │    │    │    │    │    │    │    ├── scan pg_roles
- │    │    │    │    │    │    │    │    └── columns: pg_catalog.pg_roles.oid:157 rolname:158
+ │    │    │    │    │    │    │    │    └── columns: pg_catalog.pg_roles.oid:156 rolname:157
  │    │    │    │    │    │    │    ├── ordinality
- │    │    │    │    │    │    │    │    ├── columns: c.oid:1!null c.relname:2!null c.relnamespace:3!null c.relowner:5!null c.reltablespace:8!null c.reltuples:10!null c.relhasindex:13!null c.relpersistence:15!null c.relkind:17!null c.relhasoids:20!null c.relhasrules:22!null c.relhastriggers:23!null c.relacl:26 c.reloptions:27 n.oid:30!null n.nspname:31!null t.oid:36 spcname:37 i.inhrelid:44 i.inhparent:45 c2.oid:49 c2.relname:50 c2.relnamespace:51 n2.oid:78 n2.nspname:79 indexrelid:84 indrelid:85 indisclustered:91 ci.oid:105 ci.relname:106 ftrelid:134 ftserver:135 ftoptions:136 fs.oid:139 srvname:140 rownum:192!null
- │    │    │    │    │    │    │    │    ├── key: (192)
- │    │    │    │    │    │    │    │    ├── fd: ()-->(3,30,31), (1)-->(2,5,8,10,13,15,17,20,22,23,26,27,36,37), (2)-->(1,5,8,10,13,15,17,20,22,23,26,27), (36)-->(37), (37)-->(36), (49)-->(50,51), (50,51)-->(49), (78)~~>(79), (79)~~>(78), (84)-->(85), (105)-->(106), (134)-->(135,136), (139)-->(140), (140)-->(139), (192)-->(1-3,5,8,10,13,15,17,20,22,23,26,27,30,31,36,37,44,45,49-51,78,79,84,85,91,105,106,134-136,139,140), (3)==(30), (30)==(3), (45)==(49), (49)==(45)
+ │    │    │    │    │    │    │    │    ├── columns: c.oid:1!null c.relname:2!null c.relnamespace:3!null c.relowner:5!null c.reltablespace:8!null c.reltuples:10!null c.relhasindex:13!null c.relpersistence:15!null c.relkind:17!null c.relhasoids:20!null c.relhasrules:22!null c.relhastriggers:23!null c.relacl:26 c.reloptions:27 n.oid:30!null n.nspname:31!null t.oid:36 spcname:37 i.inhrelid:44 i.inhparent:45 c2.oid:49 c2.relname:50 c2.relnamespace:51 n2.oid:78 n2.nspname:79 indexrelid:84 indrelid:85 indisclustered:91 ci.oid:105 ci.relname:106 ftrelid:134 ftserver:135 ftoptions:136 fs.oid:139 srvname:140 rownum:190!null
+ │    │    │    │    │    │    │    │    ├── key: (190)
+ │    │    │    │    │    │    │    │    ├── fd: ()-->(3,30,31), (1)-->(2,5,8,10,13,15,17,20,22,23,26,27,36,37), (2)-->(1,5,8,10,13,15,17,20,22,23,26,27), (36)-->(37), (37)-->(36), (49)-->(50,51), (50,51)-->(49), (78)~~>(79), (79)~~>(78), (84)-->(85), (105)-->(106), (134)-->(135,136), (139)-->(140), (140)-->(139), (190)-->(1-3,5,8,10,13,15,17,20,22,23,26,27,30,31,36,37,44,45,49-51,78,79,84,85,91,105,106,134-136,139,140), (3)==(30), (30)==(3), (45)==(49), (49)==(45)
  │    │    │    │    │    │    │    │    └── left-join (lookup pg_namespace [as=n2])
  │    │    │    │    │    │    │    │         ├── columns: c.oid:1!null c.relname:2!null c.relnamespace:3!null c.relowner:5!null c.reltablespace:8!null c.reltuples:10!null c.relhasindex:13!null c.relpersistence:15!null c.relkind:17!null c.relhasoids:20!null c.relhasrules:22!null c.relhastriggers:23!null c.relacl:26 c.reloptions:27 n.oid:30!null n.nspname:31!null t.oid:36 spcname:37 i.inhrelid:44 i.inhparent:45 c2.oid:49 c2.relname:50 c2.relnamespace:51 n2.oid:78 n2.nspname:79 indexrelid:84 indrelid:85 indisclustered:91 ci.oid:105 ci.relname:106 ftrelid:134 ftserver:135 ftoptions:136 fs.oid:139 srvname:140
  │    │    │    │    │    │    │    │         ├── key columns: [51] = [78]
@@ -260,17 +233,17 @@ project
  │    │    │    │    │    │    │    │         │    │    ├── fd: ()-->(3,30,31), (1)-->(2,5,8,10,13,15,17,20,22,23,26,27,134-136,139,140), (2)-->(1,5,8,10,13,15,17,20,22,23,26,27), (134)-->(135,136,139,140), (139)~~>(140), (140)~~>(139), (84)-->(85), (1,84)-->(36,37,91,105,106), (105)-->(106), (36)-->(37), (37)-->(36), (3)==(30), (30)==(3)
  │    │    │    │    │    │    │    │         │    │    ├── left-join (lookup pg_index [as=ind])
  │    │    │    │    │    │    │    │         │    │    │    ├── columns: c.oid:1!null c.relname:2!null c.relnamespace:3!null c.relowner:5!null c.reltablespace:8!null c.reltuples:10!null c.relhasindex:13!null c.relpersistence:15!null c.relkind:17!null c.relhasoids:20!null c.relhasrules:22!null c.relhastriggers:23!null c.relacl:26 c.reloptions:27 n.oid:30!null n.nspname:31!null t.oid:36 spcname:37 indexrelid:84 indrelid:85 indisclustered:91 ftrelid:134 ftserver:135 ftoptions:136 fs.oid:139 srvname:140
- │    │    │    │    │    │    │    │         │    │    │    ├── key columns: [966] = [84]
+ │    │    │    │    │    │    │    │         │    │    │    ├── key columns: [964] = [84]
  │    │    │    │    │    │    │    │         │    │    │    ├── lookup columns are key
  │    │    │    │    │    │    │    │         │    │    │    ├── second join in paired joiner
  │    │    │    │    │    │    │    │         │    │    │    ├── key: (1,84)
  │    │    │    │    │    │    │    │         │    │    │    ├── fd: ()-->(3,30,31), (1)-->(2,5,8,10,13,15,17,20,22,23,26,27,134-136,139,140), (2)-->(1,5,8,10,13,15,17,20,22,23,26,27), (134)-->(135,136,139,140), (139)~~>(140), (140)~~>(139), (84)-->(85), (1,84)-->(36,37,91), (36)-->(37), (37)-->(36), (3)==(30), (30)==(3)
  │    │    │    │    │    │    │    │         │    │    │    ├── left-join (lookup pg_index@pg_index_indrelid_index [as=ind])
- │    │    │    │    │    │    │    │         │    │    │    │    ├── columns: c.oid:1!null c.relname:2!null c.relnamespace:3!null c.relowner:5!null c.reltablespace:8!null c.reltuples:10!null c.relhasindex:13!null c.relpersistence:15!null c.relkind:17!null c.relhasoids:20!null c.relhasrules:22!null c.relhastriggers:23!null c.relacl:26 c.reloptions:27 n.oid:30!null n.nspname:31!null t.oid:36 spcname:37 ftrelid:134 ftserver:135 ftoptions:136 fs.oid:139 srvname:140 indexrelid:966 indrelid:967 continuation:987
- │    │    │    │    │    │    │    │         │    │    │    │    ├── key columns: [1] = [967]
- │    │    │    │    │    │    │    │         │    │    │    │    ├── first join in paired joiner; continuation column: continuation:987
- │    │    │    │    │    │    │    │         │    │    │    │    ├── key: (1,966)
- │    │    │    │    │    │    │    │         │    │    │    │    ├── fd: ()-->(3,30,31), (1)-->(2,5,8,10,13,15,17,20,22,23,26,27,36,37,134-136,139,140), (2)-->(1,5,8,10,13,15,17,20,22,23,26,27), (134)-->(135,136,139,140), (139)~~>(140), (140)~~>(139), (36)-->(37), (37)-->(36), (966)-->(967,987), (3)==(30), (30)==(3)
+ │    │    │    │    │    │    │    │         │    │    │    │    ├── columns: c.oid:1!null c.relname:2!null c.relnamespace:3!null c.relowner:5!null c.reltablespace:8!null c.reltuples:10!null c.relhasindex:13!null c.relpersistence:15!null c.relkind:17!null c.relhasoids:20!null c.relhasrules:22!null c.relhastriggers:23!null c.relacl:26 c.reloptions:27 n.oid:30!null n.nspname:31!null t.oid:36 spcname:37 ftrelid:134 ftserver:135 ftoptions:136 fs.oid:139 srvname:140 indexrelid:964 indrelid:965 continuation:985
+ │    │    │    │    │    │    │    │         │    │    │    │    ├── key columns: [1] = [965]
+ │    │    │    │    │    │    │    │         │    │    │    │    ├── first join in paired joiner; continuation column: continuation:985
+ │    │    │    │    │    │    │    │         │    │    │    │    ├── key: (1,964)
+ │    │    │    │    │    │    │    │         │    │    │    │    ├── fd: ()-->(3,30,31), (1)-->(2,5,8,10,13,15,17,20,22,23,26,27,36,37,134-136,139,140), (2)-->(1,5,8,10,13,15,17,20,22,23,26,27), (134)-->(135,136,139,140), (139)~~>(140), (140)~~>(139), (36)-->(37), (37)-->(36), (964)-->(965,985), (3)==(30), (30)==(3)
  │    │    │    │    │    │    │    │         │    │    │    │    ├── left-join (lookup pg_tablespace [as=t])
  │    │    │    │    │    │    │    │         │    │    │    │    │    ├── columns: c.oid:1!null c.relname:2!null c.relnamespace:3!null c.relowner:5!null c.reltablespace:8!null c.reltuples:10!null c.relhasindex:13!null c.relpersistence:15!null c.relkind:17!null c.relhasoids:20!null c.relhasrules:22!null c.relhastriggers:23!null c.relacl:26 c.reloptions:27 n.oid:30!null n.nspname:31!null t.oid:36 spcname:37 ftrelid:134 ftserver:135 ftoptions:136 fs.oid:139 srvname:140
  │    │    │    │    │    │    │    │         │    │    │    │    │    ├── key columns: [8] = [36]
@@ -323,7 +296,7 @@ project
  │    │    │    │    │    │    │    │         │         └── i.inhrelid:44 = c.oid:1 [outer=(1,44), constraints=(/1: (/NULL - ]; /44: (/NULL - ]), fd=(1)==(44), (44)==(1)]
  │    │    │    │    │    │    │    │         └── filters (true)
  │    │    │    │    │    │    │    └── filters
- │    │    │    │    │    │    │         └── pg_catalog.pg_roles.oid:157 = c.relowner:5 [outer=(5,157), constraints=(/5: (/NULL - ]; /157: (/NULL - ]), fd=(5)==(157), (157)==(5)]
+ │    │    │    │    │    │    │         └── pg_catalog.pg_roles.oid:156 = c.relowner:5 [outer=(5,156), constraints=(/5: (/NULL - ]; /156: (/NULL - ]), fd=(5)==(156), (156)==(5)]
  │    │    │    │    │    │    └── aggregations
  │    │    │    │    │    │         ├── const-agg [as=c.oid:1, outer=(1)]
  │    │    │    │    │    │         │    └── c.oid:1
@@ -363,13 +336,55 @@ project
  │    │    │    │    │    │         │    └── ftoptions:136
  │    │    │    │    │    │         ├── const-agg [as=srvname:140, outer=(140)]
  │    │    │    │    │    │         │    └── srvname:140
- │    │    │    │    │    │         └── first-agg [as=rolname:158, outer=(158)]
- │    │    │    │    │    │              └── rolname:158
+ │    │    │    │    │    │         └── first-agg [as=rolname:157, outer=(157)]
+ │    │    │    │    │    │              └── rolname:157
  │    │    │    │    │    └── projections
- │    │    │    │    │         └── assignment-cast: STRING [as=column172:172, outer=(5,158), immutable]
- │    │    │    │    │              └── COALESCE(rolname:158, (('unknown (OID=' || c.relowner:5) || ')')::NAME)
- │    │    │    │    └── filters
- │    │    │    │         └── objoid:186 = c.oid:1 [outer=(1,186), constraints=(/1: (/NULL - ]; /186: (/NULL - ]), fd=(1)==(186), (186)==(1)]
+ │    │    │    │    │         └── assignment-cast: STRING [as=column171:171, outer=(5,157), immutable]
+ │    │    │    │    │              └── COALESCE(rolname:157, (('unknown (OID=' || c.relowner:5) || ')')::NAME)
+ │    │    │    │    ├── union-all
+ │    │    │    │    │    ├── columns: description:187!null
+ │    │    │    │    │    ├── left columns: crdb_internal.kv_catalog_comments.description:177
+ │    │    │    │    │    ├── right columns: crdb_internal.kv_builtin_function_comments.description:180
+ │    │    │    │    │    ├── outer: (1)
+ │    │    │    │    │    ├── immutable
+ │    │    │    │    │    ├── project
+ │    │    │    │    │    │    ├── columns: crdb_internal.kv_catalog_comments.description:177!null
+ │    │    │    │    │    │    ├── outer: (1)
+ │    │    │    │    │    │    ├── immutable
+ │    │    │    │    │    │    └── select
+ │    │    │    │    │    │         ├── columns: crdb_internal.kv_catalog_comments.description:177!null objsubid:183!null
+ │    │    │    │    │    │         ├── outer: (1)
+ │    │    │    │    │    │         ├── immutable
+ │    │    │    │    │    │         ├── fd: ()-->(183)
+ │    │    │    │    │    │         ├── project
+ │    │    │    │    │    │         │    ├── columns: objsubid:183!null crdb_internal.kv_catalog_comments.description:177!null
+ │    │    │    │    │    │         │    ├── outer: (1)
+ │    │    │    │    │    │         │    ├── immutable
+ │    │    │    │    │    │         │    ├── select
+ │    │    │    │    │    │         │    │    ├── columns: crdb_internal.kv_catalog_comments.classoid:174!null crdb_internal.kv_catalog_comments.objoid:175!null crdb_internal.kv_catalog_comments.objsubid:176!null crdb_internal.kv_catalog_comments.description:177!null
+ │    │    │    │    │    │         │    │    ├── outer: (1)
+ │    │    │    │    │    │         │    │    ├── fd: ()-->(175)
+ │    │    │    │    │    │         │    │    ├── scan kv_catalog_comments
+ │    │    │    │    │    │         │    │    │    └── columns: crdb_internal.kv_catalog_comments.classoid:174!null crdb_internal.kv_catalog_comments.objoid:175!null crdb_internal.kv_catalog_comments.objsubid:176!null crdb_internal.kv_catalog_comments.description:177!null
+ │    │    │    │    │    │         │    │    └── filters
+ │    │    │    │    │    │         │    │         ├── crdb_internal.kv_catalog_comments.classoid:174 != 4294967075 [outer=(174), constraints=(/174: (/NULL - /4294967074] [/4294967076 - ]; tight)]
+ │    │    │    │    │    │         │    │         └── crdb_internal.kv_catalog_comments.objoid:175 = c.oid:1 [outer=(1,175), constraints=(/1: (/NULL - ]; /175: (/NULL - ]), fd=(1)==(175), (175)==(1)]
+ │    │    │    │    │    │         │    └── projections
+ │    │    │    │    │    │         │         └── crdb_internal.kv_catalog_comments.objsubid:176::INT8 [as=objsubid:183, outer=(176), immutable]
+ │    │    │    │    │    │         └── filters
+ │    │    │    │    │    │              └── objsubid:183 = 0 [outer=(183), constraints=(/183: [/0 - /0]; tight), fd=()-->(183)]
+ │    │    │    │    │    └── project
+ │    │    │    │    │         ├── columns: crdb_internal.kv_builtin_function_comments.description:180!null
+ │    │    │    │    │         ├── outer: (1)
+ │    │    │    │    │         └── select
+ │    │    │    │    │              ├── columns: crdb_internal.kv_builtin_function_comments.oid:179!null crdb_internal.kv_builtin_function_comments.description:180!null
+ │    │    │    │    │              ├── outer: (1)
+ │    │    │    │    │              ├── fd: ()-->(179)
+ │    │    │    │    │              ├── scan kv_builtin_function_comments
+ │    │    │    │    │              │    └── columns: crdb_internal.kv_builtin_function_comments.oid:179!null crdb_internal.kv_builtin_function_comments.description:180!null
+ │    │    │    │    │              └── filters
+ │    │    │    │    │                   └── crdb_internal.kv_builtin_function_comments.oid:179 = c.oid:1 [outer=(1,179), constraints=(/1: (/NULL - ]; /179: (/NULL - ]), fd=(1)==(179), (179)==(1)]
+ │    │    │    │    └── filters (true)
  │    │    │    └── aggregations
  │    │    │         ├── const-agg [as=c.oid:1, outer=(1)]
  │    │    │         │    └── c.oid:1
@@ -407,10 +422,10 @@ project
  │    │    │         │    └── ftoptions:136
  │    │    │         ├── const-agg [as=srvname:140, outer=(140)]
  │    │    │         │    └── srvname:140
- │    │    │         ├── const-agg [as=column172:172, outer=(172)]
- │    │    │         │    └── column172:172
- │    │    │         └── first-agg [as=description:189, outer=(189)]
- │    │    │              └── description:189
+ │    │    │         ├── const-agg [as=column171:171, outer=(171)]
+ │    │    │         │    └── column171:171
+ │    │    │         └── first-agg [as=description:187, outer=(187)]
+ │    │    │              └── description:187
  │    │    └── filters
  │    │         └── pg_inherits.inhparent:150 = c.oid:1 [outer=(1,150), constraints=(/1: (/NULL - ]; /150: (/NULL - ]), fd=(1)==(150), (150)==(1)]
  │    └── aggregations
@@ -452,11 +467,11 @@ project
  │         │    └── ftoptions:136
  │         ├── const-agg [as=srvname:140, outer=(140)]
  │         │    └── srvname:140
- │         ├── const-agg [as=column172:172, outer=(172)]
- │         │    └── column172:172
- │         └── const-agg [as=description:189, outer=(189)]
- │              └── description:189
+ │         ├── const-agg [as=column171:171, outer=(171)]
+ │         │    └── column171:171
+ │         └── const-agg [as=description:187, outer=(187)]
+ │              └── description:187
  └── projections
-      ├── column172:172 [as=tableowner:173, outer=(172)]
-      ├── description:189 [as=description:190, outer=(189)]
-      └── count_rows:154 > 0 [as=inhtable:191, outer=(154)]
+      ├── column171:171 [as=tableowner:172, outer=(171)]
+      ├── description:187 [as=description:188, outer=(187)]
+      └── count_rows:154 > 0 [as=inhtable:189, outer=(154)]

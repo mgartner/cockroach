@@ -40,30 +40,30 @@ INSERT INTO xy VALUES (1, 2);
 insert xy
  ├── columns: <none>
  ├── insert-mapping:
- │    ├── x_new:22 => x:1
- │    └── y_new:23 => y:2
+ │    ├── x_new:10 => x:1
+ │    └── y_new:11 => y:2
  ├── before-triggers
  │    └── tr
  └── project
-      ├── columns: x_new:22 y_new:23 column1:5 column2:6 new:7 f:21
+      ├── columns: x_new:10 y_new:11 column1:5 column2:6 new:7 f:9
       ├── barrier
-      │    ├── columns: column1:5 column2:6 new:7 f:21
+      │    ├── columns: column1:5 column2:6 new:7 f:9
       │    └── select
-      │         ├── columns: column1:5 column2:6 new:7 f:21
+      │         ├── columns: column1:5 column2:6 new:7 f:9
       │         ├── project
-      │         │    ├── columns: f:21 column1:5 column2:6 new:7
+      │         │    ├── columns: f:9 column1:5 column2:6 new:7
       │         │    ├── barrier
       │         │    │    ├── columns: column1:5 column2:6 new:7
       │         │    │    └── values
       │         │    │         ├── columns: column1:5 column2:6 new:7
       │         │    │         └── (1, 2, ((1, 2) AS x, y))
       │         │    └── projections
-      │         │         └── f(new:7, NULL, 'tr', 'BEFORE', 'ROW', 'INSERT', 53, 'xy', 'xy', 'public', 0, ARRAY[]) [as=f:21]
+      │         │         └── f(new:7, NULL, 'tr', 'BEFORE', 'ROW', 'INSERT', 53, 'xy', 'xy', 'public', 0, ARRAY[]) [as=f:9]
       │         └── filters
-      │              └── f:21 IS DISTINCT FROM NULL
+      │              └── f:9 IS DISTINCT FROM NULL
       └── projections
-           ├── (f:21).x [as=x_new:22]
-           └── (f:21).y [as=y_new:23]
+           ├── (f:9).x [as=x_new:10]
+           └── (f:9).y [as=y_new:11]
 
 build-post-queries format=(hide-all,show-columns)
 UPDATE xy SET y = 3 WHERE x = 1;
@@ -73,21 +73,21 @@ root
  │    ├── columns: <none>
  │    ├── fetch columns: x:5 y:6
  │    ├── update-mapping:
- │    │    ├── x_new:26 => x:1
- │    │    └── y_new:27 => y:2
+ │    │    ├── x_new:14 => x:1
+ │    │    └── y_new:15 => y:2
  │    ├── before-triggers
  │    │    └── tr
  │    ├── input binding: &1
  │    ├── cascades
  │    │    └── child_x_fkey
  │    └── project
- │         ├── columns: x_new:26 y_new:27 x:5 y:6 crdb_internal_mvcc_timestamp:7 tableoid:8 y_new:9 old:10 new:11 f:25
+ │         ├── columns: x_new:14 y_new:15 x:5 y:6 crdb_internal_mvcc_timestamp:7 tableoid:8 y_new:9 old:10 new:11 f:13
  │         ├── barrier
- │         │    ├── columns: x:5 y:6 crdb_internal_mvcc_timestamp:7 tableoid:8 y_new:9 old:10 new:11 f:25
+ │         │    ├── columns: x:5 y:6 crdb_internal_mvcc_timestamp:7 tableoid:8 y_new:9 old:10 new:11 f:13
  │         │    └── select
- │         │         ├── columns: x:5 y:6 crdb_internal_mvcc_timestamp:7 tableoid:8 y_new:9 old:10 new:11 f:25
+ │         │         ├── columns: x:5 y:6 crdb_internal_mvcc_timestamp:7 tableoid:8 y_new:9 old:10 new:11 f:13
  │         │         ├── project
- │         │         │    ├── columns: f:25 x:5 y:6 crdb_internal_mvcc_timestamp:7 tableoid:8 y_new:9 old:10 new:11
+ │         │         │    ├── columns: f:13 x:5 y:6 crdb_internal_mvcc_timestamp:7 tableoid:8 y_new:9 old:10 new:11
  │         │         │    ├── barrier
  │         │         │    │    ├── columns: x:5 y:6 crdb_internal_mvcc_timestamp:7 tableoid:8 y_new:9 old:10 new:11
  │         │         │    │    └── project
@@ -110,80 +110,80 @@ root
  │         │         │    │         └── projections
  │         │         │    │              └── ((x:5, y_new:9) AS x, y) [as=new:11]
  │         │         │    └── projections
- │         │         │         └── f(new:11, old:10, 'tr', 'BEFORE', 'ROW', 'UPDATE', 53, 'xy', 'xy', 'public', 0, ARRAY[]) [as=f:25]
+ │         │         │         └── f(new:11, old:10, 'tr', 'BEFORE', 'ROW', 'UPDATE', 53, 'xy', 'xy', 'public', 0, ARRAY[]) [as=f:13]
  │         │         └── filters
- │         │              └── f:25 IS DISTINCT FROM NULL
+ │         │              └── f:13 IS DISTINCT FROM NULL
  │         └── projections
- │              ├── (f:25).x [as=x_new:26]
- │              └── (f:25).y [as=y_new:27]
+ │              ├── (f:13).x [as=x_new:14]
+ │              └── (f:13).y [as=y_new:15]
  └── cascade
       └── update child
            ├── columns: <none>
-           ├── fetch columns: k:32 child.x:33
+           ├── fetch columns: k:20 child.x:21
            ├── update-mapping:
-           │    └── x_new:37 => child.x:29
+           │    └── x_new:25 => child.x:17
            ├── before-triggers
            │    └── tr_child
            ├── input binding: &2
            ├── barrier
-           │    ├── columns: k:32 child.x:33 x_old:36 x_new:37 old:38 new:39 f:53 "check-rows":54
+           │    ├── columns: k:20 child.x:21 x_old:24 x_new:25 old:26 new:27 f:29 "check-rows":30
            │    └── select
-           │         ├── columns: k:32 child.x:33 x_old:36 x_new:37 old:38 new:39 f:53 "check-rows":54
+           │         ├── columns: k:20 child.x:21 x_old:24 x_new:25 old:26 new:27 f:29 "check-rows":30
            │         ├── barrier
-           │         │    ├── columns: k:32 child.x:33 x_old:36 x_new:37 old:38 new:39 f:53 "check-rows":54
+           │         │    ├── columns: k:20 child.x:21 x_old:24 x_new:25 old:26 new:27 f:29 "check-rows":30
            │         │    └── project
-           │         │         ├── columns: "check-rows":54 k:32 child.x:33 x_old:36 x_new:37 old:38 new:39 f:53
+           │         │         ├── columns: "check-rows":30 k:20 child.x:21 x_old:24 x_new:25 old:26 new:27 f:29
            │         │         ├── project
-           │         │         │    ├── columns: f:53 k:32 child.x:33 x_old:36 x_new:37 old:38 new:39
+           │         │         │    ├── columns: f:29 k:20 child.x:21 x_old:24 x_new:25 old:26 new:27
            │         │         │    ├── barrier
-           │         │         │    │    ├── columns: k:32 child.x:33 x_old:36 x_new:37 old:38 new:39
+           │         │         │    │    ├── columns: k:20 child.x:21 x_old:24 x_new:25 old:26 new:27
            │         │         │    │    └── project
-           │         │         │    │         ├── columns: new:39 k:32 child.x:33 x_old:36 x_new:37 old:38
+           │         │         │    │         ├── columns: new:27 k:20 child.x:21 x_old:24 x_new:25 old:26
            │         │         │    │         ├── project
-           │         │         │    │         │    ├── columns: old:38 k:32 child.x:33 x_old:36 x_new:37
+           │         │         │    │         │    ├── columns: old:26 k:20 child.x:21 x_old:24 x_new:25
            │         │         │    │         │    ├── inner-join (hash)
-           │         │         │    │         │    │    ├── columns: k:32 child.x:33 x_old:36 x_new:37
+           │         │         │    │         │    │    ├── columns: k:20 child.x:21 x_old:24 x_new:25
            │         │         │    │         │    │    ├── scan child
-           │         │         │    │         │    │    │    ├── columns: k:32 child.x:33
+           │         │         │    │         │    │    │    ├── columns: k:20 child.x:21
            │         │         │    │         │    │    │    └── flags: avoid-full-scan
            │         │         │    │         │    │    ├── select
-           │         │         │    │         │    │    │    ├── columns: x_old:36 x_new:37
+           │         │         │    │         │    │    │    ├── columns: x_old:24 x_new:25
            │         │         │    │         │    │    │    ├── with-scan &1
-           │         │         │    │         │    │    │    │    ├── columns: x_old:36 x_new:37
+           │         │         │    │         │    │    │    │    ├── columns: x_old:24 x_new:25
            │         │         │    │         │    │    │    │    └── mapping:
-           │         │         │    │         │    │    │    │         ├──  xy.x:5 => x_old:36
-           │         │         │    │         │    │    │    │         └──  x_new:26 => x_new:37
+           │         │         │    │         │    │    │    │         ├──  xy.x:5 => x_old:24
+           │         │         │    │         │    │    │    │         └──  x_new:14 => x_new:25
            │         │         │    │         │    │    │    └── filters
-           │         │         │    │         │    │    │         └── x_old:36 IS DISTINCT FROM x_new:37
+           │         │         │    │         │    │    │         └── x_old:24 IS DISTINCT FROM x_new:25
            │         │         │    │         │    │    └── filters
-           │         │         │    │         │    │         └── child.x:33 = x_old:36
+           │         │         │    │         │    │         └── child.x:21 = x_old:24
            │         │         │    │         │    └── projections
-           │         │         │    │         │         └── ((k:32, child.x:33) AS k, x) [as=old:38]
+           │         │         │    │         │         └── ((k:20, child.x:21) AS k, x) [as=old:26]
            │         │         │    │         └── projections
-           │         │         │    │              └── ((k:32, x_new:37) AS k, x) [as=new:39]
+           │         │         │    │              └── ((k:20, x_new:25) AS k, x) [as=new:27]
            │         │         │    └── projections
-           │         │         │         └── f(new:39, old:38, 'tr_child', 'BEFORE', 'ROW', 'UPDATE', 54, 'child', 'child', 'public', 0, ARRAY[]) [as=f:53]
+           │         │         │         └── f(new:27, old:26, 'tr_child', 'BEFORE', 'ROW', 'UPDATE', 54, 'child', 'child', 'public', 0, ARRAY[]) [as=f:29]
            │         │         └── projections
-           │         │              └── CASE WHEN f:53 IS DISTINCT FROM new:39 THEN crdb_internal.plpgsql_raise('ERROR', 'trigger tr_child attempted to modify or filter a row in a cascade operation: ' || new:39::STRING, e'changing the rows updated or deleted by a foreign-key cascade\n can cause constraint violations, and therefore is not allowed', e'to enable this behavior (with risk of constraint violation), set\nthe session variable \'unsafe_allow_triggers_modifying_cascades\' to true', '27000') ELSE CAST(NULL AS INT8) END [as="check-rows":54]
+           │         │              └── CASE WHEN f:29 IS DISTINCT FROM new:27 THEN crdb_internal.plpgsql_raise('ERROR', 'trigger tr_child attempted to modify or filter a row in a cascade operation: ' || new:27::STRING, e'changing the rows updated or deleted by a foreign-key cascade\n can cause constraint violations, and therefore is not allowed', e'to enable this behavior (with risk of constraint violation), set\nthe session variable \'unsafe_allow_triggers_modifying_cascades\' to true', '27000') ELSE CAST(NULL AS INT8) END [as="check-rows":30]
            │         └── filters
-           │              └── f:53 IS DISTINCT FROM NULL
+           │              └── f:29 IS DISTINCT FROM NULL
            └── f-k-checks
                 └── f-k-checks-item: child(x) -> xy(x)
                      └── anti-join (hash)
-                          ├── columns: x:55
+                          ├── columns: x:31
                           ├── select
-                          │    ├── columns: x:55
+                          │    ├── columns: x:31
                           │    ├── with-scan &2
-                          │    │    ├── columns: x:55
+                          │    │    ├── columns: x:31
                           │    │    └── mapping:
-                          │    │         └──  x_new:37 => x:55
+                          │    │         └──  x_new:25 => x:31
                           │    └── filters
-                          │         └── x:55 IS NOT NULL
+                          │         └── x:31 IS NOT NULL
                           ├── scan xy
-                          │    ├── columns: xy.x:56
+                          │    ├── columns: xy.x:32
                           │    └── flags: avoid-full-scan
                           └── filters
-                               └── x:55 = xy.x:56
+                               └── x:31 = xy.x:32
 
 build-post-queries format=(hide-all,show-columns)
 DELETE FROM xy WHERE x = 1;
@@ -198,11 +198,11 @@ root
  │    ├── cascades
  │    │    └── child_x_fkey
  │    └── barrier
- │         ├── columns: x:5 y:6 crdb_internal_mvcc_timestamp:7 tableoid:8 old:9 f:23
+ │         ├── columns: x:5 y:6 crdb_internal_mvcc_timestamp:7 tableoid:8 old:9 f:11
  │         └── select
- │              ├── columns: x:5 y:6 crdb_internal_mvcc_timestamp:7 tableoid:8 old:9 f:23
+ │              ├── columns: x:5 y:6 crdb_internal_mvcc_timestamp:7 tableoid:8 old:9 f:11
  │              ├── project
- │              │    ├── columns: f:23 x:5 y:6 crdb_internal_mvcc_timestamp:7 tableoid:8 old:9
+ │              │    ├── columns: f:11 x:5 y:6 crdb_internal_mvcc_timestamp:7 tableoid:8 old:9
  │              │    ├── barrier
  │              │    │    ├── columns: x:5 y:6 crdb_internal_mvcc_timestamp:7 tableoid:8 old:9
  │              │    │    └── project
@@ -217,48 +217,48 @@ root
  │              │    │         └── projections
  │              │    │              └── ((x:5, y:6) AS x, y) [as=old:9]
  │              │    └── projections
- │              │         └── f(NULL, old:9, 'tr', 'BEFORE', 'ROW', 'DELETE', 53, 'xy', 'xy', 'public', 0, ARRAY[]) [as=f:23]
+ │              │         └── f(NULL, old:9, 'tr', 'BEFORE', 'ROW', 'DELETE', 53, 'xy', 'xy', 'public', 0, ARRAY[]) [as=f:11]
  │              └── filters
- │                   └── f:23 IS DISTINCT FROM NULL
+ │                   └── f:11 IS DISTINCT FROM NULL
  └── cascade
       └── delete child
            ├── columns: <none>
-           ├── fetch columns: k:28 child.x:29
+           ├── fetch columns: k:16 child.x:17
            ├── before-triggers
            │    └── tr_child
            └── barrier
-                ├── columns: k:28 child.x:29 old:33 f:47 "check-rows":48
+                ├── columns: k:16 child.x:17 old:21 f:23 "check-rows":24
                 └── select
-                     ├── columns: k:28 child.x:29 old:33 f:47 "check-rows":48
+                     ├── columns: k:16 child.x:17 old:21 f:23 "check-rows":24
                      ├── barrier
-                     │    ├── columns: k:28 child.x:29 old:33 f:47 "check-rows":48
+                     │    ├── columns: k:16 child.x:17 old:21 f:23 "check-rows":24
                      │    └── project
-                     │         ├── columns: "check-rows":48 k:28 child.x:29 old:33 f:47
+                     │         ├── columns: "check-rows":24 k:16 child.x:17 old:21 f:23
                      │         ├── project
-                     │         │    ├── columns: f:47 k:28 child.x:29 old:33
+                     │         │    ├── columns: f:23 k:16 child.x:17 old:21
                      │         │    ├── barrier
-                     │         │    │    ├── columns: k:28 child.x:29 old:33
+                     │         │    │    ├── columns: k:16 child.x:17 old:21
                      │         │    │    └── project
-                     │         │    │         ├── columns: old:33 k:28 child.x:29
+                     │         │    │         ├── columns: old:21 k:16 child.x:17
                      │         │    │         ├── semi-join (hash)
-                     │         │    │         │    ├── columns: k:28 child.x:29
+                     │         │    │         │    ├── columns: k:16 child.x:17
                      │         │    │         │    ├── scan child
-                     │         │    │         │    │    ├── columns: k:28 child.x:29
+                     │         │    │         │    │    ├── columns: k:16 child.x:17
                      │         │    │         │    │    └── flags: avoid-full-scan
                      │         │    │         │    ├── with-scan &1
-                     │         │    │         │    │    ├── columns: x:32
+                     │         │    │         │    │    ├── columns: x:20
                      │         │    │         │    │    └── mapping:
-                     │         │    │         │    │         └──  xy.x:5 => x:32
+                     │         │    │         │    │         └──  xy.x:5 => x:20
                      │         │    │         │    └── filters
-                     │         │    │         │         └── child.x:29 = x:32
+                     │         │    │         │         └── child.x:17 = x:20
                      │         │    │         └── projections
-                     │         │    │              └── ((k:28, child.x:29) AS k, x) [as=old:33]
+                     │         │    │              └── ((k:16, child.x:17) AS k, x) [as=old:21]
                      │         │    └── projections
-                     │         │         └── f(NULL, old:33, 'tr_child', 'BEFORE', 'ROW', 'DELETE', 54, 'child', 'child', 'public', 0, ARRAY[]) [as=f:47]
+                     │         │         └── f(NULL, old:21, 'tr_child', 'BEFORE', 'ROW', 'DELETE', 54, 'child', 'child', 'public', 0, ARRAY[]) [as=f:23]
                      │         └── projections
-                     │              └── CASE WHEN f:47 IS DISTINCT FROM old:33 THEN crdb_internal.plpgsql_raise('ERROR', 'trigger tr_child attempted to modify or filter a row in a cascade operation: ' || old:33::STRING, e'changing the rows updated or deleted by a foreign-key cascade\n can cause constraint violations, and therefore is not allowed', e'to enable this behavior (with risk of constraint violation), set\nthe session variable \'unsafe_allow_triggers_modifying_cascades\' to true', '27000') ELSE CAST(NULL AS INT8) END [as="check-rows":48]
+                     │              └── CASE WHEN f:23 IS DISTINCT FROM old:21 THEN crdb_internal.plpgsql_raise('ERROR', 'trigger tr_child attempted to modify or filter a row in a cascade operation: ' || old:21::STRING, e'changing the rows updated or deleted by a foreign-key cascade\n can cause constraint violations, and therefore is not allowed', e'to enable this behavior (with risk of constraint violation), set\nthe session variable \'unsafe_allow_triggers_modifying_cascades\' to true', '27000') ELSE CAST(NULL AS INT8) END [as="check-rows":24]
                      └── filters
-                          └── f:47 IS DISTINCT FROM NULL
+                          └── f:23 IS DISTINCT FROM NULL
 
 build-post-queries format=(hide-all,show-columns)
 UPSERT INTO xy VALUES (1, 2);
@@ -270,40 +270,40 @@ root
  │    ├── canary column: x:7
  │    ├── fetch columns: x:7 y:8
  │    ├── insert-mapping:
- │    │    ├── x_new:26 => x:1
- │    │    └── y_new:27 => y:2
+ │    │    ├── x_new:14 => x:1
+ │    │    └── y_new:15 => y:2
  │    ├── update-mapping:
- │    │    ├── upsert_x:33 => x:1
- │    │    └── upsert_y:34 => y:2
+ │    │    ├── upsert_x:21 => x:1
+ │    │    └── upsert_y:22 => y:2
  │    ├── before-triggers
  │    │    └── tr
  │    ├── input binding: &1
  │    ├── cascades
  │    │    └── child_x_fkey
  │    └── project
- │         ├── columns: upsert_x:33 upsert_y:34 column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11 f:25 x_new:26 y_new:27 old:28 new:29 f:30 x_new:31 y_new:32
+ │         ├── columns: upsert_x:21 upsert_y:22 column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11 f:13 x_new:14 y_new:15 old:16 new:17 f:18 x_new:19 y_new:20
  │         ├── project
- │         │    ├── columns: x_new:31 y_new:32 column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11 f:25 x_new:26 y_new:27 old:28 new:29 f:30
+ │         │    ├── columns: x_new:19 y_new:20 column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11 f:13 x_new:14 y_new:15 old:16 new:17 f:18
  │         │    ├── barrier
- │         │    │    ├── columns: column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11 f:25 x_new:26 y_new:27 old:28 new:29 f:30
+ │         │    │    ├── columns: column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11 f:13 x_new:14 y_new:15 old:16 new:17 f:18
  │         │    │    └── select
- │         │    │         ├── columns: column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11 f:25 x_new:26 y_new:27 old:28 new:29 f:30
+ │         │    │         ├── columns: column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11 f:13 x_new:14 y_new:15 old:16 new:17 f:18
  │         │    │         ├── project
- │         │    │         │    ├── columns: f:30 column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11 f:25 x_new:26 y_new:27 old:28 new:29
+ │         │    │         │    ├── columns: f:18 column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11 f:13 x_new:14 y_new:15 old:16 new:17
  │         │    │         │    ├── barrier
- │         │    │         │    │    ├── columns: column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11 f:25 x_new:26 y_new:27 old:28 new:29
+ │         │    │         │    │    ├── columns: column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11 f:13 x_new:14 y_new:15 old:16 new:17
  │         │    │         │    │    └── project
- │         │    │         │    │         ├── columns: new:29 column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11 f:25 x_new:26 y_new:27 old:28
+ │         │    │         │    │         ├── columns: new:17 column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11 f:13 x_new:14 y_new:15 old:16
  │         │    │         │    │         ├── project
- │         │    │         │    │         │    ├── columns: old:28 column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11 f:25 x_new:26 y_new:27
+ │         │    │         │    │         │    ├── columns: old:16 column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11 f:13 x_new:14 y_new:15
  │         │    │         │    │         │    ├── project
- │         │    │         │    │         │    │    ├── columns: x_new:26 y_new:27 column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11 f:25
+ │         │    │         │    │         │    │    ├── columns: x_new:14 y_new:15 column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11 f:13
  │         │    │         │    │         │    │    ├── barrier
- │         │    │         │    │         │    │    │    ├── columns: column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11 f:25
+ │         │    │         │    │         │    │    │    ├── columns: column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11 f:13
  │         │    │         │    │         │    │    │    └── select
- │         │    │         │    │         │    │    │         ├── columns: column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11 f:25
+ │         │    │         │    │         │    │    │         ├── columns: column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11 f:13
  │         │    │         │    │         │    │    │         ├── project
- │         │    │         │    │         │    │    │         │    ├── columns: f:25 column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11
+ │         │    │         │    │         │    │    │         │    ├── columns: f:13 column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11
  │         │    │         │    │         │    │    │         │    ├── barrier
  │         │    │         │    │         │    │    │         │    │    ├── columns: column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11
  │         │    │         │    │         │    │    │         │    │    └── project
@@ -327,94 +327,94 @@ root
  │         │    │         │    │         │    │    │         │    │         └── projections
  │         │    │         │    │         │    │    │         │    │              └── ((column1:5, column2:6) AS x, y) [as=new:11]
  │         │    │         │    │         │    │    │         │    └── projections
- │         │    │         │    │         │    │    │         │         └── f(new:11, NULL, 'tr', 'BEFORE', 'ROW', 'INSERT', 53, 'xy', 'xy', 'public', 0, ARRAY[]) [as=f:25]
+ │         │    │         │    │         │    │    │         │         └── f(new:11, NULL, 'tr', 'BEFORE', 'ROW', 'INSERT', 53, 'xy', 'xy', 'public', 0, ARRAY[]) [as=f:13]
  │         │    │         │    │         │    │    │         └── filters
- │         │    │         │    │         │    │    │              └── f:25 IS DISTINCT FROM NULL
+ │         │    │         │    │         │    │    │              └── f:13 IS DISTINCT FROM NULL
  │         │    │         │    │         │    │    └── projections
- │         │    │         │    │         │    │         ├── (f:25).x [as=x_new:26]
- │         │    │         │    │         │    │         └── (f:25).y [as=y_new:27]
+ │         │    │         │    │         │    │         ├── (f:13).x [as=x_new:14]
+ │         │    │         │    │         │    │         └── (f:13).y [as=y_new:15]
  │         │    │         │    │         │    └── projections
- │         │    │         │    │         │         └── ((x:7, y:8) AS x, y) [as=old:28]
+ │         │    │         │    │         │         └── ((x:7, y:8) AS x, y) [as=old:16]
  │         │    │         │    │         └── projections
- │         │    │         │    │              └── ((x:7, y_new:27) AS x, y) [as=new:29]
+ │         │    │         │    │              └── ((x:7, y_new:15) AS x, y) [as=new:17]
  │         │    │         │    └── projections
- │         │    │         │         └── CASE WHEN x:7 IS NOT NULL THEN f(new:29, old:28, 'tr', 'BEFORE', 'ROW', 'UPDATE', 53, 'xy', 'xy', 'public', 0, ARRAY[]) ELSE new:29 END [as=f:30]
+ │         │    │         │         └── CASE WHEN x:7 IS NOT NULL THEN f(new:17, old:16, 'tr', 'BEFORE', 'ROW', 'UPDATE', 53, 'xy', 'xy', 'public', 0, ARRAY[]) ELSE new:17 END [as=f:18]
  │         │    │         └── filters
- │         │    │              └── f:30 IS DISTINCT FROM NULL
+ │         │    │              └── f:18 IS DISTINCT FROM NULL
  │         │    └── projections
- │         │         ├── (f:30).x [as=x_new:31]
- │         │         └── (f:30).y [as=y_new:32]
+ │         │         ├── (f:18).x [as=x_new:19]
+ │         │         └── (f:18).y [as=y_new:20]
  │         └── projections
- │              ├── CASE WHEN x:7 IS NULL THEN x_new:26 ELSE x_new:31 END [as=upsert_x:33]
- │              └── CASE WHEN x:7 IS NULL THEN y_new:27 ELSE y_new:32 END [as=upsert_y:34]
+ │              ├── CASE WHEN x:7 IS NULL THEN x_new:14 ELSE x_new:19 END [as=upsert_x:21]
+ │              └── CASE WHEN x:7 IS NULL THEN y_new:15 ELSE y_new:20 END [as=upsert_y:22]
  └── cascade
       └── update child
            ├── columns: <none>
-           ├── fetch columns: k:39 child.x:40
+           ├── fetch columns: k:27 child.x:28
            ├── update-mapping:
-           │    └── x_new:44 => child.x:36
+           │    └── x_new:32 => child.x:24
            ├── before-triggers
            │    └── tr_child
            ├── input binding: &2
            ├── barrier
-           │    ├── columns: k:39 child.x:40 x_old:43 x_new:44 old:45 new:46 f:60 "check-rows":61
+           │    ├── columns: k:27 child.x:28 x_old:31 x_new:32 old:33 new:34 f:36 "check-rows":37
            │    └── select
-           │         ├── columns: k:39 child.x:40 x_old:43 x_new:44 old:45 new:46 f:60 "check-rows":61
+           │         ├── columns: k:27 child.x:28 x_old:31 x_new:32 old:33 new:34 f:36 "check-rows":37
            │         ├── barrier
-           │         │    ├── columns: k:39 child.x:40 x_old:43 x_new:44 old:45 new:46 f:60 "check-rows":61
+           │         │    ├── columns: k:27 child.x:28 x_old:31 x_new:32 old:33 new:34 f:36 "check-rows":37
            │         │    └── project
-           │         │         ├── columns: "check-rows":61 k:39 child.x:40 x_old:43 x_new:44 old:45 new:46 f:60
+           │         │         ├── columns: "check-rows":37 k:27 child.x:28 x_old:31 x_new:32 old:33 new:34 f:36
            │         │         ├── project
-           │         │         │    ├── columns: f:60 k:39 child.x:40 x_old:43 x_new:44 old:45 new:46
+           │         │         │    ├── columns: f:36 k:27 child.x:28 x_old:31 x_new:32 old:33 new:34
            │         │         │    ├── barrier
-           │         │         │    │    ├── columns: k:39 child.x:40 x_old:43 x_new:44 old:45 new:46
+           │         │         │    │    ├── columns: k:27 child.x:28 x_old:31 x_new:32 old:33 new:34
            │         │         │    │    └── project
-           │         │         │    │         ├── columns: new:46 k:39 child.x:40 x_old:43 x_new:44 old:45
+           │         │         │    │         ├── columns: new:34 k:27 child.x:28 x_old:31 x_new:32 old:33
            │         │         │    │         ├── project
-           │         │         │    │         │    ├── columns: old:45 k:39 child.x:40 x_old:43 x_new:44
+           │         │         │    │         │    ├── columns: old:33 k:27 child.x:28 x_old:31 x_new:32
            │         │         │    │         │    ├── inner-join (hash)
-           │         │         │    │         │    │    ├── columns: k:39 child.x:40 x_old:43 x_new:44
+           │         │         │    │         │    │    ├── columns: k:27 child.x:28 x_old:31 x_new:32
            │         │         │    │         │    │    ├── scan child
-           │         │         │    │         │    │    │    ├── columns: k:39 child.x:40
+           │         │         │    │         │    │    │    ├── columns: k:27 child.x:28
            │         │         │    │         │    │    │    └── flags: avoid-full-scan
            │         │         │    │         │    │    ├── select
-           │         │         │    │         │    │    │    ├── columns: x_old:43 x_new:44
+           │         │         │    │         │    │    │    ├── columns: x_old:31 x_new:32
            │         │         │    │         │    │    │    ├── with-scan &1
-           │         │         │    │         │    │    │    │    ├── columns: x_old:43 x_new:44
+           │         │         │    │         │    │    │    │    ├── columns: x_old:31 x_new:32
            │         │         │    │         │    │    │    │    └── mapping:
-           │         │         │    │         │    │    │    │         ├──  xy.x:7 => x_old:43
-           │         │         │    │         │    │    │    │         └──  upsert_x:33 => x_new:44
+           │         │         │    │         │    │    │    │         ├──  xy.x:7 => x_old:31
+           │         │         │    │         │    │    │    │         └──  upsert_x:21 => x_new:32
            │         │         │    │         │    │    │    └── filters
-           │         │         │    │         │    │    │         └── x_old:43 IS DISTINCT FROM x_new:44
+           │         │         │    │         │    │    │         └── x_old:31 IS DISTINCT FROM x_new:32
            │         │         │    │         │    │    └── filters
-           │         │         │    │         │    │         └── child.x:40 = x_old:43
+           │         │         │    │         │    │         └── child.x:28 = x_old:31
            │         │         │    │         │    └── projections
-           │         │         │    │         │         └── ((k:39, child.x:40) AS k, x) [as=old:45]
+           │         │         │    │         │         └── ((k:27, child.x:28) AS k, x) [as=old:33]
            │         │         │    │         └── projections
-           │         │         │    │              └── ((k:39, x_new:44) AS k, x) [as=new:46]
+           │         │         │    │              └── ((k:27, x_new:32) AS k, x) [as=new:34]
            │         │         │    └── projections
-           │         │         │         └── f(new:46, old:45, 'tr_child', 'BEFORE', 'ROW', 'UPDATE', 54, 'child', 'child', 'public', 0, ARRAY[]) [as=f:60]
+           │         │         │         └── f(new:34, old:33, 'tr_child', 'BEFORE', 'ROW', 'UPDATE', 54, 'child', 'child', 'public', 0, ARRAY[]) [as=f:36]
            │         │         └── projections
-           │         │              └── CASE WHEN f:60 IS DISTINCT FROM new:46 THEN crdb_internal.plpgsql_raise('ERROR', 'trigger tr_child attempted to modify or filter a row in a cascade operation: ' || new:46::STRING, e'changing the rows updated or deleted by a foreign-key cascade\n can cause constraint violations, and therefore is not allowed', e'to enable this behavior (with risk of constraint violation), set\nthe session variable \'unsafe_allow_triggers_modifying_cascades\' to true', '27000') ELSE CAST(NULL AS INT8) END [as="check-rows":61]
+           │         │              └── CASE WHEN f:36 IS DISTINCT FROM new:34 THEN crdb_internal.plpgsql_raise('ERROR', 'trigger tr_child attempted to modify or filter a row in a cascade operation: ' || new:34::STRING, e'changing the rows updated or deleted by a foreign-key cascade\n can cause constraint violations, and therefore is not allowed', e'to enable this behavior (with risk of constraint violation), set\nthe session variable \'unsafe_allow_triggers_modifying_cascades\' to true', '27000') ELSE CAST(NULL AS INT8) END [as="check-rows":37]
            │         └── filters
-           │              └── f:60 IS DISTINCT FROM NULL
+           │              └── f:36 IS DISTINCT FROM NULL
            └── f-k-checks
                 └── f-k-checks-item: child(x) -> xy(x)
                      └── anti-join (hash)
-                          ├── columns: x:62
+                          ├── columns: x:38
                           ├── select
-                          │    ├── columns: x:62
+                          │    ├── columns: x:38
                           │    ├── with-scan &2
-                          │    │    ├── columns: x:62
+                          │    │    ├── columns: x:38
                           │    │    └── mapping:
-                          │    │         └──  x_new:44 => x:62
+                          │    │         └──  x_new:32 => x:38
                           │    └── filters
-                          │         └── x:62 IS NOT NULL
+                          │         └── x:38 IS NOT NULL
                           ├── scan xy
-                          │    ├── columns: xy.x:63
+                          │    ├── columns: xy.x:39
                           │    └── flags: avoid-full-scan
                           └── filters
-                               └── x:62 = xy.x:63
+                               └── x:38 = xy.x:39
 
 build-post-queries format=(hide-all,show-columns)
 INSERT INTO xy VALUES (1, 2) ON CONFLICT (x) DO UPDATE SET y = 3;
@@ -426,42 +426,42 @@ root
  │    ├── canary column: x:7
  │    ├── fetch columns: x:7 y:8
  │    ├── insert-mapping:
- │    │    ├── x_new:26 => x:1
- │    │    └── y_new:27 => y:2
+ │    │    ├── x_new:14 => x:1
+ │    │    └── y_new:15 => y:2
  │    ├── update-mapping:
- │    │    ├── upsert_x:34 => x:1
- │    │    └── upsert_y:35 => y:2
+ │    │    ├── upsert_x:22 => x:1
+ │    │    └── upsert_y:23 => y:2
  │    ├── before-triggers
  │    │    └── tr
  │    ├── input binding: &1
  │    ├── cascades
  │    │    └── child_x_fkey
  │    └── project
- │         ├── columns: upsert_x:34 upsert_y:35 column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11 f:25 x_new:26 y_new:27 y_new:28 old:29 new:30 f:31 x_new:32 y_new:33
+ │         ├── columns: upsert_x:22 upsert_y:23 column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11 f:13 x_new:14 y_new:15 y_new:16 old:17 new:18 f:19 x_new:20 y_new:21
  │         ├── project
- │         │    ├── columns: x_new:32 y_new:33 column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11 f:25 x_new:26 y_new:27 y_new:28 old:29 new:30 f:31
+ │         │    ├── columns: x_new:20 y_new:21 column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11 f:13 x_new:14 y_new:15 y_new:16 old:17 new:18 f:19
  │         │    ├── barrier
- │         │    │    ├── columns: column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11 f:25 x_new:26 y_new:27 y_new:28 old:29 new:30 f:31
+ │         │    │    ├── columns: column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11 f:13 x_new:14 y_new:15 y_new:16 old:17 new:18 f:19
  │         │    │    └── select
- │         │    │         ├── columns: column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11 f:25 x_new:26 y_new:27 y_new:28 old:29 new:30 f:31
+ │         │    │         ├── columns: column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11 f:13 x_new:14 y_new:15 y_new:16 old:17 new:18 f:19
  │         │    │         ├── project
- │         │    │         │    ├── columns: f:31 column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11 f:25 x_new:26 y_new:27 y_new:28 old:29 new:30
+ │         │    │         │    ├── columns: f:19 column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11 f:13 x_new:14 y_new:15 y_new:16 old:17 new:18
  │         │    │         │    ├── barrier
- │         │    │         │    │    ├── columns: column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11 f:25 x_new:26 y_new:27 y_new:28 old:29 new:30
+ │         │    │         │    │    ├── columns: column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11 f:13 x_new:14 y_new:15 y_new:16 old:17 new:18
  │         │    │         │    │    └── project
- │         │    │         │    │         ├── columns: new:30 column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11 f:25 x_new:26 y_new:27 y_new:28 old:29
+ │         │    │         │    │         ├── columns: new:18 column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11 f:13 x_new:14 y_new:15 y_new:16 old:17
  │         │    │         │    │         ├── project
- │         │    │         │    │         │    ├── columns: old:29 column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11 f:25 x_new:26 y_new:27 y_new:28
+ │         │    │         │    │         │    ├── columns: old:17 column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11 f:13 x_new:14 y_new:15 y_new:16
  │         │    │         │    │         │    ├── project
- │         │    │         │    │         │    │    ├── columns: y_new:28 column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11 f:25 x_new:26 y_new:27
+ │         │    │         │    │         │    │    ├── columns: y_new:16 column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11 f:13 x_new:14 y_new:15
  │         │    │         │    │         │    │    ├── project
- │         │    │         │    │         │    │    │    ├── columns: x_new:26 y_new:27 column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11 f:25
+ │         │    │         │    │         │    │    │    ├── columns: x_new:14 y_new:15 column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11 f:13
  │         │    │         │    │         │    │    │    ├── barrier
- │         │    │         │    │         │    │    │    │    ├── columns: column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11 f:25
+ │         │    │         │    │         │    │    │    │    ├── columns: column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11 f:13
  │         │    │         │    │         │    │    │    │    └── select
- │         │    │         │    │         │    │    │    │         ├── columns: column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11 f:25
+ │         │    │         │    │         │    │    │    │         ├── columns: column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11 f:13
  │         │    │         │    │         │    │    │    │         ├── project
- │         │    │         │    │         │    │    │    │         │    ├── columns: f:25 column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11
+ │         │    │         │    │         │    │    │    │         │    ├── columns: f:13 column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11
  │         │    │         │    │         │    │    │    │         │    ├── barrier
  │         │    │         │    │         │    │    │    │         │    │    ├── columns: column1:5 column2:6 x:7 y:8 crdb_internal_mvcc_timestamp:9 tableoid:10 new:11
  │         │    │         │    │         │    │    │    │         │    │    └── project
@@ -485,96 +485,96 @@ root
  │         │    │         │    │         │    │    │    │         │    │         └── projections
  │         │    │         │    │         │    │    │    │         │    │              └── ((column1:5, column2:6) AS x, y) [as=new:11]
  │         │    │         │    │         │    │    │    │         │    └── projections
- │         │    │         │    │         │    │    │    │         │         └── f(new:11, NULL, 'tr', 'BEFORE', 'ROW', 'INSERT', 53, 'xy', 'xy', 'public', 0, ARRAY[]) [as=f:25]
+ │         │    │         │    │         │    │    │    │         │         └── f(new:11, NULL, 'tr', 'BEFORE', 'ROW', 'INSERT', 53, 'xy', 'xy', 'public', 0, ARRAY[]) [as=f:13]
  │         │    │         │    │         │    │    │    │         └── filters
- │         │    │         │    │         │    │    │    │              └── f:25 IS DISTINCT FROM NULL
+ │         │    │         │    │         │    │    │    │              └── f:13 IS DISTINCT FROM NULL
  │         │    │         │    │         │    │    │    └── projections
- │         │    │         │    │         │    │    │         ├── (f:25).x [as=x_new:26]
- │         │    │         │    │         │    │    │         └── (f:25).y [as=y_new:27]
+ │         │    │         │    │         │    │    │         ├── (f:13).x [as=x_new:14]
+ │         │    │         │    │         │    │    │         └── (f:13).y [as=y_new:15]
  │         │    │         │    │         │    │    └── projections
- │         │    │         │    │         │    │         └── 3 [as=y_new:28]
+ │         │    │         │    │         │    │         └── 3 [as=y_new:16]
  │         │    │         │    │         │    └── projections
- │         │    │         │    │         │         └── ((x:7, y:8) AS x, y) [as=old:29]
+ │         │    │         │    │         │         └── ((x:7, y:8) AS x, y) [as=old:17]
  │         │    │         │    │         └── projections
- │         │    │         │    │              └── ((x:7, y_new:28) AS x, y) [as=new:30]
+ │         │    │         │    │              └── ((x:7, y_new:16) AS x, y) [as=new:18]
  │         │    │         │    └── projections
- │         │    │         │         └── CASE WHEN x:7 IS NOT NULL THEN f(new:30, old:29, 'tr', 'BEFORE', 'ROW', 'UPDATE', 53, 'xy', 'xy', 'public', 0, ARRAY[]) ELSE new:30 END [as=f:31]
+ │         │    │         │         └── CASE WHEN x:7 IS NOT NULL THEN f(new:18, old:17, 'tr', 'BEFORE', 'ROW', 'UPDATE', 53, 'xy', 'xy', 'public', 0, ARRAY[]) ELSE new:18 END [as=f:19]
  │         │    │         └── filters
- │         │    │              └── f:31 IS DISTINCT FROM NULL
+ │         │    │              └── f:19 IS DISTINCT FROM NULL
  │         │    └── projections
- │         │         ├── (f:31).x [as=x_new:32]
- │         │         └── (f:31).y [as=y_new:33]
+ │         │         ├── (f:19).x [as=x_new:20]
+ │         │         └── (f:19).y [as=y_new:21]
  │         └── projections
- │              ├── CASE WHEN x:7 IS NULL THEN x_new:26 ELSE x_new:32 END [as=upsert_x:34]
- │              └── CASE WHEN x:7 IS NULL THEN y_new:27 ELSE y_new:33 END [as=upsert_y:35]
+ │              ├── CASE WHEN x:7 IS NULL THEN x_new:14 ELSE x_new:20 END [as=upsert_x:22]
+ │              └── CASE WHEN x:7 IS NULL THEN y_new:15 ELSE y_new:21 END [as=upsert_y:23]
  └── cascade
       └── update child
            ├── columns: <none>
-           ├── fetch columns: k:40 child.x:41
+           ├── fetch columns: k:28 child.x:29
            ├── update-mapping:
-           │    └── x_new:45 => child.x:37
+           │    └── x_new:33 => child.x:25
            ├── before-triggers
            │    └── tr_child
            ├── input binding: &2
            ├── barrier
-           │    ├── columns: k:40 child.x:41 x_old:44 x_new:45 old:46 new:47 f:61 "check-rows":62
+           │    ├── columns: k:28 child.x:29 x_old:32 x_new:33 old:34 new:35 f:37 "check-rows":38
            │    └── select
-           │         ├── columns: k:40 child.x:41 x_old:44 x_new:45 old:46 new:47 f:61 "check-rows":62
+           │         ├── columns: k:28 child.x:29 x_old:32 x_new:33 old:34 new:35 f:37 "check-rows":38
            │         ├── barrier
-           │         │    ├── columns: k:40 child.x:41 x_old:44 x_new:45 old:46 new:47 f:61 "check-rows":62
+           │         │    ├── columns: k:28 child.x:29 x_old:32 x_new:33 old:34 new:35 f:37 "check-rows":38
            │         │    └── project
-           │         │         ├── columns: "check-rows":62 k:40 child.x:41 x_old:44 x_new:45 old:46 new:47 f:61
+           │         │         ├── columns: "check-rows":38 k:28 child.x:29 x_old:32 x_new:33 old:34 new:35 f:37
            │         │         ├── project
-           │         │         │    ├── columns: f:61 k:40 child.x:41 x_old:44 x_new:45 old:46 new:47
+           │         │         │    ├── columns: f:37 k:28 child.x:29 x_old:32 x_new:33 old:34 new:35
            │         │         │    ├── barrier
-           │         │         │    │    ├── columns: k:40 child.x:41 x_old:44 x_new:45 old:46 new:47
+           │         │         │    │    ├── columns: k:28 child.x:29 x_old:32 x_new:33 old:34 new:35
            │         │         │    │    └── project
-           │         │         │    │         ├── columns: new:47 k:40 child.x:41 x_old:44 x_new:45 old:46
+           │         │         │    │         ├── columns: new:35 k:28 child.x:29 x_old:32 x_new:33 old:34
            │         │         │    │         ├── project
-           │         │         │    │         │    ├── columns: old:46 k:40 child.x:41 x_old:44 x_new:45
+           │         │         │    │         │    ├── columns: old:34 k:28 child.x:29 x_old:32 x_new:33
            │         │         │    │         │    ├── inner-join (hash)
-           │         │         │    │         │    │    ├── columns: k:40 child.x:41 x_old:44 x_new:45
+           │         │         │    │         │    │    ├── columns: k:28 child.x:29 x_old:32 x_new:33
            │         │         │    │         │    │    ├── scan child
-           │         │         │    │         │    │    │    ├── columns: k:40 child.x:41
+           │         │         │    │         │    │    │    ├── columns: k:28 child.x:29
            │         │         │    │         │    │    │    └── flags: avoid-full-scan
            │         │         │    │         │    │    ├── select
-           │         │         │    │         │    │    │    ├── columns: x_old:44 x_new:45
+           │         │         │    │         │    │    │    ├── columns: x_old:32 x_new:33
            │         │         │    │         │    │    │    ├── with-scan &1
-           │         │         │    │         │    │    │    │    ├── columns: x_old:44 x_new:45
+           │         │         │    │         │    │    │    │    ├── columns: x_old:32 x_new:33
            │         │         │    │         │    │    │    │    └── mapping:
-           │         │         │    │         │    │    │    │         ├──  xy.x:7 => x_old:44
-           │         │         │    │         │    │    │    │         └──  upsert_x:34 => x_new:45
+           │         │         │    │         │    │    │    │         ├──  xy.x:7 => x_old:32
+           │         │         │    │         │    │    │    │         └──  upsert_x:22 => x_new:33
            │         │         │    │         │    │    │    └── filters
-           │         │         │    │         │    │    │         └── x_old:44 IS DISTINCT FROM x_new:45
+           │         │         │    │         │    │    │         └── x_old:32 IS DISTINCT FROM x_new:33
            │         │         │    │         │    │    └── filters
-           │         │         │    │         │    │         └── child.x:41 = x_old:44
+           │         │         │    │         │    │         └── child.x:29 = x_old:32
            │         │         │    │         │    └── projections
-           │         │         │    │         │         └── ((k:40, child.x:41) AS k, x) [as=old:46]
+           │         │         │    │         │         └── ((k:28, child.x:29) AS k, x) [as=old:34]
            │         │         │    │         └── projections
-           │         │         │    │              └── ((k:40, x_new:45) AS k, x) [as=new:47]
+           │         │         │    │              └── ((k:28, x_new:33) AS k, x) [as=new:35]
            │         │         │    └── projections
-           │         │         │         └── f(new:47, old:46, 'tr_child', 'BEFORE', 'ROW', 'UPDATE', 54, 'child', 'child', 'public', 0, ARRAY[]) [as=f:61]
+           │         │         │         └── f(new:35, old:34, 'tr_child', 'BEFORE', 'ROW', 'UPDATE', 54, 'child', 'child', 'public', 0, ARRAY[]) [as=f:37]
            │         │         └── projections
-           │         │              └── CASE WHEN f:61 IS DISTINCT FROM new:47 THEN crdb_internal.plpgsql_raise('ERROR', 'trigger tr_child attempted to modify or filter a row in a cascade operation: ' || new:47::STRING, e'changing the rows updated or deleted by a foreign-key cascade\n can cause constraint violations, and therefore is not allowed', e'to enable this behavior (with risk of constraint violation), set\nthe session variable \'unsafe_allow_triggers_modifying_cascades\' to true', '27000') ELSE CAST(NULL AS INT8) END [as="check-rows":62]
+           │         │              └── CASE WHEN f:37 IS DISTINCT FROM new:35 THEN crdb_internal.plpgsql_raise('ERROR', 'trigger tr_child attempted to modify or filter a row in a cascade operation: ' || new:35::STRING, e'changing the rows updated or deleted by a foreign-key cascade\n can cause constraint violations, and therefore is not allowed', e'to enable this behavior (with risk of constraint violation), set\nthe session variable \'unsafe_allow_triggers_modifying_cascades\' to true', '27000') ELSE CAST(NULL AS INT8) END [as="check-rows":38]
            │         └── filters
-           │              └── f:61 IS DISTINCT FROM NULL
+           │              └── f:37 IS DISTINCT FROM NULL
            └── f-k-checks
                 └── f-k-checks-item: child(x) -> xy(x)
                      └── anti-join (hash)
-                          ├── columns: x:63
+                          ├── columns: x:39
                           ├── select
-                          │    ├── columns: x:63
+                          │    ├── columns: x:39
                           │    ├── with-scan &2
-                          │    │    ├── columns: x:63
+                          │    │    ├── columns: x:39
                           │    │    └── mapping:
-                          │    │         └──  x_new:45 => x:63
+                          │    │         └──  x_new:33 => x:39
                           │    └── filters
-                          │         └── x:63 IS NOT NULL
+                          │         └── x:39 IS NOT NULL
                           ├── scan xy
-                          │    ├── columns: xy.x:64
+                          │    ├── columns: xy.x:40
                           │    └── flags: avoid-full-scan
                           └── filters
-                               └── x:63 = xy.x:64
+                               └── x:39 = xy.x:40
 
 # Show interaction with computed columns.
 exec-ddl
@@ -588,35 +588,35 @@ INSERT INTO computed (k) VALUES (1);
 insert computed
  ├── columns: <none>
  ├── insert-mapping:
- │    ├── k_new:24 => k:1
- │    ├── v_comp:25 => v:2
- │    └── w_comp:26 => w:3
+ │    ├── k_new:12 => k:1
+ │    ├── v_comp:13 => v:2
+ │    └── w_comp:14 => w:3
  ├── before-triggers
  │    └── tr
  └── project
-      ├── columns: v_comp:25 w_comp:26 column1:6 v_comp:7 w_comp:8 new:9 f:23 k_new:24
+      ├── columns: v_comp:13 w_comp:14 column1:6 v_comp:7 w_comp:8 new:9 f:11 k_new:12
       ├── project
-      │    ├── columns: k_new:24 column1:6 v_comp:7 w_comp:8 new:9 f:23
+      │    ├── columns: k_new:12 column1:6 v_comp:7 w_comp:8 new:9 f:11
       │    ├── barrier
-      │    │    ├── columns: column1:6 v_comp:7 w_comp:8 new:9 f:23
+      │    │    ├── columns: column1:6 v_comp:7 w_comp:8 new:9 f:11
       │    │    └── select
-      │    │         ├── columns: column1:6 v_comp:7 w_comp:8 new:9 f:23
+      │    │         ├── columns: column1:6 v_comp:7 w_comp:8 new:9 f:11
       │    │         ├── project
-      │    │         │    ├── columns: f:23 column1:6 v_comp:7 w_comp:8 new:9
+      │    │         │    ├── columns: f:11 column1:6 v_comp:7 w_comp:8 new:9
       │    │         │    ├── barrier
       │    │         │    │    ├── columns: column1:6 v_comp:7 w_comp:8 new:9
       │    │         │    │    └── values
       │    │         │    │         ├── columns: column1:6 v_comp:7 w_comp:8 new:9
       │    │         │    │         └── (1, 2, 3, ((1, NULL, NULL) AS k, v, w))
       │    │         │    └── projections
-      │    │         │         └── CASE WHEN ((new:9).v IS NULL) AND ((new:9).w IS NULL) THEN f(new:9, NULL, 'tr', 'BEFORE', 'ROW', 'INSERT', 55, 'computed', 'computed', 'public', 0, ARRAY[]) ELSE new:9 END [as=f:23]
+      │    │         │         └── CASE WHEN ((new:9).v IS NULL) AND ((new:9).w IS NULL) THEN f(new:9, NULL, 'tr', 'BEFORE', 'ROW', 'INSERT', 55, 'computed', 'computed', 'public', 0, ARRAY[]) ELSE new:9 END [as=f:11]
       │    │         └── filters
-      │    │              └── f:23 IS DISTINCT FROM NULL
+      │    │              └── f:11 IS DISTINCT FROM NULL
       │    └── projections
-      │         └── (f:23).k [as=k_new:24]
+      │         └── (f:11).k [as=k_new:12]
       └── projections
-           ├── k_new:24 + 1 [as=v_comp:25]
-           └── k_new:24 + 2 [as=w_comp:26]
+           ├── k_new:12 + 1 [as=v_comp:13]
+           └── k_new:12 + 2 [as=w_comp:14]
 
 norm format=(hide-all,show-columns)
 UPDATE computed SET k = 2 WHERE k = 1;
@@ -625,21 +625,21 @@ update computed
  ├── columns: <none>
  ├── fetch columns: k:6 v:7 w:8
  ├── update-mapping:
- │    ├── k_new:30 => k:1
- │    ├── v_comp:31 => v:2
- │    └── w_comp:32 => w:3
+ │    ├── k_new:18 => k:1
+ │    ├── v_comp:19 => v:2
+ │    └── w_comp:20 => w:3
  ├── before-triggers
  │    └── tr
  └── project
-      ├── columns: v_comp:31 w_comp:32 k:6 v:7 w:8 k_new:30
+      ├── columns: v_comp:19 w_comp:20 k:6 v:7 w:8 k_new:18
       ├── project
-      │    ├── columns: k_new:30 k:6 v:7 w:8
+      │    ├── columns: k_new:18 k:6 v:7 w:8
       │    ├── barrier
-      │    │    ├── columns: k:6 v:7 w:8 crdb_internal_mvcc_timestamp:9 tableoid:10 k_new:11 v_comp:12 w_comp:13 old:14 new:15 f:29
+      │    │    ├── columns: k:6 v:7 w:8 crdb_internal_mvcc_timestamp:9 tableoid:10 k_new:11 v_comp:12 w_comp:13 old:14 new:15 f:17
       │    │    └── select
-      │    │         ├── columns: k:6 v:7 w:8 crdb_internal_mvcc_timestamp:9 tableoid:10 k_new:11 v_comp:12 w_comp:13 old:14 new:15 f:29
+      │    │         ├── columns: k:6 v:7 w:8 crdb_internal_mvcc_timestamp:9 tableoid:10 k_new:11 v_comp:12 w_comp:13 old:14 new:15 f:17
       │    │         ├── project
-      │    │         │    ├── columns: f:29 k:6 v:7 w:8 crdb_internal_mvcc_timestamp:9 tableoid:10 k_new:11 v_comp:12 w_comp:13 old:14 new:15
+      │    │         │    ├── columns: f:17 k:6 v:7 w:8 crdb_internal_mvcc_timestamp:9 tableoid:10 k_new:11 v_comp:12 w_comp:13 old:14 new:15
       │    │         │    ├── barrier
       │    │         │    │    ├── columns: k:6 v:7 w:8 crdb_internal_mvcc_timestamp:9 tableoid:10 k_new:11 v_comp:12 w_comp:13 old:14 new:15
       │    │         │    │    └── project
@@ -664,14 +664,14 @@ update computed
       │    │         │    │              ├── 2 [as=k_new:11]
       │    │         │    │              └── k:6 + 2 [as=w:8]
       │    │         │    └── projections
-      │    │         │         └── CASE WHEN ((new:15).v IS NULL) AND ((new:15).w IS NULL) THEN f(new:15, old:14, 'tr', 'BEFORE', 'ROW', 'UPDATE', 55, 'computed', 'computed', 'public', 0, ARRAY[]) ELSE new:15 END [as=f:29]
+      │    │         │         └── CASE WHEN ((new:15).v IS NULL) AND ((new:15).w IS NULL) THEN f(new:15, old:14, 'tr', 'BEFORE', 'ROW', 'UPDATE', 55, 'computed', 'computed', 'public', 0, ARRAY[]) ELSE new:15 END [as=f:17]
       │    │         └── filters
-      │    │              └── f:29 IS DISTINCT FROM NULL
+      │    │              └── f:17 IS DISTINCT FROM NULL
       │    └── projections
-      │         └── (f:29).k [as=k_new:30]
+      │         └── (f:17).k [as=k_new:18]
       └── projections
-           ├── k_new:30 + 1 [as=v_comp:31]
-           └── k_new:30 + 2 [as=w_comp:32]
+           ├── k_new:18 + 1 [as=v_comp:19]
+           └── k_new:18 + 2 [as=w_comp:20]
 
 # Test a trigger that fires itself recursively.
 exec-ddl
@@ -693,19 +693,19 @@ INSERT INTO ab VALUES (1, 2);
 insert ab
  ├── columns: <none>
  ├── insert-mapping:
- │    ├── a_new:49 => a:1
- │    ├── b_new:50 => b:2
+ │    ├── a_new:25 => a:1
+ │    ├── b_new:26 => b:2
  │    └── rowid_default:8 => rowid:3
  ├── before-triggers
  │    └── tr
  └── project
-      ├── columns: a_new:49 b_new:50 column1:6 column2:7 rowid_default:8 new:9 insert_ab:48
+      ├── columns: a_new:25 b_new:26 column1:6 column2:7 rowid_default:8 new:9 insert_ab:24
       ├── barrier
-      │    ├── columns: column1:6 column2:7 rowid_default:8 new:9 insert_ab:48
+      │    ├── columns: column1:6 column2:7 rowid_default:8 new:9 insert_ab:24
       │    └── select
-      │         ├── columns: column1:6 column2:7 rowid_default:8 new:9 insert_ab:48
+      │         ├── columns: column1:6 column2:7 rowid_default:8 new:9 insert_ab:24
       │         ├── project
-      │         │    ├── columns: insert_ab:48 column1:6 column2:7 rowid_default:8 new:9
+      │         │    ├── columns: insert_ab:24 column1:6 column2:7 rowid_default:8 new:9
       │         │    ├── barrier
       │         │    │    ├── columns: column1:6 column2:7 rowid_default:8 new:9
       │         │    │    └── values
@@ -718,7 +718,7 @@ insert ab
       │         │    │                   ├── const: 1
       │         │    │                   └── const: 2
       │         │    └── projections
-      │         │         └── udf: insert_ab [as=insert_ab:48]
+      │         │         └── udf: insert_ab [as=insert_ab:24]
       │         │              ├── args
       │         │              │    ├── variable: new:9
       │         │              │    ├── null
@@ -732,64 +732,64 @@ insert ab
       │         │              │    ├── const: 'public'
       │         │              │    ├── const: 0
       │         │              │    └── const: ARRAY[]
-      │         │              ├── params: new:10 old:11 tg_name:12 tg_when:13 tg_level:14 tg_op:15 tg_relid:16 tg_relname:17 tg_table_name:18 tg_table_schema:19 tg_nargs:20 tg_argv:21
+      │         │              ├── params: $1 $2 $3 $4 $5 $6 $7 $8 $9 $10 $11 $12
       │         │              └── body
       │         │                   └── values
-      │         │                        ├── columns: "_stmt_exec_1":47
+      │         │                        ├── columns: "_stmt_exec_1":23
       │         │                        └── tuple
       │         │                             └── udf: _stmt_exec_1
       │         │                                  ├── tail-call
       │         │                                  ├── args
-      │         │                                  │    ├── variable: new:10
-      │         │                                  │    ├── variable: old:11
-      │         │                                  │    ├── variable: tg_name:12
-      │         │                                  │    ├── variable: tg_when:13
-      │         │                                  │    ├── variable: tg_level:14
-      │         │                                  │    ├── variable: tg_op:15
-      │         │                                  │    ├── variable: tg_relid:16
-      │         │                                  │    ├── variable: tg_relname:17
-      │         │                                  │    ├── variable: tg_table_name:18
-      │         │                                  │    ├── variable: tg_table_schema:19
-      │         │                                  │    ├── variable: tg_nargs:20
-      │         │                                  │    └── variable: tg_argv:21
-      │         │                                  ├── params: new:22 old:23 tg_name:24 tg_when:25 tg_level:26 tg_op:27 tg_relid:28 tg_relname:29 tg_table_name:30 tg_table_schema:31 tg_nargs:32 tg_argv:33
+      │         │                                  │    ├── placeholder: $1
+      │         │                                  │    ├── placeholder: $2
+      │         │                                  │    ├── placeholder: $3
+      │         │                                  │    ├── placeholder: $4
+      │         │                                  │    ├── placeholder: $5
+      │         │                                  │    ├── placeholder: $6
+      │         │                                  │    ├── placeholder: $7
+      │         │                                  │    ├── placeholder: $8
+      │         │                                  │    ├── placeholder: $9
+      │         │                                  │    ├── placeholder: $10
+      │         │                                  │    ├── placeholder: $11
+      │         │                                  │    └── placeholder: $12
+      │         │                                  ├── params: $1 $2 $3 $4 $5 $6 $7 $8 $9 $10 $11 $12
       │         │                                  └── body
       │         │                                       ├── insert ab
       │         │                                       │    ├── columns: <none>
       │         │                                       │    ├── insert-mapping:
-      │         │                                       │    │    ├── a_new:44 => a:34
-      │         │                                       │    │    ├── b_new:45 => b:35
-      │         │                                       │    │    └── rowid_default:41 => rowid:36
+      │         │                                       │    │    ├── a_new:20 => a:10
+      │         │                                       │    │    ├── b_new:21 => b:11
+      │         │                                       │    │    └── rowid_default:17 => rowid:12
       │         │                                       │    ├── before-triggers
       │         │                                       │    │    └── tr
       │         │                                       │    └── project
-      │         │                                       │         ├── columns: a_new:44 b_new:45 column1:39 column2:40 rowid_default:41 new:42 insert_ab:43
+      │         │                                       │         ├── columns: a_new:20 b_new:21 column1:15 column2:16 rowid_default:17 new:18 insert_ab:19
       │         │                                       │         ├── barrier
-      │         │                                       │         │    ├── columns: column1:39 column2:40 rowid_default:41 new:42 insert_ab:43
+      │         │                                       │         │    ├── columns: column1:15 column2:16 rowid_default:17 new:18 insert_ab:19
       │         │                                       │         │    └── select
-      │         │                                       │         │         ├── columns: column1:39 column2:40 rowid_default:41 new:42 insert_ab:43
+      │         │                                       │         │         ├── columns: column1:15 column2:16 rowid_default:17 new:18 insert_ab:19
       │         │                                       │         │         ├── project
-      │         │                                       │         │         │    ├── columns: insert_ab:43 column1:39 column2:40 rowid_default:41 new:42
+      │         │                                       │         │         │    ├── columns: insert_ab:19 column1:15 column2:16 rowid_default:17 new:18
       │         │                                       │         │         │    ├── barrier
-      │         │                                       │         │         │    │    ├── columns: column1:39 column2:40 rowid_default:41 new:42
+      │         │                                       │         │         │    │    ├── columns: column1:15 column2:16 rowid_default:17 new:18
       │         │                                       │         │         │    │    └── project
-      │         │                                       │         │         │    │         ├── columns: new:42 column1:39 column2:40 rowid_default:41
+      │         │                                       │         │         │    │         ├── columns: new:18 column1:15 column2:16 rowid_default:17
       │         │                                       │         │         │    │         ├── values
-      │         │                                       │         │         │    │         │    ├── columns: column1:39 column2:40 rowid_default:41
+      │         │                                       │         │         │    │         │    ├── columns: column1:15 column2:16 rowid_default:17
       │         │                                       │         │         │    │         │    └── tuple
       │         │                                       │         │         │    │         │         ├── column-access: 0
-      │         │                                       │         │         │    │         │         │    └── variable: new:22
+      │         │                                       │         │         │    │         │         │    └── placeholder: $1
       │         │                                       │         │         │    │         │         ├── column-access: 1
-      │         │                                       │         │         │    │         │         │    └── variable: new:22
+      │         │                                       │         │         │    │         │         │    └── placeholder: $1
       │         │                                       │         │         │    │         │         └── function: unique_rowid
       │         │                                       │         │         │    │         └── projections
-      │         │                                       │         │         │    │              └── tuple [as=new:42]
-      │         │                                       │         │         │    │                   ├── variable: column1:39
-      │         │                                       │         │         │    │                   └── variable: column2:40
+      │         │                                       │         │         │    │              └── tuple [as=new:18]
+      │         │                                       │         │         │    │                   ├── variable: column1:15
+      │         │                                       │         │         │    │                   └── variable: column2:16
       │         │                                       │         │         │    └── projections
-      │         │                                       │         │         │         └── udf: insert_ab [as=insert_ab:43]
+      │         │                                       │         │         │         └── udf: insert_ab [as=insert_ab:19]
       │         │                                       │         │         │              ├── args
-      │         │                                       │         │         │              │    ├── variable: new:42
+      │         │                                       │         │         │              │    ├── variable: new:18
       │         │                                       │         │         │              │    ├── null
       │         │                                       │         │         │              │    ├── const: 'tr'
       │         │                                       │         │         │              │    ├── const: 'BEFORE'
@@ -804,26 +804,26 @@ insert ab
       │         │                                       │         │         │              └── recursive-call
       │         │                                       │         │         └── filters
       │         │                                       │         │              └── is-not
-      │         │                                       │         │                   ├── variable: insert_ab:43
+      │         │                                       │         │                   ├── variable: insert_ab:19
       │         │                                       │         │                   └── null
       │         │                                       │         └── projections
-      │         │                                       │              ├── column-access: 0 [as=a_new:44]
-      │         │                                       │              │    └── variable: insert_ab:43
-      │         │                                       │              └── column-access: 1 [as=b_new:45]
-      │         │                                       │                   └── variable: insert_ab:43
+      │         │                                       │              ├── column-access: 0 [as=a_new:20]
+      │         │                                       │              │    └── variable: insert_ab:19
+      │         │                                       │              └── column-access: 1 [as=b_new:21]
+      │         │                                       │                   └── variable: insert_ab:19
       │         │                                       └── values
-      │         │                                            ├── columns: stmt_return_2:46
+      │         │                                            ├── columns: stmt_return_2:22
       │         │                                            └── tuple
-      │         │                                                 └── variable: new:22
+      │         │                                                 └── placeholder: $1
       │         └── filters
       │              └── is-not
-      │                   ├── variable: insert_ab:48
+      │                   ├── variable: insert_ab:24
       │                   └── null
       └── projections
-           ├── column-access: 0 [as=a_new:49]
-           │    └── variable: insert_ab:48
-           └── column-access: 1 [as=b_new:50]
-                └── variable: insert_ab:48
+           ├── column-access: 0 [as=a_new:25]
+           │    └── variable: insert_ab:24
+           └── column-access: 1 [as=b_new:26]
+                └── variable: insert_ab:24
 
 # ------------------------------------------------------------------------------
 # Row-level AFTER triggers.
@@ -854,9 +854,9 @@ root
  │         └── (1, 2)
  └── after-triggers
       └── barrier
-           ├── columns: column1_new:7 column2_new:8 old:9 new:10 f:24
+           ├── columns: column1_new:7 column2_new:8 old:9 new:10 f:12
            └── project
-                ├── columns: f:24 column1_new:7 column2_new:8 old:9 new:10
+                ├── columns: f:12 column1_new:7 column2_new:8 old:9 new:10
                 ├── project
                 │    ├── columns: new:10 column1_new:7 column2_new:8 old:9
                 │    ├── project
@@ -871,7 +871,7 @@ root
                 │    └── projections
                 │         └── ((column1_new:7, column2_new:8) AS x, y) [as=new:10]
                 └── projections
-                     └── f(new:10, old:9, 'tr', 'AFTER', 'ROW', 'INSERT', 53, 'xy', 'xy', 'public', 0, ARRAY[]) [as=f:24]
+                     └── f(new:10, old:9, 'tr', 'AFTER', 'ROW', 'INSERT', 53, 'xy', 'xy', 'public', 0, ARRAY[]) [as=f:12]
 
 build-post-queries format=(hide-all,show-columns)
 UPDATE xy SET y = 3 WHERE x = 1;
@@ -898,9 +898,9 @@ root
  │              └── 3 [as=y_new:9]
  └── after-triggers
       └── barrier
-           ├── columns: x_old:10 y_old:11 x_new:12 y_new_new:13 old:14 new:15 f:29
+           ├── columns: x_old:10 y_old:11 x_new:12 y_new_new:13 old:14 new:15 f:17
            └── project
-                ├── columns: f:29 x_old:10 y_old:11 x_new:12 y_new_new:13 old:14 new:15
+                ├── columns: f:17 x_old:10 y_old:11 x_new:12 y_new_new:13 old:14 new:15
                 ├── project
                 │    ├── columns: new:15 x_old:10 y_old:11 x_new:12 y_new_new:13 old:14
                 │    ├── project
@@ -917,7 +917,7 @@ root
                 │    └── projections
                 │         └── ((x_new:12, y_new_new:13) AS x, y) [as=new:15]
                 └── projections
-                     └── f(new:15, old:14, 'tr', 'AFTER', 'ROW', 'UPDATE', 53, 'xy', 'xy', 'public', 0, ARRAY[]) [as=f:29]
+                     └── f(new:15, old:14, 'tr', 'AFTER', 'ROW', 'UPDATE', 53, 'xy', 'xy', 'public', 0, ARRAY[]) [as=f:17]
 
 build-post-queries format=(hide-all,show-columns)
 DELETE FROM xy WHERE x = 1;
@@ -945,15 +945,15 @@ root
  │         ├── before-triggers
  │         │    └── tr_child
  │         └── barrier
- │              ├── columns: k:13 child.x:14 old:17 f:31 "check-rows":32
+ │              ├── columns: k:13 child.x:14 old:17 f:19 "check-rows":20
  │              └── select
- │                   ├── columns: k:13 child.x:14 old:17 f:31 "check-rows":32
+ │                   ├── columns: k:13 child.x:14 old:17 f:19 "check-rows":20
  │                   ├── barrier
- │                   │    ├── columns: k:13 child.x:14 old:17 f:31 "check-rows":32
+ │                   │    ├── columns: k:13 child.x:14 old:17 f:19 "check-rows":20
  │                   │    └── project
- │                   │         ├── columns: "check-rows":32 k:13 child.x:14 old:17 f:31
+ │                   │         ├── columns: "check-rows":20 k:13 child.x:14 old:17 f:19
  │                   │         ├── project
- │                   │         │    ├── columns: f:31 k:13 child.x:14 old:17
+ │                   │         │    ├── columns: f:19 k:13 child.x:14 old:17
  │                   │         │    ├── barrier
  │                   │         │    │    ├── columns: k:13 child.x:14 old:17
  │                   │         │    │    └── project
@@ -969,31 +969,31 @@ root
  │                   │         │    │         └── projections
  │                   │         │    │              └── ((k:13, child.x:14) AS k, x) [as=old:17]
  │                   │         │    └── projections
- │                   │         │         └── f(NULL, old:17, 'tr_child', 'BEFORE', 'ROW', 'DELETE', 54, 'child', 'child', 'public', 0, ARRAY[]) [as=f:31]
+ │                   │         │         └── f(NULL, old:17, 'tr_child', 'BEFORE', 'ROW', 'DELETE', 54, 'child', 'child', 'public', 0, ARRAY[]) [as=f:19]
  │                   │         └── projections
- │                   │              └── CASE WHEN f:31 IS DISTINCT FROM old:17 THEN crdb_internal.plpgsql_raise('ERROR', 'trigger tr_child attempted to modify or filter a row in a cascade operation: ' || old:17::STRING, e'changing the rows updated or deleted by a foreign-key cascade\n can cause constraint violations, and therefore is not allowed', e'to enable this behavior (with risk of constraint violation), set\nthe session variable \'unsafe_allow_triggers_modifying_cascades\' to true', '27000') ELSE CAST(NULL AS INT8) END [as="check-rows":32]
+ │                   │              └── CASE WHEN f:19 IS DISTINCT FROM old:17 THEN crdb_internal.plpgsql_raise('ERROR', 'trigger tr_child attempted to modify or filter a row in a cascade operation: ' || old:17::STRING, e'changing the rows updated or deleted by a foreign-key cascade\n can cause constraint violations, and therefore is not allowed', e'to enable this behavior (with risk of constraint violation), set\nthe session variable \'unsafe_allow_triggers_modifying_cascades\' to true', '27000') ELSE CAST(NULL AS INT8) END [as="check-rows":20]
  │                   └── filters
- │                        └── f:31 IS DISTINCT FROM NULL
+ │                        └── f:19 IS DISTINCT FROM NULL
  └── after-triggers
       └── barrier
-           ├── columns: x_old:33 y_old:34 old:35 new:36 f:50
+           ├── columns: x_old:21 y_old:22 old:23 new:24 f:26
            └── project
-                ├── columns: f:50 x_old:33 y_old:34 old:35 new:36
+                ├── columns: f:26 x_old:21 y_old:22 old:23 new:24
                 ├── project
-                │    ├── columns: new:36 x_old:33 y_old:34 old:35
+                │    ├── columns: new:24 x_old:21 y_old:22 old:23
                 │    ├── project
-                │    │    ├── columns: old:35 x_old:33 y_old:34
+                │    │    ├── columns: old:23 x_old:21 y_old:22
                 │    │    ├── with-scan &1
-                │    │    │    ├── columns: x_old:33 y_old:34
+                │    │    │    ├── columns: x_old:21 y_old:22
                 │    │    │    └── mapping:
-                │    │    │         ├──  xy.x:5 => x_old:33
-                │    │    │         └──  y:6 => y_old:34
+                │    │    │         ├──  xy.x:5 => x_old:21
+                │    │    │         └──  y:6 => y_old:22
                 │    │    └── projections
-                │    │         └── ((x_old:33, y_old:34) AS x, y) [as=old:35]
+                │    │         └── ((x_old:21, y_old:22) AS x, y) [as=old:23]
                 │    └── projections
-                │         └── NULL [as=new:36]
+                │         └── NULL [as=new:24]
                 └── projections
-                     └── f(new:36, old:35, 'tr', 'AFTER', 'ROW', 'DELETE', 53, 'xy', 'xy', 'public', 0, ARRAY[]) [as=f:50]
+                     └── f(new:24, old:23, 'tr', 'AFTER', 'ROW', 'DELETE', 53, 'xy', 'xy', 'public', 0, ARRAY[]) [as=f:26]
 
 build-post-queries format=(hide-all,show-columns)
 UPSERT INTO xy VALUES (1, 2);
@@ -1034,9 +1034,9 @@ root
  │              └── CASE WHEN x:7 IS NULL THEN column1:5 ELSE x:7 END [as=upsert_x:11]
  └── after-triggers
       └── barrier
-           ├── columns: canary:12 x_old:13 y_old:14 x_new:15 column2_new:16 column1_new:17 column2_new:18 old:19 new:20 f:34
+           ├── columns: canary:12 x_old:13 y_old:14 x_new:15 column2_new:16 column1_new:17 column2_new:18 old:19 new:20 f:22
            └── project
-                ├── columns: f:34 canary:12 x_old:13 y_old:14 x_new:15 column2_new:16 column1_new:17 column2_new:18 old:19 new:20
+                ├── columns: f:22 canary:12 x_old:13 y_old:14 x_new:15 column2_new:16 column1_new:17 column2_new:18 old:19 new:20
                 ├── project
                 │    ├── columns: new:20 canary:12 x_old:13 y_old:14 x_new:15 column2_new:16 column1_new:17 column2_new:18 old:19
                 │    ├── project
@@ -1056,7 +1056,7 @@ root
                 │    └── projections
                 │         └── CASE WHEN canary:12 IS NULL THEN ((column1_new:17, column2_new:18) AS x, y) ELSE ((x_new:15, column2_new:16) AS x, y) END [as=new:20]
                 └── projections
-                     └── f(new:20, old:19, 'tr', 'AFTER', 'ROW', CASE WHEN canary:12 IS NULL THEN 'INSERT' ELSE 'UPDATE' END, 53, 'xy', 'xy', 'public', 0, ARRAY[]) [as=f:34]
+                     └── f(new:20, old:19, 'tr', 'AFTER', 'ROW', CASE WHEN canary:12 IS NULL THEN 'INSERT' ELSE 'UPDATE' END, 53, 'xy', 'xy', 'public', 0, ARRAY[]) [as=f:22]
 
 build-post-queries format=(hide-all,show-columns)
 INSERT INTO xy VALUES (1, 2) ON CONFLICT (x) DO UPDATE SET y = 3;
@@ -1102,9 +1102,9 @@ root
  │              └── CASE WHEN x:7 IS NULL THEN column2:6 ELSE y_new:11 END [as=upsert_y:13]
  └── after-triggers
       └── barrier
-           ├── columns: canary:14 x_old:15 y_old:16 x_new:17 upsert_y_new:18 column1_new:19 column2_new:20 old:21 new:22 f:36
+           ├── columns: canary:14 x_old:15 y_old:16 x_new:17 upsert_y_new:18 column1_new:19 column2_new:20 old:21 new:22 f:24
            └── project
-                ├── columns: f:36 canary:14 x_old:15 y_old:16 x_new:17 upsert_y_new:18 column1_new:19 column2_new:20 old:21 new:22
+                ├── columns: f:24 canary:14 x_old:15 y_old:16 x_new:17 upsert_y_new:18 column1_new:19 column2_new:20 old:21 new:22
                 ├── project
                 │    ├── columns: new:22 canary:14 x_old:15 y_old:16 x_new:17 upsert_y_new:18 column1_new:19 column2_new:20 old:21
                 │    ├── project
@@ -1124,7 +1124,7 @@ root
                 │    └── projections
                 │         └── CASE WHEN canary:14 IS NULL THEN ((column1_new:19, column2_new:20) AS x, y) ELSE ((x_new:17, upsert_y_new:18) AS x, y) END [as=new:22]
                 └── projections
-                     └── f(new:22, old:21, 'tr', 'AFTER', 'ROW', CASE WHEN canary:14 IS NULL THEN 'INSERT' ELSE 'UPDATE' END, 53, 'xy', 'xy', 'public', 0, ARRAY[]) [as=f:36]
+                     └── f(new:22, old:21, 'tr', 'AFTER', 'ROW', CASE WHEN canary:14 IS NULL THEN 'INSERT' ELSE 'UPDATE' END, 53, 'xy', 'xy', 'public', 0, ARRAY[]) [as=f:24]
 
 # Case with multiple triggers.
 exec-ddl
@@ -1149,13 +1149,13 @@ root
  │         └── (1, 2)
  └── after-triggers
       └── barrier
-           ├── columns: column1_new:7 column2_new:8 old:9 new:10 f:24 f:38
+           ├── columns: column1_new:7 column2_new:8 old:9 new:10 f:12 f:14
            └── project
-                ├── columns: f:38 column1_new:7 column2_new:8 old:9 new:10 f:24
+                ├── columns: f:14 column1_new:7 column2_new:8 old:9 new:10 f:12
                 ├── barrier
-                │    ├── columns: column1_new:7 column2_new:8 old:9 new:10 f:24
+                │    ├── columns: column1_new:7 column2_new:8 old:9 new:10 f:12
                 │    └── project
-                │         ├── columns: f:24 column1_new:7 column2_new:8 old:9 new:10
+                │         ├── columns: f:12 column1_new:7 column2_new:8 old:9 new:10
                 │         ├── project
                 │         │    ├── columns: new:10 column1_new:7 column2_new:8 old:9
                 │         │    ├── project
@@ -1170,9 +1170,9 @@ root
                 │         │    └── projections
                 │         │         └── ((column1_new:7, column2_new:8) AS x, y) [as=new:10]
                 │         └── projections
-                │              └── f(new:10, old:9, 'tr', 'AFTER', 'ROW', 'INSERT', 53, 'xy', 'xy', 'public', 0, ARRAY[]) [as=f:24]
+                │              └── f(new:10, old:9, 'tr', 'AFTER', 'ROW', 'INSERT', 53, 'xy', 'xy', 'public', 0, ARRAY[]) [as=f:12]
                 └── projections
-                     └── f(new:10, old:9, 'tr2', 'AFTER', 'ROW', 'INSERT', 53, 'xy', 'xy', 'public', 0, ARRAY[]) [as=f:38]
+                     └── f(new:10, old:9, 'tr2', 'AFTER', 'ROW', 'INSERT', 53, 'xy', 'xy', 'public', 0, ARRAY[]) [as=f:14]
 
 # ------------------------------------------------------------------------------
 # Regression tests.
@@ -1285,35 +1285,35 @@ upsert t154672
  ├── canary column: k:9
  ├── fetch columns: k:9 a:10 b:11
  ├── insert-mapping:
- │    ├── k_new:29 => k:1
- │    ├── a_new:30 => a:2
- │    └── b_comp:31 => b:3
+ │    ├── k_new:17 => k:1
+ │    ├── a_new:18 => a:2
+ │    └── b_comp:19 => b:3
  ├── update-mapping:
- │    ├── upsert_k:40 => k:1
- │    ├── upsert_a:41 => a:2
- │    └── upsert_b:42 => b:3
+ │    ├── upsert_k:28 => k:1
+ │    ├── upsert_a:29 => a:2
+ │    └── upsert_b:30 => b:3
  ├── before-triggers
  │    └── tr154672
  └── project
-      ├── columns: upsert_k:40 upsert_a:41 upsert_b:42 k:9 a:10 b:11 k_new:29 a_new:30 b_comp:31
+      ├── columns: upsert_k:28 upsert_a:29 upsert_b:30 k:9 a:10 b:11 k_new:17 a_new:18 b_comp:19
       ├── project
-      │    ├── columns: k_new:37 a_new:38 k:9 a:10 b:11 k_new:29 a_new:30 b_comp:31
+      │    ├── columns: k_new:25 a_new:26 k:9 a:10 b:11 k_new:17 a_new:18 b_comp:19
       │    ├── barrier
-      │    │    ├── columns: column1:6!null column2:7!null b_comp:8!null k:9 a:10 b:11 crdb_internal_mvcc_timestamp:12 tableoid:13 new:14 f154672:28!null k_new:29 a_new:30 b_comp:31 a_new:32!null b_comp:33!null old:34 new:35 f154672:36!null
+      │    │    ├── columns: column1:6!null column2:7!null b_comp:8!null k:9 a:10 b:11 crdb_internal_mvcc_timestamp:12 tableoid:13 new:14 f154672:16!null k_new:17 a_new:18 b_comp:19 a_new:20!null b_comp:21!null old:22 new:23 f154672:24!null
       │    │    └── select
-      │    │         ├── columns: column1:6!null column2:7!null b_comp:8!null k:9 a:10 b:11 crdb_internal_mvcc_timestamp:12 tableoid:13 new:14 f154672:28!null k_new:29 a_new:30 b_comp:31 a_new:32!null b_comp:33!null old:34 new:35 f154672:36!null
+      │    │         ├── columns: column1:6!null column2:7!null b_comp:8!null k:9 a:10 b:11 crdb_internal_mvcc_timestamp:12 tableoid:13 new:14 f154672:16!null k_new:17 a_new:18 b_comp:19 a_new:20!null b_comp:21!null old:22 new:23 f154672:24!null
       │    │         ├── project
-      │    │         │    ├── columns: f154672:36 column1:6!null column2:7!null b_comp:8!null k:9 a:10 b:11 crdb_internal_mvcc_timestamp:12 tableoid:13 new:14 f154672:28!null k_new:29 a_new:30 b_comp:31 a_new:32!null b_comp:33!null old:34 new:35
+      │    │         │    ├── columns: f154672:24 column1:6!null column2:7!null b_comp:8!null k:9 a:10 b:11 crdb_internal_mvcc_timestamp:12 tableoid:13 new:14 f154672:16!null k_new:17 a_new:18 b_comp:19 a_new:20!null b_comp:21!null old:22 new:23
       │    │         │    ├── barrier
-      │    │         │    │    ├── columns: column1:6!null column2:7!null b_comp:8!null k:9 a:10 b:11 crdb_internal_mvcc_timestamp:12 tableoid:13 new:14 f154672:28!null k_new:29 a_new:30 b_comp:31 a_new:32!null b_comp:33!null old:34 new:35
+      │    │         │    │    ├── columns: column1:6!null column2:7!null b_comp:8!null k:9 a:10 b:11 crdb_internal_mvcc_timestamp:12 tableoid:13 new:14 f154672:16!null k_new:17 a_new:18 b_comp:19 a_new:20!null b_comp:21!null old:22 new:23
       │    │         │    │    └── project
-      │    │         │    │         ├── columns: new:35 old:34 b_comp:33!null a_new:32!null b_comp:31 k_new:29 a_new:30 column1:6!null column2:7!null b_comp:8!null k:9 a:10 b:11 crdb_internal_mvcc_timestamp:12 tableoid:13 new:14 f154672:28!null
+      │    │         │    │         ├── columns: new:23 old:22 b_comp:21!null a_new:20!null b_comp:19 k_new:17 a_new:18 column1:6!null column2:7!null b_comp:8!null k:9 a:10 b:11 crdb_internal_mvcc_timestamp:12 tableoid:13 new:14 f154672:16!null
       │    │         │    │         ├── barrier
-      │    │         │    │         │    ├── columns: column1:6!null column2:7!null b_comp:8!null k:9 a:10 b:11 crdb_internal_mvcc_timestamp:12 tableoid:13 new:14 f154672:28!null
+      │    │         │    │         │    ├── columns: column1:6!null column2:7!null b_comp:8!null k:9 a:10 b:11 crdb_internal_mvcc_timestamp:12 tableoid:13 new:14 f154672:16!null
       │    │         │    │         │    └── select
-      │    │         │    │         │         ├── columns: column1:6!null column2:7!null b_comp:8!null k:9 a:10 b:11 crdb_internal_mvcc_timestamp:12 tableoid:13 new:14 f154672:28!null
+      │    │         │    │         │         ├── columns: column1:6!null column2:7!null b_comp:8!null k:9 a:10 b:11 crdb_internal_mvcc_timestamp:12 tableoid:13 new:14 f154672:16!null
       │    │         │    │         │         ├── project
-      │    │         │    │         │         │    ├── columns: f154672:28 column1:6!null column2:7!null b_comp:8!null k:9 a:10 b:11 crdb_internal_mvcc_timestamp:12 tableoid:13 new:14
+      │    │         │    │         │         │    ├── columns: f154672:16 column1:6!null column2:7!null b_comp:8!null k:9 a:10 b:11 crdb_internal_mvcc_timestamp:12 tableoid:13 new:14
       │    │         │    │         │         │    ├── barrier
       │    │         │    │         │         │    │    ├── columns: column1:6!null column2:7!null b_comp:8!null k:9 a:10 b:11 crdb_internal_mvcc_timestamp:12 tableoid:13 new:14
       │    │         │    │         │         │    │    └── project
@@ -1337,25 +1337,25 @@ upsert t154672
       │    │         │    │         │         │    │         └── projections
       │    │         │    │         │         │    │              └── ((column1:6, column2:7, CAST(NULL AS INT8)) AS k, a, b) [as=new:14]
       │    │         │    │         │         │    └── projections
-      │    │         │    │         │         │         └── f154672(new:14, NULL, 'tr154672', 'BEFORE', 'ROW', 'INSERT', 61, 't154672', 't154672', 'public', 0, ARRAY[]) [as=f154672:28]
+      │    │         │    │         │         │         └── f154672(new:14, NULL, 'tr154672', 'BEFORE', 'ROW', 'INSERT', 61, 't154672', 't154672', 'public', 0, ARRAY[]) [as=f154672:16]
       │    │         │    │         │         └── filters
-      │    │         │    │         │              └── f154672:28 IS DISTINCT FROM NULL
+      │    │         │    │         │              └── f154672:16 IS DISTINCT FROM NULL
       │    │         │    │         └── projections
-      │    │         │    │              ├── ((k:9, 3, CAST(NULL AS INT8)) AS k, a, b) [as=new:35]
-      │    │         │    │              ├── ((k:9, a:10, CAST(NULL AS INT8)) AS k, a, b) [as=old:34]
-      │    │         │    │              ├── 4 [as=b_comp:33]
-      │    │         │    │              ├── 3 [as=a_new:32]
-      │    │         │    │              ├── a:10 + 1 [as=b_comp:31]
-      │    │         │    │              ├── (f154672:28).k [as=k_new:29]
-      │    │         │    │              └── (f154672:28).a [as=a_new:30]
+      │    │         │    │              ├── ((k:9, 3, CAST(NULL AS INT8)) AS k, a, b) [as=new:23]
+      │    │         │    │              ├── ((k:9, a:10, CAST(NULL AS INT8)) AS k, a, b) [as=old:22]
+      │    │         │    │              ├── 4 [as=b_comp:21]
+      │    │         │    │              ├── 3 [as=a_new:20]
+      │    │         │    │              ├── a:10 + 1 [as=b_comp:19]
+      │    │         │    │              ├── (f154672:16).k [as=k_new:17]
+      │    │         │    │              └── (f154672:16).a [as=a_new:18]
       │    │         │    └── projections
-      │    │         │         └── CASE WHEN k:9 IS NOT NULL THEN f154672(new:35, old:34, 'tr154672', 'BEFORE', 'ROW', 'UPDATE', 61, 't154672', 't154672', 'public', 0, ARRAY[]) ELSE new:35 END [as=f154672:36]
+      │    │         │         └── CASE WHEN k:9 IS NOT NULL THEN f154672(new:23, old:22, 'tr154672', 'BEFORE', 'ROW', 'UPDATE', 61, 't154672', 't154672', 'public', 0, ARRAY[]) ELSE new:23 END [as=f154672:24]
       │    │         └── filters
-      │    │              └── f154672:36 IS DISTINCT FROM NULL
+      │    │              └── f154672:24 IS DISTINCT FROM NULL
       │    └── projections
-      │         ├── (f154672:36).k [as=k_new:37]
-      │         └── (f154672:36).a [as=a_new:38]
+      │         ├── (f154672:24).k [as=k_new:25]
+      │         └── (f154672:24).a [as=a_new:26]
       └── projections
-           ├── CASE WHEN k:9 IS NULL THEN k_new:29 ELSE k_new:37 END [as=upsert_k:40]
-           ├── CASE WHEN k:9 IS NULL THEN a_new:30 ELSE a_new:38 END [as=upsert_a:41]
-           └── CASE WHEN k:9 IS NULL THEN b_comp:31 ELSE a_new:38 + 1 END [as=upsert_b:42]
+           ├── CASE WHEN k:9 IS NULL THEN k_new:17 ELSE k_new:25 END [as=upsert_k:28]
+           ├── CASE WHEN k:9 IS NULL THEN a_new:18 ELSE a_new:26 END [as=upsert_a:29]
+           └── CASE WHEN k:9 IS NULL THEN b_comp:19 ELSE a_new:26 + 1 END [as=upsert_b:30]
