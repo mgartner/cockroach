@@ -674,6 +674,10 @@ func (c *CustomFuncs) ScalarExprAt(list memo.ScalarListExpr, i int) (_ opt.Scala
 	return nil, false
 }
 
+func (c *CustomFuncs) DropLast(list memo.ScalarListExpr) memo.ScalarListExpr {
+	return list[:len(list)-1]
+}
+
 // ----------------------------------------------------------------------
 //
 // Ordering functions

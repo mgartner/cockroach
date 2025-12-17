@@ -31,6 +31,49 @@
 =>
 (Select $input (SimplifyFilters $filters))
 
+[SimplifySelectCaseTrailingFalsyBranch, Normalize]
+(Select
+    $input:*
+    $filters:[
+        ...
+        $item:(FiltersItem
+            (Case
+                (True)
+                $whens:[ ... (When * (False | Null)) ]
+                $orElse:(False | Null)
+            )
+        )
+        ...
+    ]
+)
+=>
+(Select
+    $input
+    (ReplaceFiltersItem
+        $filters
+        $item
+        (Case (True) (DropLast $whens) $orElse)
+    )
+)
+
+[SimplifySelectCaseSingleTruthyBranch, Normalize]
+(Select
+    $input:*
+    $filters:[
+        ...
+        $item:(FiltersItem
+            (Case
+                (True)
+                $whens:[ (When $cond:* (True)) ]
+                (False | Null)
+            )
+        )
+        ...
+    ]
+)
+=>
+(Select $input (ReplaceFiltersItem $filters $item $cond))
+
 # ConsolidateSelectFilters consolidates filters that constrain a single
 # variable. For example, filters x >= 5 and x <= 10 would be combined into a
 # single Range operation.

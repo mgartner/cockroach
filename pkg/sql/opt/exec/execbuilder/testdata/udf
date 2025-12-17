@@ -383,3 +383,38 @@ vectorized: true
 │
 └── • emptyrow
       columns: ()
+
+statement ok
+CREATE TABLE t2 (
+	a INT,
+	b INT,
+	c INT,
+	INDEX (a, b) STORING (c),
+	FAMILY (a, b, c)
+)
+
+statement ok
+INSERT INTO t2 SELECT 33, i, i * 10 FROM generate_series(1, 1000) AS g(i)
+
+statement ok
+ANALYZE t2
+
+statement ok
+CREATE OR REPLACE FUNCTION f2(x INT, y INT[]) RETURNS INT LANGUAGE SQL AS $$
+    SELECT c FROM t2 WHERE a = x AND b IN (SELECT UNNEST(y))
+$$
+
+query T kvtrace
+SELECT c FROM t2 WHERE a = 33 AND b IN (SELECT unnest(ARRAY[44, 55]::INT[]))
+----
+Scan /Table/126/2/33/4{4-5}, /Table/126/2/33/5{5-6}
+
+query T kvtrace
+SELECT c FROM t2 WHERE a = 33 AND b = ANY(ARRAY[44, 55]::INT[])
+----
+Scan /Table/126/2/33/4{4-5}, /Table/126/2/33/5{5-6}
+
+query T kvtrace
+SELECT f2(33, ARRAY[44, 55]::INT[])
+----
+Scan /Table/126/2/33/4{4-5}, /Table/126/2/33/5{5-6}

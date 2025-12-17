@@ -7,6 +7,7 @@ package execbuilder
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/cockroachdb/cockroach/pkg/sql/opt"
 	"github.com/cockroachdb/cockroach/pkg/sql/opt/exec"
@@ -1272,6 +1273,8 @@ func (b *Builder) buildRoutinePlanGenerator(
 			if err != nil {
 				return err
 			}
+
+			fmt.Println(f.Memo().FormatExpr(optimizedExpr))
 
 			// Identify nested routines that are in tail-call position, and cache them
 			// in the Builder. When a nested routine is evaluated, this information
