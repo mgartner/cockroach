@@ -112,6 +112,20 @@ func init() {
 		},
 
 		{
+			tuples:   colexectestutils.Tuples{{"bbb"}, {"zzz"}, {"aaa"}, {"aaab"}, {"aaaz"}},
+			expected: colexectestutils.Tuples{{"aaa"}, {"aaab"}, {"aaaz"}, {"bbb"}, {"zzz"}},
+			typs:     []*types.T{types.String},
+			ordCols:  []execinfrapb.Ordering_Column{{ColIdx: 0}},
+		},
+
+		{
+			tuples:   colexectestutils.Tuples{{"8"}, {"12345678b"}, {"12345678a"}, {"12345678z"}, {"9"}},
+			expected: colexectestutils.Tuples{{"12345678a"}, {"12345678b"}, {"12345678z"}, {"8"}, {"9"}},
+			typs:     []*types.T{types.String},
+			ordCols:  []execinfrapb.Ordering_Column{{ColIdx: 0}},
+		},
+
+		{
 			// ensure that sort partitions stack: make sure that a run of identical
 			// values in a later column doesn't get sorted if the run is broken up
 			// by previous columns.
@@ -331,6 +345,12 @@ func BenchmarkSort(b *testing.B) {
 	}
 }
 
+// TODO: Next I think I need to write a test where there are n distinct
+// abbreviations and see if I get much different benchmark results.
+// Things are definitely looking better but there is still substantial overhead
+// from HLL. Maybe there are some shortcuts to take, like add multiple abbreviations
+// at once, like unrolling a loop, to avoid too many functions calls. Also,
+// are the Sketch10.Add and Sketch10.Cardinality functions now being inlined?
 func BenchmarkSortUUID(b *testing.B) {
 	rng, _ := randutil.NewTestRand()
 	ctx := context.Background()

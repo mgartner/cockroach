@@ -1,0 +1,14 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "hll",
+    srcs = ["sketch10.go"],
+    importpath = "github.com/cockroachdb/cockroach/pkg/util/hll",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "hll_test",
+    srcs = ["sketch10_test.go"],
+    embed = [":hll"],
+)

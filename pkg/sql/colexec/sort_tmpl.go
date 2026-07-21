@@ -113,9 +113,9 @@ func (s *sort_TYPE_DIR_HANDLES_NULLSOp) init(
 ) {
 	s.sortCol = col.TemplateType()
 	// {{if .CanAbbreviate}}
-	s.allocator = allocator
-	s.allocator.AdjustMemoryUsage(memsize.Uint64 * int64(s.sortCol.Len()))
 	s.abbreviatedSortCol = s.sortCol.Abbreviated()
+	s.allocator = allocator
+	s.allocator.AdjustMemoryUsage(memsize.Uint64 * int64(len(s.abbreviatedSortCol)))
 	// {{end}}
 	s.nulls = col.Nulls()
 	s.order = order
@@ -124,7 +124,7 @@ func (s *sort_TYPE_DIR_HANDLES_NULLSOp) init(
 
 func (s *sort_TYPE_DIR_HANDLES_NULLSOp) reset() {
 	// {{if .CanAbbreviate}}
-	s.allocator.AdjustMemoryUsage(0 - memsize.Uint64*int64(s.sortCol.Len()))
+	s.allocator.AdjustMemoryUsage(0 - memsize.Uint64*int64(len(s.abbreviatedSortCol)))
 	s.allocator = nil
 	s.abbreviatedSortCol = nil
 	// {{end}}
@@ -188,14 +188,16 @@ func (s *sort_TYPE_DIR_HANDLES_NULLSOp) Less(i, j int) bool {
 	// If the type can be abbreviated as a uint64, compare the abbreviated
 	// values first. If they are not equal, we are done with the comparison. If
 	// they are equal, we must fallback to a full comparison of the datums.
-	abbr1 := s.abbreviatedSortCol[s.order[i]]
-	abbr2 := s.abbreviatedSortCol[s.order[j]]
-	if abbr1 != abbr2 {
-		// {{if eq $dir "Asc"}}
-		return abbr1 < abbr2
-		// {{else}}
-		return abbr1 > abbr2
-		// {{end}}
+	if s.abbreviatedSortCol != nil {
+		abbr1 := s.abbreviatedSortCol[s.order[i]]
+		abbr2 := s.abbreviatedSortCol[s.order[j]]
+		if abbr1 != abbr2 {
+			// {{if eq $dir "Asc"}}
+			return abbr1 < abbr2
+			// {{else}}
+			return abbr1 > abbr2
+			// {{end}}
+		}
 	}
 	// {{end}}
 
