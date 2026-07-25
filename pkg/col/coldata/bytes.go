@@ -526,21 +526,33 @@ func (b *Bytes) Abbreviated() []uint64 {
 	// 	// cardinalityCheckFrequency = 64
 	// 	minValsPerDistinctAbbr = 1000
 	// )
-	i := 3
+	i := 7
 	// var sk Sketch10
-	for ; i < int(n); i += 4 {
-		bs0 := b.Get(i - 3)
-		bs1 := b.Get(i - 2)
-		bs2 := b.Get(i - 1)
-		bs3 := b.Get(i)
+	for ; i < int(n); i += 8 {
+		bs0 := b.Get(i - 7)
+		bs1 := b.Get(i - 6)
+		bs2 := b.Get(i - 5)
+		bs3 := b.Get(i - 4)
+		bs4 := b.Get(i - 3)
+		bs5 := b.Get(i - 2)
+		bs6 := b.Get(i - 1)
+		bs7 := b.Get(i)
 		abbr0 := abbreviate(bs0)
 		abbr1 := abbreviate(bs1)
 		abbr2 := abbreviate(bs2)
 		abbr3 := abbreviate(bs3)
-		r[i-3] = abbr0
-		r[i-2] = abbr1
-		r[i-1] = abbr2
-		r[i] = abbr3
+		abbr4 := abbreviate(bs4)
+		abbr5 := abbreviate(bs5)
+		abbr6 := abbreviate(bs6)
+		abbr7 := abbreviate(bs7)
+		r[i-7] = abbr0
+		r[i-6] = abbr1
+		r[i-5] = abbr2
+		r[i-4] = abbr3
+		r[i-3] = abbr4
+		r[i-2] = abbr5
+		r[i-1] = abbr6
+		r[i] = abbr7
 		// sk.Add(abbr)
 		// if i%minValsPerDistinctAbbr == 0 {
 		// 	c := sk.Cardinality()
